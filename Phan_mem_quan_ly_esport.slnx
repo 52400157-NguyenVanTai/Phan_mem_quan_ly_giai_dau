@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BUS/BUS.csproj" />
+  <Project Path="DAL/DAL.csproj" />
+  <Project Path="DTO/DTO.csproj" />
+  <Project Path="Phan_mem_quan_ly_esport/GUI.csproj" />
+</Solution>
