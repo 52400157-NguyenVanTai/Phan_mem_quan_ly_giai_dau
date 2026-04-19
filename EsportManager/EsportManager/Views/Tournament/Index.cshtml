@@ -1,0 +1,72 @@
+@* Tournament/Index.cshtml *@
+@model List<EsportManager.Models.Tournament>
+@{ViewData["Title"]="Giải Đấu";}
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="/">Trang chủ</a> <span>/</span> Giải đấu</div>
+    <h1><i class="fas fa-trophy" style="color:var(--lq-gold);margin-right:10px;"></i>GIẢI ĐẤU ESPORT</h1>
+    <p>Tất cả giải đấu Liên Quân Mobile và Free Fire tại EsportArena VN</p>
+  </div>
+</div>
+<div class="filter-strip">
+  <div class="filter-inner">
+    <a href="/Tournament" class="filter-btn @(ViewBag.Game==null&&ViewBag.Status==null?"active":"")">Tất Cả</a>
+    <a href="/Tournament?game=LienQuan" class="filter-btn @(ViewBag.Game=="LienQuan"?"lq-active":"")">⚔ Liên Quân</a>
+    <a href="/Tournament?game=FreeFire" class="filter-btn @(ViewBag.Game=="FreeFire"?"ff-active":"")">🔥 Free Fire</a>
+    <span style="width:1px;height:20px;background:var(--border);margin:0 4px;"></span>
+    <a href="/Tournament?status=Ongoing" class="filter-btn @(ViewBag.Status=="Ongoing"?"active":"")">🔴 Đang Diễn Ra</a>
+    <a href="/Tournament?status=Registration" class="filter-btn @(ViewBag.Status=="Registration"?"active":"")">🟢 Đăng Ký Mở</a>
+    <a href="/Tournament?status=Upcoming" class="filter-btn @(ViewBag.Status=="Upcoming"?"active":"")">🔵 Sắp Diễn Ra</a>
+    <a href="/Tournament?status=Completed" class="filter-btn @(ViewBag.Status=="Completed"?"active":"")">⬜ Đã Kết Thúc</a>
+    <form method="get" class="search-input-wrap">
+      <input type="text" name="search" value="@ViewBag.Search" placeholder="Tìm giải đấu..." />
+      <i class="fas fa-search"></i>
+    </form>
+  </div>
+</div>
+<div class="page-section">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <span style="font-size:13px;color:var(--text-dim);">Tìm thấy <b style="color:var(--text-white)">@Model.Count</b> giải đấu</span>
+      <a href="/Tournament/Create" class="btn btn-cyan btn-sm"><i class="fas fa-plus"></i> Tạo Giải Đấu</a>
+    </div>
+    <div class="t-grid">
+      @foreach (var t in Model)
+      {
+        bool isLQ = t.Game == EsportManager.Models.GameType.LienQuan;
+        string sc = t.Status switch { EsportManager.Models.TournamentStatus.Ongoing=>"status-ongoing",EsportManager.Models.TournamentStatus.Registration=>"status-registration",EsportManager.Models.TournamentStatus.Upcoming=>"status-upcoming",_=>"status-completed" };
+        string st = t.Status switch { EsportManager.Models.TournamentStatus.Ongoing=>"🔴 LIVE",EsportManager.Models.TournamentStatus.Registration=>"🟢 ĐĂNG KÝ",EsportManager.Models.TournamentStatus.Upcoming=>"🔵 SẮP MỞ",_=>"⬜ KẾT THÚC" };
+        <a href="/Tournament/Detail/@t.Id" class="t-card @(isLQ?"lq-card":"ff-card")">
+          <div class="t-card-banner">
+            @if(isLQ){<div class="lq-banner-bg"></div><div class="t-card-banner-glow lq-glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%)"></div>}
+            else{<div class="ff-banner-bg"></div><div class="t-card-banner-glow ff-glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%)"></div>}
+            <div class="t-card-banner-icon @(isLQ?"lq-icon-color":"ff-icon-color")">@(isLQ?"⚔️":"🔥")</div>
+            <div class="t-status-pill @sc">@st</div>
+            @if(t.IsFeatured){<div class="t-card-feat">⭐ HOT</div>}
+          </div>
+          <div class="t-card-body">
+            <div>
+              <span class="t-card-game-tag @(isLQ?"tag-lq":"tag-ff")">@(isLQ?"⚔ LQ":"🔥 FF")</span>
+              <span class="t-card-game-tag tag-format">@t.MatchFormat · @t.Format</span>
+            </div>
+            <div class="t-card-name">@t.Name</div>
+            <div class="t-card-meta">
+              <div class="t-card-meta-item"><i class="fas fa-users"></i>@t.Registrations.Count/@t.MaxTeams đội</div>
+              <div class="t-card-meta-item"><i class="far fa-calendar"></i>@t.TournamentStart.ToString("dd/MM/yyyy")</div>
+              <div class="t-card-meta-item"><i class="fas fa-globe"></i>@t.Region</div>
+            </div>
+            @if (!string.IsNullOrEmpty(t.PrizePool)){<div class="t-card-prize @(isLQ?"prize-lq":"prize-ff")">🏆 @t.PrizePool</div>}
+            <div class="t-card-footer">
+              <div class="t-card-slots">
+                <div style="font-size:12px;color:var(--text-dim);">@t.Registrations.Count / @t.MaxTeams slots</div>
+                <div class="slot-bar mt-1"><div class="@(isLQ?"slot-fill-lq":"slot-fill-ff")" style="width:@(t.MaxTeams>0?t.Registrations.Count*100/t.MaxTeams:0)%"></div></div>
+              </div>
+              <span class="btn btn-sm @(isLQ?"btn-lq":"btn-ff")">Tham Gia</span>
+            </div>
+          </div>
+        </a>
+      }
+    </div>
+    @if(!Model.Any()){<div style="text-align:center;padding:80px;color:var(--text-dim);"><div style="font-size:60px;margin-bottom:16px;">🔍</div><div style="font-family:'Rajdhani',sans-serif;font-size:20px;">Không tìm thấy giải đấu</div></div>}
+  </div>
+</div>

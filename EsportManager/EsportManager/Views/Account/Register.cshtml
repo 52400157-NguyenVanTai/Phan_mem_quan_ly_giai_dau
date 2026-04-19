@@ -1,0 +1,46 @@
+@{ViewData["Title"] = "Đăng Ký"; Layout = "~/Views/Shared/_Layout.cshtml";}
+<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:var(--bg-void);position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);background-size:50px 50px;"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(255,193,7,0.04),transparent 50%),radial-gradient(ellipse at 70% 50%,rgba(255,87,34,0.04),transparent 50%);"></div>
+  <div class="form-card" style="position:relative;z-index:1;max-width:640px;width:100%;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:40px;margin-bottom:8px;">🎮</div>
+      <div class="form-card-title" style="margin-bottom:4px;">TẠO TÀI KHOẢN</div>
+      <div style="font-size:13px;color:var(--text-dim);">Tham gia cộng đồng EsportArena VN</div>
+    </div>
+    <div class="social-btns">
+      <button class="btn-social btn-social-fb"><i class="fab fa-facebook-f"></i> Facebook</button>
+      <button class="btn-social btn-social-gg"><i class="fab fa-google"></i> Google</button>
+    </div>
+    <div class="or-divider"><span>hoặc tạo tài khoản mới</span></div>
+    <form method="post">
+      <div class="grid-2-form">
+        <div class="form-group"><label class="form-label">Username *</label><input class="form-input" name="Username" placeholder="shadow_x" required /></div>
+        <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" name="Email" placeholder="email@example.com" required /></div>
+        <div class="form-group"><label class="form-label">Mật Khẩu *</label><input class="form-input" type="password" name="PasswordHash" placeholder="••••••••" required /></div>
+        <div class="form-group"><label class="form-label">Xác Nhận MK</label><input class="form-input" type="password" placeholder="••••••••" /></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tên Ingame *</label><input class="form-input" name="IngameName" placeholder="Tên hiển thị trong game" required /></div>
+      <div style="background:rgba(0,229,255,0.04);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:18px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);margin-bottom:12px;">⚔ Liên Quân Mobile</div>
+        <div class="grid-2-form">
+          <div class="form-group" style="margin:0;"><label class="form-label">UID Liên Quân</label><input class="form-input" name="GameUID_LQ" placeholder="LQ#123456" /></div>
+          <div class="form-group" style="margin:0;"><label class="form-label">Rank LQ</label>
+            <select class="form-input" name="Rank_LQ"><option>Unranked</option><option>Đồng</option><option>Bạc</option><option>Vàng</option><option>Bạch Kim</option><option>Kim Cương</option><option>Cao Thủ</option><option>Thách Đấu</option></select>
+          </div>
+        </div>
+      </div>
+      <div style="background:rgba(255,87,34,0.04);border:1px solid rgba(255,87,34,0.2);border-radius:var(--radius);padding:16px;margin-bottom:18px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ff-orange);margin-bottom:12px;">🔥 Free Fire</div>
+        <div class="grid-2-form">
+          <div class="form-group" style="margin:0;"><label class="form-label">UID Free Fire</label><input class="form-input" name="GameUID_FF" placeholder="FF#123456" /></div>
+          <div class="form-group" style="margin:0;"><label class="form-label">Rank FF</label>
+            <select class="form-input" name="Rank_FF"><option>Bronze</option><option>Silver</option><option>Gold</option><option>Platinum</option><option>Diamond</option><option>Heroic</option><option>Grandmaster</option></select>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-cyan btn-full"><i class="fas fa-user-plus"></i> TẠO TÀI KHOẢN</button>
+    </form>
+    <p style="text-align:center;font-size:13px;color:var(--text-dim);margin-top:16px;">Đã có tài khoản? <a href="/Account/Login" style="color:var(--cyan);font-weight:700;">Đăng Nhập</a></p>
+  </div>
+</div>

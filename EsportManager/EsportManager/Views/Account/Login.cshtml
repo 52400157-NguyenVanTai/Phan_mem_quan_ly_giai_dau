@@ -1,0 +1,35 @@
+@{ViewData["Title"] = "Đăng Nhập"; Layout = "~/Views/Shared/_Layout.cshtml";}
+<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:var(--bg-void);position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);background-size:50px 50px;"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,229,255,0.05),transparent 60%);"></div>
+  <div class="form-card" style="position:relative;z-index:1;width:100%;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;filter:drop-shadow(0 0 20px var(--cyan));margin-bottom:10px;">⚔️</div>
+      <div class="form-card-title" style="margin-bottom:4px;">ĐĂNG NHẬP</div>
+      <div style="font-size:13px;color:var(--text-dim);">Chào mừng trở lại EsportArena VN</div>
+    </div>
+    @if (ViewBag.Error != null)
+    {
+      <div style="background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.3);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:13px;color:var(--danger);display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-exclamation-circle"></i> @ViewBag.Error
+      </div>
+    }
+    <div class="social-btns">
+      <button class="btn-social btn-social-fb"><i class="fab fa-facebook-f"></i> Facebook</button>
+      <button class="btn-social btn-social-gg"><i class="fab fa-google"></i> Google</button>
+    </div>
+    <div class="or-divider"><span>hoặc đăng nhập bằng email</span></div>
+    <form method="post">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" name="email" placeholder="email@example.com" required /></div>
+      <div class="form-group"><label class="form-label">Mật Khẩu</label><input class="form-input" type="password" name="password" placeholder="••••••••" required /></div>
+      <div style="text-align:right;margin-bottom:18px;"><a href="#" style="font-size:12px;color:var(--cyan);">Quên mật khẩu?</a></div>
+      <button type="submit" class="btn btn-cyan btn-full"><i class="fas fa-sign-in-alt"></i> ĐĂNG NHẬP</button>
+    </form>
+    <p style="text-align:center;font-size:13px;color:var(--text-dim);margin-top:20px;">Chưa có tài khoản? <a href="/Account/Register" style="color:var(--cyan);font-weight:700;">Đăng Ký Ngay</a></p>
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:16px;font-size:12px;color:var(--text-dim);text-align:center;">
+      <b style="color:var(--lq-gold);">Demo accounts:</b><br/>
+      admin@esport.vn · shadow@gmail.com · phoenix@gmail.com<br/>
+      <span style="color:var(--text-muted);">(nhập bất kỳ mật khẩu)</span>
+    </div>
+  </div>
+</div>

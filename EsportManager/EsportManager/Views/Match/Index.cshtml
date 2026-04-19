@@ -1,0 +1,151 @@
+@* Match/Index.cshtml *@
+@{
+    ViewData["Title"] = "Trận Đấu";
+    var liveMatches = ViewBag.LiveMatches as List<EsportManager.Models.Match>;
+    var scheduled = ViewBag.Scheduled as List<EsportManager.Models.Match>;
+    var completed = ViewBag.Completed as List<EsportManager.Models.Match>;
+}
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="/">Home</a><span>/</span>Trận Đấu</div>
+    <h1><i class="fas fa-gamepad" style="color:var(--cyan);margin-right:10px;"></i>LỊCH THI ĐẤU</h1>
+    <p>Theo dõi tất cả các trận Liên Quân Mobile & Free Fire</p>
+  </div>
+</div>
+
+<div class="page-section">
+  <div class="container">
+
+    @if (liveMatches != null && liveMatches.Any())
+    {
+      <div style="margin-bottom:30px;">
+        <div class="sec-header">
+          <div class="sec-title-wrap">
+            <span class="live-pip"><div class="dot"></div>ĐANG LIVE</span>
+          </div>
+          <div class="sec-line" style="background:linear-gradient(to right,rgba(255,23,68,0.5),transparent);"></div>
+        </div>
+        @foreach (var m in liveMatches)
+        {
+          bool isLQ = m.Tournament?.Game == EsportManager.Models.GameType.LienQuan;
+          <div class="match-card is-live" style="padding:20px 24px;">
+            <div style="text-align:center;min-width:60px;flex-shrink:0;">
+              <div style="font-size:28px;">@(isLQ ? "⚔️" : "🔥")</div>
+              <span class="live-pip" style="font-size:10px;margin-top:6px;"><div class="dot"></div>LIVE</span>
+            </div>
+            <div class="match-teams">
+              <div class="match-team">
+                <div class="match-team-tag">[@(m.Team1?.Tag ?? "???")]</div>
+                <div class="match-team-name" style="font-size:20px;">@(m.Team1?.Name ?? "TBD")</div>
+              </div>
+              <div class="match-center">
+                <div class="match-score-display" style="font-size:36px;color:var(--live-red);">@m.Team1Score — @m.Team2Score</div>
+                <div class="match-round">@m.RoundName</div>
+              </div>
+              <div class="match-team">
+                <div class="match-team-tag">[@(m.Team2?.Tag ?? "???")]</div>
+                <div class="match-team-name" style="font-size:20px;">@(m.Team2?.Name ?? "TBD")</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+              @if (!string.IsNullOrEmpty(m.StreamUrl))
+              {
+                <a href="@m.StreamUrl" target="_blank" class="btn btn-danger btn-sm"><i class="fas fa-play"></i> Watch Live</a>
+              }
+              <a href="/Match/Detail/@m.Id" class="btn btn-outline btn-sm">Detail</a>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('mx-scheduled',this)">
+        📅 Sắp Diễn Ra <span style="background:var(--cyan);color:var(--bg-void);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:6px;">@(scheduled?.Count ?? 0)</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('mx-completed',this)">
+        ✅ Đã Kết Thúc <span style="background:var(--bg-surface);color:var(--text-dim);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:6px;">@(completed?.Count ?? 0)</span>
+      </button>
+    </div>
+
+    <div id="mx-scheduled" class="tab-pane active">
+      @if (scheduled != null && scheduled.Any())
+      {
+        @foreach (var m in scheduled)
+        {
+          bool isLQ = m.Tournament?.Game == EsportManager.Models.GameType.LienQuan;
+          <div class="match-card">
+            <div style="text-align:center;min-width:70px;flex-shrink:0;">
+              <div style="font-size:22px;margin-bottom:4px;">@(isLQ ? "⚔️" : "🔥")</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--text-white);">@m.ScheduledAt.ToString("HH:mm")</div>
+              <div style="font-size:11px;color:var(--text-dim);">@m.ScheduledAt.ToString("dd/MM")</div>
+            </div>
+            <div class="match-teams">
+              <div class="match-team">
+                <div class="match-team-tag">[@(m.Team1?.Tag ?? "???")]</div>
+                <div class="match-team-name">@(m.Team1?.Name ?? "TBD")</div>
+              </div>
+              <div class="match-center">
+                <div class="match-vs">VS</div>
+                <div class="match-round">@m.RoundName</div>
+              </div>
+              <div class="match-team">
+                <div class="match-team-tag">[@(m.Team2?.Tag ?? "???")]</div>
+                <div class="match-team-name">@(m.Team2?.Name ?? "TBD")</div>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;min-width:110px;">
+              @if (!string.IsNullOrEmpty(m.RoomId))
+              {
+                <div style="font-size:11px;color:var(--text-dim);">Room ID</div>
+                <div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--cyan);font-size:14px;">@m.RoomId</div>
+              }
+              <a href="/Match/Detail/@m.Id" class="btn btn-outline btn-sm" style="margin-top:6px;">Detail</a>
+            </div>
+          </div>
+        }
+      }
+      else
+      {
+        <div style="text-align:center;padding:60px;color:var(--text-dim);">
+          <div style="font-size:48px;margin-bottom:12px;">📅</div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:18px;">Không có trận đấu nào được lên lịch</div>
+        </div>
+      }
+    </div>
+
+    <div id="mx-completed" class="tab-pane">
+      @if (completed != null && completed.Any())
+      {
+        @foreach (var m in completed)
+        {
+          bool isLQ = m.Tournament?.Game == EsportManager.Models.GameType.LienQuan;
+          <div class="match-card">
+            <div style="text-align:center;min-width:55px;flex-shrink:0;">
+              <div style="font-size:22px;margin-bottom:4px;">@(isLQ ? "⚔️" : "🔥")</div>
+              <div style="font-size:11px;color:var(--text-dim);">@m.ScheduledAt.ToString("dd/MM")</div>
+            </div>
+            <div class="match-teams">
+              <div class="match-team">
+                <div class="match-team-tag">[@(m.Team1?.Tag ?? "???")]</div>
+                <div class="match-team-name @(m.WinnerId == m.Team1Id ? "winner" : "")">@(m.Team1?.Name ?? "TBD")</div>
+                @if (m.WinnerId == m.Team1Id) { <div style="font-size:11px;color:var(--lq-gold);">🏆 WIN</div> }
+              </div>
+              <div class="match-center">
+                <div class="match-score-display">@m.Team1Score — @m.Team2Score</div>
+                <div class="match-round">@m.RoundName</div>
+              </div>
+              <div class="match-team">
+                <div class="match-team-tag">[@(m.Team2?.Tag ?? "???")]</div>
+                <div class="match-team-name @(m.WinnerId == m.Team2Id ? "winner" : "")">@(m.Team2?.Name ?? "TBD")</div>
+                @if (m.WinnerId == m.Team2Id) { <div style="font-size:11px;color:var(--lq-gold);">🏆 WIN</div> }
+              </div>
+            </div>
+            <a href="/Match/Detail/@m.Id" class="btn btn-outline btn-sm">Result</a>
+          </div>
+        }
+      }
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"] – EsportArena VN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/site.css" />
+  @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="inner">
+    <div class="top-bar-brand">
+      ESPORT<span>ARENA</span>.VN
+      <span>Nền tảng quản lý giải đấu Liên Quân & Free Fire</span>
+    </div>
+    <div class="top-bar-links">
+      @if (Context.Session.GetInt32("UserId") != null)
+      {
+        <div class="user-chip">
+          <div class="dot"></div>
+          <span>@Context.Session.GetString("IngameName")</span>
+        </div>
+        <a href="/Account/Profile" style="color:var(--text-dim);padding:4px 12px;font-size:11px;font-weight:600;">HỒ SƠ</a>
+        @if (Context.Session.GetString("IsAdmin") == "True")
+        {
+          <a href="/Admin" style="color:var(--lq-gold);padding:4px 12px;font-size:11px;font-weight:700;border:1px solid rgba(255,193,7,0.3);border-radius:3px;">⚙ ADMIN</a>
+        }
+        <a href="/Account/Logout" style="color:var(--text-dim);padding:4px 12px;font-size:11px;font-weight:600;">ĐĂNG XUẤT</a>
+      }
+      else
+      {
+        <a href="/Account/Register" class="btn-register-top">ĐĂNG KÝ</a>
+        <a href="/Account/Login" class="btn-login">ĐĂNG NHẬP</a>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- MAIN HEADER -->
+<header class="main-header">
+  <div class="header-inner">
+    <a href="/" class="logo-wrap">
+      <div class="logo-hexagon">⚔</div>
+      <div class="logo-text-wrap">
+        <div class="logo-title">ESPORT<span>ARENA</span></div>
+        <div class="logo-sub">Lien Quan · Free Fire</div>
+      </div>
+    </a>
+    <nav class="main-nav">
+      <a href="/" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString()=="Home"?"active":"")">
+        <i class="fas fa-home"></i> Trang Chủ
+      </a>
+      <a href="/Tournament" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString()=="Tournament"?"active":"")">
+        <i class="fas fa-trophy"></i> Giải Đấu
+      </a>
+      <a href="/Tournament?game=LienQuan" class="nav-item">
+        <i class="fas fa-sword"></i> Liên Quân
+      </a>
+      <a href="/Tournament?game=FreeFire" class="nav-item">
+        <i class="fas fa-fire"></i> Free Fire
+      </a>
+      <a href="/Team" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString()=="Team"?"active":"")">
+        <i class="fas fa-users"></i> Đội
+      </a>
+      <a href="/Match" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString()=="Match"?"active":"")">
+        <i class="fas fa-gamepad"></i> Trận Đấu
+        @{
+          var liveCount = EsportManager.Services.MockData.Matches.Count(m => m.Status == EsportManager.Models.MatchStatus.Live);
+          if (liveCount > 0) { <span class="nav-badge">LIVE</span> }
+        }
+      </a>
+      <a href="/Ranking" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString()=="Ranking"?"active":"")">
+        <i class="fas fa-chart-bar"></i> Xếp Hạng
+      </a>
+    </nav>
+    <a href="/Tournament/Create" class="nav-create-btn">+ Tạo Giải</a>
+    <button class="mobile-nav-btn" onclick="toggleMobileNav()"><i class="fas fa-bars"></i></button>
+  </div>
+</header>
+
+<!-- MOBILE NAV -->
+<nav class="mobile-nav" id="mobileNav">
+  <a href="/"><i class="fas fa-home me-2"></i>Trang Chủ</a>
+  <a href="/Tournament"><i class="fas fa-trophy me-2"></i>Giải Đấu</a>
+  <a href="/Tournament?game=LienQuan"><i class="fas fa-sword me-2"></i>Liên Quân Mobile</a>
+  <a href="/Tournament?game=FreeFire"><i class="fas fa-fire me-2"></i>Free Fire</a>
+  <a href="/Team"><i class="fas fa-users me-2"></i>Đội Thi Đấu</a>
+  <a href="/Match"><i class="fas fa-gamepad me-2"></i>Trận Đấu</a>
+  <a href="/Ranking"><i class="fas fa-chart-bar me-2"></i>Xếp Hạng</a>
+  @if (Context.Session.GetInt32("UserId") == null)
+  {
+    <a href="/Account/Login" style="color:var(--cyan);"><i class="fas fa-sign-in-alt me-2"></i>Đăng Nhập</a>
+  }
+</nav>
+
+@if (TempData["Success"] != null)
+{
+  <div class="toast-bar"><i class="fas fa-check-circle"></i> @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+  <div class="toast-bar err-bar"><i class="fas fa-exclamation-circle"></i> @TempData["Error"]</div>
+}
+
+<main>@RenderBody()</main>
+
+<!-- FOOTER -->
+<footer class="main-footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo-title">ESPORT<span>ARENA</span>.VN</div>
+      <p class="footer-desc">Nền tảng quản lý giải đấu Liên Quân Mobile và Free Fire hàng đầu Việt Nam. Hỗ trợ toàn bộ thể thức thi đấu và cây đấu chuyên nghiệp.</p>
+      <div class="footer-socials">
+        <a href="#"><i class="fab fa-facebook-f"></i></a>
+        <a href="#"><i class="fab fa-youtube"></i></a>
+        <a href="#"><i class="fab fa-tiktok"></i></a>
+        <a href="#"><i class="fab fa-discord"></i></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">⚔ Liên Quân</div>
+      <ul>
+        <li><a href="/Tournament?game=LienQuan">Giải đấu LQ</a></li>
+        <li><a href="/Tournament?game=LienQuan&status=Registration">Đăng ký tham gia</a></li>
+        <li><a href="/Ranking?game=LienQuan">Bảng xếp hạng LQ</a></li>
+        <li><a href="/Team?game=LienQuan">Đội LQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">🔥 Free Fire</div>
+      <ul>
+        <li><a href="/Tournament?game=FreeFire">Giải đấu FF</a></li>
+        <li><a href="/Tournament?game=FreeFire&status=Registration">Đăng ký tham gia</a></li>
+        <li><a href="/Ranking?game=FreeFire">Bảng xếp hạng FF</a></li>
+        <li><a href="/Team?game=FreeFire">Đội FF</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Hỗ Trợ</div>
+      <ul>
+        <li><a href="#">Hướng dẫn</a></li>
+        <li><a href="#">Điều khoản</a></li>
+        <li><a href="#">Liên hệ admin</a></li>
+        <li><a href="/Account/Register">Đăng ký tài khoản</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 EsportArena.vn — Powered by ASP.NET Core MVC | Giải đấu Liên Quân Mobile & Free Fire Việt Nam</div>
+</footer>
+
+<script src="~/js/site.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

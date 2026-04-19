@@ -1,0 +1,27 @@
+@* Team/Create.cshtml *@
+@{ViewData["Title"]="Lập Đội";}
+<div class="page-banner"><div class="page-banner-inner"><h1>🛡 LẬP ĐỘI MỚI</h1></div></div>
+<div class="page-section"><div class="container">
+<div class="form-card">
+  <div class="form-card-title">⚔ / 🔥 TẠO ĐỘI THI ĐẤU</div>
+  <form method="post">
+    <div class="form-group"><label class="form-label">Tên Đội *</label><input class="form-input" name="Name" placeholder="VD: Shadow Esports" required /></div>
+    <div class="grid-2-form">
+      <div class="form-group"><label class="form-label">Tag Đội *</label><input class="form-input" name="Tag" placeholder="SDW" maxlength="5" required /></div>
+      <div class="form-group"><label class="form-label">Game Chính *</label><select class="form-input" name="PrimaryGame"><option value="0">⚔ Liên Quân Mobile</option><option value="1">🔥 Free Fire</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Mô Tả Đội</label><textarea class="form-input" name="Description" rows="3" placeholder="Giới thiệu về đội bóng của bạn..."></textarea></div>
+    <div class="form-group"><label class="form-label">Quốc Gia</label><input class="form-input" name="Country" value="VN" /></div>
+    <div style="background:rgba(0,229,255,0.05);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:20px;">
+      <div style="font-family:'Rajdhani',sans-serif;font-weight:700;margin-bottom:8px;color:var(--cyan);">📋 Sau khi tạo đội:</div>
+      <ul style="font-size:13px;color:var(--text-dim);padding-left:16px;line-height:2;">
+        <li>Mời thành viên bằng username hoặc UID game</li>
+        <li>Phân quyền Captain / Member / Substitute</li>
+        <li>Đăng ký tham gia các giải Liên Quân hoặc Free Fire</li>
+        <li>Theo dõi ELO và lịch sử thi đấu</li>
+      </ul>
+    </div>
+    <button type="submit" class="btn btn-cyan btn-full"><i class="fas fa-users"></i> TẠO ĐỘI NGAY</button>
+  </form>
+</div>
+</div></div>
