@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EsportArena VN — Lập Đội</title>
+<link rel="stylesheet" href="giaodien.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="topbar"><div class="inner">
+  <div class="topbar-brand">ESPORT<span>ARENA</span>.VN</div>
+  <div class="topbar-links"><a href="dangnhap.html" class="btn-login">Đăng Nhập</a><a href="dangky.html" class="btn-reg">Đăng Ký</a></div>
+</div></div>
+
+<nav class="navbar"><div class="inner">
+  <a href="trangchu.html" class="logo-wrap">
+    <div class="logo-hex">EA</div>
+    <div class="logo-text"><div class="lt1">ESPORT<span>ARENA</span></div><div class="lt2">6 Games · Pro Tournaments</div></div>
+  </a>
+  <nav class="main-nav">
+    <a href="trangchu.html" class="nav-a"><i class="fas fa-home"></i> Trang Chủ</a>
+    <a href="danhsachgiaidau.html" class="nav-a"><i class="fas fa-trophy"></i> Giải Đấu</a>
+    <a href="danhsachdoi.html" class="nav-a active"><i class="fas fa-users"></i> Đội</a>
+    <a href="lichthidau.html" class="nav-a"><i class="fas fa-gamepad"></i> Lịch Thi Đấu</a>
+    <a href="bangxephang.html" class="nav-a"><i class="fas fa-chart-bar"></i> Bảng Xếp Hạng</a>
+  </nav>
+  <a href="lapdoi.html" class="nav-cta">+ Lập Đội</a>
+  <button class="mob-btn"><i class="fas fa-bars"></i></button>
+</div></nav>
+
+<!-- PAGE BANNER -->
+<div class="page-banner">
+  <div class="inner">
+    <div class="breadcrumb"><a href="trangchu.html">Trang chủ</a><span>/</span><a href="danhsachdoi.html">Đội</a><span>/</span>Lập Đội Mới</div>
+    <h1><i class="fas fa-users" style="color:var(--cyan);margin-right:10px"></i>LẬP ĐỘI THI ĐẤU</h1>
+    <p>Tạo đội mới — Tương ứng bảng DOI + THANH_VIEN_DOI + NGUOI_CHOI</p>
+  </div>
+</div>
+
+<div class="page-section">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:24px">
+
+      <!-- FORM -->
+      <div>
+        <form action="#" method="post" id="teamForm">
+
+          <!-- ══ THÔNG TIN ĐỘI (DOI) ══ -->
+          <div class="panel mb-20">
+            <div class="panel-hd">
+              <span class="panel-title"><i class="fas fa-shield-alt" style="color:var(--cyan);margin-right:8px"></i>Thông Tin Đội (Bảng DOI)</span>
+            </div>
+            <div class="panel-body">
+
+              <div class="form-grid-2">
+                <!-- ten_doi -->
+                <div class="form-group">
+                  <label class="form-label">Tên Đội (ten_doi) <span style="color:var(--red)">*</span></label>
+                  <input class="form-input" name="ten_doi" id="teamName" placeholder="VD: Phoenix Esports" required oninput="updatePreview()">
+                </div>
+
+                <!-- Tag ngắn -->
+                <div class="form-group">
+                  <label class="form-label">Tag Đội <span style="color:var(--red)">*</span> <span style="color:var(--txt3);font-size:10px">(2-5 ký tự)</span></label>
+                  <input class="form-input" name="tag_doi" id="teamTag" placeholder="PHX" maxlength="5" required oninput="this.value=this.value.toUpperCase();updatePreview()">
+                </div>
+              </div>
+
+              <!-- Game chính (liên kết ma_tro_choi) -->
+              <div class="form-group">
+                <label class="form-label">Game Chính <span style="color:var(--red)">*</span></label>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+                  <label style="cursor:pointer">
+                    <input type="radio" name="game_chinh" value="1" style="display:none" class="game-radio" onchange="updatePreview()">
+                    <div class="game-opt-btn" data-color="var(--lq)"><div style="font-size:22px">⚔️</div><div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700">Liên Quân</div></div>
+                  </label>
+                  <label style="cursor:pointer">
+                    <input type="radio" name="game_chinh" value="2" style="display:none" class="game-radio" onchange="updatePreview()">
+                    <div class="game-opt-btn" data-color="var(--ff)"><div style="font-size:22px">🔥</div><div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700">Free Fire</div></div>
+                  </label>
+                  <label style="cursor:pointer">
+                    <input type="radio" name="game_chinh" value="3" style="display:none" class="game-radio" onchange="updatePreview()">
+                    <div class="game-opt-btn" data-color="var(--lol)"><div style="font-size:22px">🧙</div><div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700">LoL</div></div>
+                  </label>
+                  <label style="cursor:pointer">
+                    <input type="radio" name="game_chinh" value="4" style="display:none" class="game-radio" onchange="updatePreview()">
+                    <div class="game-opt-btn" data-color="var(--val)"><div style="font-size:22px">🎯</div><div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700">Valorant</div></div>
+                  </label>
+                  <label style="cursor:pointer">
+                    <input type="radio" name="game_chinh" value="5" style="display:none" class="game-radio" onchange="updatePreview()">
+                    <div class="game-opt-btn" data-color="var(--pubg)"><div style="font-size:22px">🪖</div><div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700">PUBG</div></div>
+                  </label>
+                  <label style="cursor:pointer">
+                    <input type="radio" name="game_chinh" value="6" style="display:none" class="game-radio" onchange="updatePreview()">
+                    <div class="game-opt-btn" data-color="#607d8b"><div style="font-size:22px">💣</div><div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700">CS:GO</div></div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <!-- so_nguoi_moi_doi (DOI) -->
+                <div class="form-group">
+                  <label class="form-label">Số Người Mỗi Đội (so_nguoi_moi_doi)</label>
+                  <select class="form-input" name="so_nguoi_moi_doi">
+                    <option value="1">1 người (Solo)</option>
+                    <option value="4">4 người (Squad)</option>
+                    <option value="5" selected>5 người (5v5)</option>
+                    <option value="6">6 người</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Quốc Gia</label>
+                  <select class="form-input" name="quoc_gia">
+                    <option value="VN">🇻🇳 Việt Nam</option>
+                    <option value="TH">🇹🇭 Thái Lan</option>
+                    <option value="PH">🇵🇭 Philippines</option>
+                    <option value="ID">🇮🇩 Indonesia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Mô Tả Đội</label>
+                <textarea class="form-input" name="mo_ta" rows="2" placeholder="Giới thiệu về đội, phong cách chơi..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ THÀNH VIÊN (THANH_VIEN_DOI + NGUOI_CHOI) ══ -->
+          <div class="panel mb-20">
+            <div class="panel-hd">
+              <span class="panel-title"><i class="fas fa-user-plus" style="color:var(--cyan);margin-right:8px"></i>Thành Viên Đội (THANH_VIEN_DOI)</span>
+              <span style="font-size:12px;color:var(--txt2)">Tối thiểu 1 người (Captain)</span>
+            </div>
+            <div class="panel-body">
+
+              <div style="background:rgba(0,229,255,.04);border:1px solid var(--cyan-border);border-radius:var(--r-sm);padding:11px 14px;margin-bottom:16px;font-size:12px;color:var(--txt2)">
+                <i class="fas fa-info-circle" style="color:var(--cyan);margin-right:7px"></i>
+                Mỗi thành viên lưu vào <b style="color:var(--cyan)">THANH_VIEN_DOI</b>: ma_doi, ma_nguoi_choi, <b style="color:var(--cyan)">vai_tro</b>, ngay_tham_gia.<br>
+                Người tạo đội tự động được gán <b style="color:var(--gold)">vai_tro = Captain</b>.
+              </div>
+
+              <!-- Captain (tự động — người đang đăng nhập) -->
+              <div style="padding:14px;background:rgba(255,193,7,.06);border:1px solid rgba(255,193,7,.3);border-radius:var(--r);margin-bottom:12px;display:flex;align-items:center;gap:14px">
+                <div style="width:48px;height:48px;background:rgba(255,193,7,.15);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👤</div>
+                <div style="flex:1">
+                  <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;color:var(--gold)">Bạn (đang đăng nhập)</div>
+                  <div style="font-size:11px;color:var(--txt2)">biet_danh từ NGUOI_CHOI</div>
+                </div>
+                <span class="chip chip-lq" style="font-size:10px">👑 CAPTAIN</span>
+                <div style="font-size:11px;color:var(--txt2)">vai_tro = Captain</div>
+              </div>
+
+              <!-- Danh sách thêm member -->
+              <div id="memberList">
+                <div class="member-row" style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <div style="font-size:20px;flex-shrink:0">👤</div>
+                  <input class="form-input" style="margin:0;flex:1" placeholder="Biệt danh / ID người chơi (biet_danh)">
+                  <select class="form-input" style="margin:0;width:140px">
+                    <option value="Member">Member</option>
+                    <option value="Substitute">Dự Bị</option>
+                  </select>
+                  <select class="form-input" style="margin:0;width:160px" id="roleSelect1">
+                    <option value="">— Role —</option>
+                    <optgroup label="⚔ LQ / 🧙 LoL / 🎯 Val">
+                      <option>Jungler</option><option>Mid Laner</option><option>Carry ADC</option><option>Support</option><option>Roamer</option>
+                    </optgroup>
+                    <optgroup label="🔥 FF / 🪖 PUBG">
+                      <option>IGL</option><option>Fragger</option><option>Sniper</option><option>Scout</option>
+                    </optgroup>
+                    <optgroup label="💣 CS:GO">
+                      <option>AWPer</option><option>Entry Fragger</option><option>Lurker</option><option>Rifler</option>
+                    </optgroup>
+                  </select>
+                  <button type="button" onclick="removeMember(this)" style="background:rgba(255,23,68,.15);border:1px solid rgba(255,23,68,.3);color:var(--red);width:32px;height:32px;border-radius:var(--r-sm);cursor:pointer;flex-shrink:0;font-size:14px">✕</button>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-outline btn-sm" onclick="addMember()" style="margin-top:4px">
+                <i class="fas fa-plus"></i> Thêm Thành Viên
+              </button>
+
+              <div style="margin-top:14px;padding:11px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r-sm)">
+                <div style="font-size:12px;color:var(--txt2);margin-bottom:9px">📨 Mời qua link (THANH_VIEN_DOI)</div>
+                <div style="display:flex;gap:8px">
+                  <input class="form-input" style="margin:0;flex:1" placeholder="https://esportarena.vn/join?team=PHX&token=..." readonly value="Link mời sẽ xuất hiện sau khi tạo đội">
+                  <button type="button" class="btn btn-cyan btn-sm">Sao Chép</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ THỐNG KÊ BAN ĐẦU ══ -->
+          <div class="panel mb-20">
+            <div class="panel-hd">
+              <span class="panel-title"><i class="fas fa-chart-bar" style="color:var(--cyan);margin-right:8px"></i>Cài Đặt ELO Ban Đầu</span>
+            </div>
+            <div class="panel-body">
+              <div style="background:rgba(0,229,255,.04);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;margin-bottom:14px;font-size:12px;color:var(--txt2)">
+                Điểm ELO ban đầu = <b style="color:var(--cyan)">1000</b>. Cập nhật sau mỗi trận theo kết quả trong bảng <b style="color:var(--cyan)">KET_QUA_TRAN</b>.
+              </div>
+              <div class="form-grid-2">
+                <div style="background:var(--bg-3);padding:14px;border-radius:var(--r-sm);text-align:center;border:1px solid var(--border)">
+                  <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--cyan)">1000</div>
+                  <div style="font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px">ELO Khởi Đầu</div>
+                </div>
+                <div style="background:var(--bg-3);padding:14px;border-radius:var(--r-sm);text-align:center;border:1px solid var(--border)">
+                  <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--txt2)">0 / 0</div>
+                  <div style="font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px">W / L</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-cyan btn-full" onclick="return submitTeam()">
+            <i class="fas fa-shield-alt"></i> TẠO ĐỘI NGAY
+          </button>
+        </form>
+      </div>
+
+      <!-- SIDEBAR PREVIEW -->
+      <div>
+        <div class="panel mb-20" style="position:sticky;top:80px">
+          <div class="panel-hd"><span class="panel-title">👁 Preview Thẻ Đội</span></div>
+          <div class="panel-body">
+            <div class="team-card" id="previewCard" style="border-top:3px solid var(--cyan)">
+              <div class="hex-logo" id="previewHex" style="background:rgba(0,229,255,.1)">🛡️</div>
+              <div class="team-nm-lg" id="previewName">Tên đội...</div>
+              <div class="team-tag-sm" id="previewTag">[TAG]</div>
+              <div id="previewChip"><span class="chip chip-cyan" style="font-size:10px">— Chọn game —</span></div>
+              <div style="font-size:12px;color:var(--txt2);margin-top:6px">👑 Bạn (Captain) · 🇻🇳 Vietnam</div>
+              <div class="stat-row">
+                <div class="stat-item"><div class="sv sv-win">0</div><div class="sl">Win</div></div>
+                <div class="stat-item"><div class="sv sv-loss">0</div><div class="sl">Loss</div></div>
+                <div class="stat-item"><div class="sv sv-elo">1000</div><div class="sl">ELO</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCHEMA INFO -->
+        <div class="widget">
+          <div class="widget-hd">🗃️ Schema Liên Quan</div>
+          <div class="widget-body" style="font-size:12px;color:var(--txt2);line-height:2">
+            <div><b style="color:var(--cyan)">DOI</b></div>
+            <div style="padding-left:10px">├ ma_doi (auto)<br>├ ten_doi<br>├ ngay_tao (auto)<br>└ so_nguoi_moi_doi</div>
+            <div style="margin-top:8px"><b style="color:var(--gold)">THANH_VIEN_DOI</b></div>
+            <div style="padding-left:10px">├ ma_doi (FK)<br>├ ma_nguoi_choi (FK)<br>├ vai_tro<br>└ ngay_tham_gia (auto)</div>
+            <div style="margin-top:8px"><b style="color:var(--green)">NGUOI_CHOI</b></div>
+            <div style="padding-left:10px">├ ma_nguoi_dung (FK)<br>├ biet_danh<br>├ quoc_gia<br>└ vai_tro</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="ft-brand"><div class="ft-logo">ESPORT<span>ARENA</span>.VN</div><p>Nền tảng quản lý giải đấu Esport.</p><div class="ft-socials"><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-discord"></i></a></div></div>
+    <div class="ft-col"><div class="ft-col-title">Giải Đấu</div><ul><li><a href="danhsachgiaidau.html">Tất cả giải</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Cộng Đồng</div><ul><li><a href="danhsachdoi.html">Đội</a></li><li><a href="bangxephang.html">Xếp hạng</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Tài Khoản</div><ul><li><a href="dangnhap.html">Đăng nhập</a></li><li><a href="dangky.html">Đăng ký</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">© 2026 EsportArena.vn</div>
+</footer>
+
+<style>
+.game-opt-btn{padding:10px 6px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r-sm);text-align:center;transition:all .2s;cursor:pointer}
+.game-opt-btn:hover{border-color:var(--cyan-border);background:var(--cyan-glow)}
+.game-radio:checked + .game-opt-btn{border-color:var(--cyan)!important;background:var(--cyan-glow)!important}
+</style>
+
+<script>
+const gd = {
+  1:{name:'Liên Quân',icon:'⚔️',color:'var(--lq)',chip:'chip-lq',txt:'⚔ Liên Quân'},
+  2:{name:'Free Fire',icon:'🔥',color:'var(--ff)',chip:'chip-ff',txt:'🔥 Free Fire'},
+  3:{name:'LoL',icon:'🧙',color:'var(--lol)',chip:'chip-lol',txt:'🧙 League of Legends'},
+  4:{name:'Valorant',icon:'🎯',color:'var(--val)',chip:'chip-val',txt:'🎯 Valorant'},
+  5:{name:'PUBG',icon:'🪖',color:'var(--pubg)',chip:'chip-pubg',txt:'🪖 PUBG'},
+  6:{name:'CS:GO',icon:'💣',color:'#607d8b',chip:'chip-csgo',txt:'💣 CS:GO'}
+};
+
+function updatePreview(){
+  const name = document.getElementById('teamName').value;
+  const tag  = document.getElementById('teamTag').value;
+  const gr   = document.querySelector('.game-radio:checked');
+  document.getElementById('previewName').textContent = name || 'Tên đội...';
+  document.getElementById('previewTag').textContent  = tag  ? '['+tag+']' : '[TAG]';
+  if(gr){
+    const d = gd[gr.value];
+    document.getElementById('previewHex').textContent = d.icon;
+    document.getElementById('previewHex').style.background = 'rgba(from '+d.color+' r g b / .15)';
+    document.getElementById('previewCard').style.borderTopColor = d.color;
+    document.getElementById('previewChip').innerHTML = `<span class="chip ${d.chip}" style="font-size:10px">${d.txt}</span>`;
+  }
+}
+
+let memberCount = 1;
+function addMember(){
+  if(memberCount >= 7){ alert('Tối đa 7 thành viên (5 chính + 2 dự bị)'); return; }
+  memberCount++;
+  const div = document.createElement('div');
+  div.className = 'member-row';
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px';
+  div.innerHTML = `
+    <div style="font-size:20px;flex-shrink:0">👤</div>
+    <input class="form-input" style="margin:0;flex:1" placeholder="Biệt danh / ID người chơi">
+    <select class="form-input" style="margin:0;width:140px"><option value="Member">Member</option><option value="Substitute">Dự Bị</option></select>
+    <select class="form-input" style="margin:0;width:160px">
+      <option value="">— Role —</option>
+      <optgroup label="⚔ LQ/LoL/Val"><option>Jungler</option><option>Mid Laner</option><option>Carry ADC</option><option>Support</option><option>Roamer</option></optgroup>
+      <optgroup label="🔥 FF/PUBG"><option>IGL</option><option>Fragger</option><option>Sniper</option><option>Scout</option></optgroup>
+      <optgroup label="💣 CS:GO"><option>AWPer</option><option>Entry Fragger</option><option>Lurker</option><option>Rifler</option></optgroup>
+    </select>
+    <button type="button" onclick="removeMember(this)" style="background:rgba(255,23,68,.15);border:1px solid rgba(255,23,68,.3);color:var(--red);width:32px;height:32px;border-radius:var(--r-sm);cursor:pointer;flex-shrink:0;font-size:14px">✕</button>
+  `;
+  document.getElementById('memberList').appendChild(div);
+}
+function removeMember(btn){ btn.closest('.member-row').remove(); memberCount--; }
+function submitTeam(){ alert('✅ Tạo đội thành công!\nChuyển sang trang chi tiết đội...'); return false; }
+</script>
+</body>
+</html>

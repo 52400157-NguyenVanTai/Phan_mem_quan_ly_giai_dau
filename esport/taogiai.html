@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EsportArena VN — Tạo Giải Đấu</title>
+<link rel="stylesheet" href="giaodien.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="topbar"><div class="inner">
+  <div class="topbar-brand">ESPORT<span>ARENA</span>.VN</div>
+  <div class="topbar-links"><a href="dangnhap.html" class="btn-login">Đăng Nhập</a><a href="dangky.html" class="btn-reg">Đăng Ký</a></div>
+</div></div>
+
+<nav class="navbar"><div class="inner">
+  <a href="trangchu.html" class="logo-wrap">
+    <div class="logo-hex">EA</div>
+    <div class="logo-text"><div class="lt1">ESPORT<span>ARENA</span></div><div class="lt2">6 Games · Pro Tournaments</div></div>
+  </a>
+  <nav class="main-nav">
+    <a href="trangchu.html" class="nav-a"><i class="fas fa-home"></i> Trang Chủ</a>
+    <a href="danhsachgiaidau.html" class="nav-a"><i class="fas fa-trophy"></i> Giải Đấu</a>
+    <a href="danhsachdoi.html" class="nav-a"><i class="fas fa-users"></i> Đội</a>
+    <a href="lichthidau.html" class="nav-a"><i class="fas fa-gamepad"></i> Lịch Thi Đấu</a>
+    <a href="bangxephang.html" class="nav-a"><i class="fas fa-chart-bar"></i> Bảng Xếp Hạng</a>
+  </nav>
+  <a href="taogiai.html" class="nav-cta" style="background:var(--lq);color:var(--bg-0)">+ Tạo Giải</a>
+  <button class="mob-btn"><i class="fas fa-bars"></i></button>
+</div></nav>
+
+<!-- PAGE BANNER -->
+<div class="page-banner">
+  <div class="inner">
+    <div class="breadcrumb"><a href="trangchu.html">Trang chủ</a><span>/</span>Tạo Giải Đấu</div>
+    <h1><i class="fas fa-trophy" style="color:var(--gold);margin-right:10px"></i>TẠO GIẢI ĐẤU MỚI</h1>
+    <p>Tổ chức giải đấu chuyên nghiệp cho 6 tựa game — Tương ứng bảng GIAI_DAU + TRO_CHOI + GIAI_THUONG</p>
+  </div>
+</div>
+
+<div class="page-section">
+  <div class="container">
+
+    <!-- STEPS INDICATOR -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:32px;flex-wrap:wrap">
+      <div class="step-item active" id="step-dot-1">
+        <div class="step-dot active">1</div>
+        <div class="step-lbl">Thông Tin Cơ Bản</div>
+      </div>
+      <div class="step-line" id="sl-1"></div>
+      <div class="step-item" id="step-dot-2">
+        <div class="step-dot">2</div>
+        <div class="step-lbl">Thời Gian</div>
+      </div>
+      <div class="step-line" id="sl-2"></div>
+      <div class="step-item" id="step-dot-3">
+        <div class="step-dot">3</div>
+        <div class="step-lbl">Giải Thưởng</div>
+      </div>
+      <div class="step-line" id="sl-3"></div>
+      <div class="step-item" id="step-dot-4">
+        <div class="step-dot">4</div>
+        <div class="step-lbl">Thể Lệ</div>
+      </div>
+    </div>
+
+    <style>
+    .step-item{display:flex;flex-direction:column;align-items:center;gap:5px}
+    .step-dot{width:36px;height:36px;border-radius:50%;background:var(--bg-3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--txt2);transition:all .3s}
+    .step-dot.active{background:var(--cyan);border-color:var(--cyan);color:var(--bg-0);box-shadow:0 0 14px rgba(0,229,255,.35)}
+    .step-dot.done{background:var(--green);border-color:var(--green);color:var(--bg-0)}
+    .step-lbl{font-size:11px;color:var(--txt2);text-align:center;white-space:nowrap}
+    .step-line{width:80px;height:2px;background:var(--border);margin:0 4px;margin-bottom:20px;transition:background .3s}
+    .step-line.done{background:var(--cyan)}
+    </style>
+
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:24px">
+      <!-- FORM -->
+      <div>
+        <form id="createForm" action="#" method="post">
+
+          <!-- ══ BƯỚC 1: THÔNG TIN CƠ BẢN ══ -->
+          <div id="step1" class="step-content">
+            <div class="panel mb-20">
+              <div class="panel-hd">
+                <span class="panel-title"><i class="fas fa-info-circle" style="color:var(--cyan);margin-right:8px"></i>BƯỚC 1 — Thông Tin Giải Đấu (GIAI_DAU)</span>
+              </div>
+              <div class="panel-body">
+
+                <!-- ten_giai_dau -->
+                <div class="form-group">
+                  <label class="form-label">Tên Giải Đấu (ten_giai_dau) <span style="color:var(--red)">*</span></label>
+                  <input class="form-input" name="ten_giai_dau" placeholder="VD: FAG Liên Quân Open Cup 2026" required>
+                </div>
+
+                <!-- ma_tro_choi — liên kết với bảng TRO_CHOI -->
+                <div class="form-group">
+                  <label class="form-label">Tựa Game (ma_tro_choi → TRO_CHOI) <span style="color:var(--red)">*</span></label>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="gameSelect">
+                    <label style="cursor:pointer">
+                      <input type="radio" name="ma_tro_choi" value="1" style="display:none" class="game-radio">
+                      <div class="game-opt-btn" data-color="var(--lq)">
+                        <div style="font-size:26px">⚔️</div>
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">Liên Quân</div>
+                        <div style="font-size:10px;color:var(--txt2)">5v5 MOBA</div>
+                      </div>
+                    </label>
+                    <label style="cursor:pointer">
+                      <input type="radio" name="ma_tro_choi" value="2" style="display:none" class="game-radio">
+                      <div class="game-opt-btn" data-color="var(--ff)">
+                        <div style="font-size:26px">🔥</div>
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">Free Fire</div>
+                        <div style="font-size:10px;color:var(--txt2)">Battle Royale</div>
+                      </div>
+                    </label>
+                    <label style="cursor:pointer">
+                      <input type="radio" name="ma_tro_choi" value="3" style="display:none" class="game-radio">
+                      <div class="game-opt-btn" data-color="var(--lol)">
+                        <div style="font-size:26px">🧙</div>
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">LoL</div>
+                        <div style="font-size:10px;color:var(--txt2)">5v5 MOBA</div>
+                      </div>
+                    </label>
+                    <label style="cursor:pointer">
+                      <input type="radio" name="ma_tro_choi" value="4" style="display:none" class="game-radio">
+                      <div class="game-opt-btn" data-color="var(--val)">
+                        <div style="font-size:26px">🎯</div>
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">Valorant</div>
+                        <div style="font-size:10px;color:var(--txt2)">5v5 FPS</div>
+                      </div>
+                    </label>
+                    <label style="cursor:pointer">
+                      <input type="radio" name="ma_tro_choi" value="5" style="display:none" class="game-radio">
+                      <div class="game-opt-btn" data-color="var(--pubg)">
+                        <div style="font-size:26px">🪖</div>
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">PUBG</div>
+                        <div style="font-size:10px;color:var(--txt2)">Battle Royale</div>
+                      </div>
+                    </label>
+                    <label style="cursor:pointer">
+                      <input type="radio" name="ma_tro_choi" value="6" style="display:none" class="game-radio">
+                      <div class="game-opt-btn" data-color="#607d8b">
+                        <div style="font-size:26px">💣</div>
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">CS:GO</div>
+                        <div style="font-size:10px;color:var(--txt2)">5v5 FPS</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <!-- the_thuc — CHECK CONSTRAINT: loai_truc_tiep, loai_kep, vong_tron, thuy_si -->
+                  <div class="form-group">
+                    <label class="form-label">Thể Thức (the_thuc) <span style="color:var(--red)">*</span></label>
+                    <select class="form-input" name="the_thuc" required>
+                      <option value="">-- Chọn thể thức --</option>
+                      <option value="loai_truc_tiep">🏆 Loại Trực Tiếp (Single Elim)</option>
+                      <option value="loai_kep">⚔ Loại Kép (Double Elim)</option>
+                      <option value="vong_tron">🔄 Vòng Tròn (Round Robin)</option>
+                      <option value="thuy_si">🇨🇭 Thụy Sĩ (Swiss)</option>
+                    </select>
+                    <div class="form-hint">Giá trị hợp lệ: loai_truc_tiep / loai_kep / vong_tron / thuy_si</div>
+                  </div>
+
+                  <!-- So doi tham gia -->
+                  <div class="form-group">
+                    <label class="form-label">Số Đội Tối Đa <span style="color:var(--red)">*</span></label>
+                    <select class="form-input" name="so_doi" required>
+                      <option value="4">4 đội</option>
+                      <option value="8">8 đội</option>
+                      <option value="16" selected>16 đội</option>
+                      <option value="32">32 đội</option>
+                      <option value="64">64 đội</option>
+                    </select>
+                  </div>
+
+                  <!-- so_nguoi_moi_doi (liên kết DOI) -->
+                  <div class="form-group">
+                    <label class="form-label">Số Người Mỗi Đội (so_nguoi_moi_doi)</label>
+                    <select class="form-input" name="so_nguoi_moi_doi">
+                      <option value="1">1 người (Solo)</option>
+                      <option value="4">4 người (Squad)</option>
+                      <option value="5" selected>5 người (5v5)</option>
+                      <option value="6">6 người</option>
+                    </select>
+                  </div>
+
+                  <!-- Format trận -->
+                  <div class="form-group">
+                    <label class="form-label">Format Trận Đấu</label>
+                    <select class="form-input" name="format_tran">
+                      <option value="BO1">BO1 (Best of 1)</option>
+                      <option value="BO3" selected>BO3 (Best of 3)</option>
+                      <option value="BO5">BO5 (Best of 5)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Mô tả -->
+                <div class="form-group">
+                  <label class="form-label">Mô Tả Giải Đấu</label>
+                  <textarea class="form-input" name="mo_ta" rows="3" placeholder="Giới thiệu về giải đấu, đối tượng tham gia..."></textarea>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end">
+                  <button type="button" class="btn btn-cyan" onclick="nextStep(2)">Tiếp Theo <i class="fas fa-arrow-right"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ BƯỚC 2: THỜI GIAN ══ -->
+          <div id="step2" class="step-content" style="display:none">
+            <div class="panel mb-20">
+              <div class="panel-hd">
+                <span class="panel-title"><i class="fas fa-calendar-alt" style="color:var(--cyan);margin-right:8px"></i>BƯỚC 2 — Thời Gian (GIAI_DAU + LICH_THI_DAU)</span>
+              </div>
+              <div class="panel-body">
+                <div style="background:rgba(0,229,255,.05);border:1px solid var(--cyan-border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:18px;font-size:12px;color:var(--txt2)">
+                  <i class="fas fa-info-circle" style="color:var(--cyan);margin-right:7px"></i>
+                  Các trường ngày tương ứng: <b style="color:var(--cyan)">ngay_bat_dau</b>, <b style="color:var(--cyan)">ngay_ket_thuc</b> trong bảng GIAI_DAU · <b style="color:var(--cyan)">bat_dau</b>, <b style="color:var(--cyan)">ket_thuc</b> trong LICH_THI_DAU
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Mở Đăng Ký Từ</label>
+                    <input class="form-input" type="datetime-local" name="dang_ky_tu" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Hạn Đăng Ký</label>
+                    <input class="form-input" type="datetime-local" name="dang_ky_den" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Ngày Bắt Đầu (ngay_bat_dau) <span style="color:var(--red)">*</span></label>
+                    <input class="form-input" type="datetime-local" name="ngay_bat_dau" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Ngày Kết Thúc (ngay_ket_thuc) <span style="color:var(--red)">*</span></label>
+                    <input class="form-input" type="datetime-local" name="ngay_ket_thuc" required>
+                  </div>
+                </div>
+
+                <!-- Check-in time -->
+                <div class="form-group">
+                  <label class="form-label">Thời Gian Check-in Trước Trận</label>
+                  <select class="form-input" name="checkin_time">
+                    <option value="15">15 phút trước</option>
+                    <option value="30" selected>30 phút trước</option>
+                    <option value="60">60 phút trước</option>
+                  </select>
+                </div>
+
+                <!-- Trạng thái ban đầu — CHECK CONSTRAINT: ban_nhap, dang_dien_ra, ket_thuc -->
+                <div class="form-group">
+                  <label class="form-label">Trạng Thái Ban Đầu (trang_thai)</label>
+                  <select class="form-input" name="trang_thai">
+                    <option value="ban_nhap" selected>📝 Ban Nháp (ban_nhap)</option>
+                    <option value="dang_dien_ra">🔴 Mở Ngay (dang_dien_ra)</option>
+                  </select>
+                  <div class="form-hint">Chỉ 3 giá trị hợp lệ: <code style="color:var(--cyan)">ban_nhap</code> · <code style="color:var(--cyan)">dang_dien_ra</code> · <code style="color:var(--cyan)">ket_thuc</code></div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:8px">
+                  <button type="button" class="btn btn-outline" onclick="prevStep(1)"><i class="fas fa-arrow-left"></i> Quay Lại</button>
+                  <button type="button" class="btn btn-cyan" onclick="nextStep(3)">Tiếp Theo <i class="fas fa-arrow-right"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ BƯỚC 3: GIẢI THƯỞNG ══ -->
+          <div id="step3" class="step-content" style="display:none">
+            <div class="panel mb-20">
+              <div class="panel-hd">
+                <span class="panel-title"><i class="fas fa-trophy" style="color:var(--gold);margin-right:8px"></i>BƯỚC 3 — Giải Thưởng (GIAI_THUONG + tong_giai_thuong)</span>
+              </div>
+              <div class="panel-body">
+                <div style="background:rgba(255,193,7,.05);border:1px solid rgba(255,193,7,.2);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:18px;font-size:12px;color:var(--txt2)">
+                  <i class="fas fa-info-circle" style="color:var(--gold);margin-right:7px"></i>
+                  Tương ứng bảng <b style="color:var(--gold)">GIAI_THUONG</b>: ma_giai_thuong, ma_giai_dau, <b style="color:var(--gold)">vi_tri</b>, <b style="color:var(--gold)">so_tien</b> · Tổng lưu vào <b style="color:var(--gold)">tong_giai_thuong</b> (GIAI_DAU)
+                </div>
+
+                <!-- tong_giai_thuong -->
+                <div class="form-group">
+                  <label class="form-label">Tổng Giải Thưởng (tong_giai_thuong) <span style="color:var(--txt2)">VNĐ</span></label>
+                  <input class="form-input" type="number" name="tong_giai_thuong" placeholder="30000000" id="tongGiaiThuong" oninput="calcTotal()">
+                </div>
+
+                <!-- GIAI_THUONG: vi_tri + so_tien -->
+                <div style="margin-bottom:16px">
+                  <div style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--txt2);text-transform:uppercase;margin-bottom:12px">Chi Tiết Từng Hạng (GIAI_THUONG)</div>
+                  <div style="display:flex;flex-direction:column;gap:10px" id="prizeTiers">
+
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.25);border-radius:var(--r-sm)">
+                      <div style="font-size:24px;flex-shrink:0">🥇</div>
+                      <div style="min-width:60px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--gold)">vi_tri: 1</div>
+                      <input class="form-input" style="margin:0;flex:1" type="number" name="giai_1" placeholder="15000000" id="prize1">
+                      <span style="color:var(--txt2);font-size:12px;flex-shrink:0">VNĐ</span>
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(158,158,158,.06);border:1px solid rgba(158,158,158,.2);border-radius:var(--r-sm)">
+                      <div style="font-size:24px;flex-shrink:0">🥈</div>
+                      <div style="min-width:60px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:#e0e0e0">vi_tri: 2</div>
+                      <input class="form-input" style="margin:0;flex:1" type="number" name="giai_2" placeholder="9000000" id="prize2">
+                      <span style="color:var(--txt2);font-size:12px;flex-shrink:0">VNĐ</span>
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.2);border-radius:var(--r-sm)">
+                      <div style="font-size:24px;flex-shrink:0">🥉</div>
+                      <div style="min-width:60px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:#e8a87c">vi_tri: 3</div>
+                      <input class="form-input" style="margin:0;flex:1" type="number" name="giai_3" placeholder="6000000" id="prize3">
+                      <span style="color:var(--txt2);font-size:12px;flex-shrink:0">VNĐ</span>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Tổng tự tính -->
+                <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:13px;color:var(--txt2)">Tổng đã phân bổ:</span>
+                  <span style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--gold)" id="totalPrize">0 VNĐ</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:18px">
+                  <button type="button" class="btn btn-outline" onclick="prevStep(2)"><i class="fas fa-arrow-left"></i> Quay Lại</button>
+                  <button type="button" class="btn btn-cyan" onclick="nextStep(4)">Tiếp Theo <i class="fas fa-arrow-right"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ BƯỚC 4: THỂ LỆ & XÁC NHẬN ══ -->
+          <div id="step4" class="step-content" style="display:none">
+            <div class="panel mb-20">
+              <div class="panel-hd">
+                <span class="panel-title"><i class="fas fa-scroll" style="color:var(--cyan);margin-right:8px"></i>BƯỚC 4 — Thể Lệ & Xác Nhận</span>
+              </div>
+              <div class="panel-body">
+                <div class="form-group">
+                  <label class="form-label">Thể Lệ Thi Đấu</label>
+                  <textarea class="form-input" name="the_le" rows="6" placeholder="- Mỗi đội gồm 5-7 người&#10;- Check-in bắt buộc trước 30 phút&#10;- Dùng Custom Room&#10;- Nghiêm cấm cheat/hack&#10;- Kết quả phải xác nhận bởi cả 2 đội&#10;- Admin có quyền quyết định cuối cùng"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Yêu Cầu Người Chơi</label>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt2);cursor:pointer"><input type="checkbox" name="req_verify" style="accent-color:var(--cyan)"> Yêu cầu tài khoản đã xác minh (IsVerified)</label>
+                    <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt2);cursor:pointer"><input type="checkbox" name="req_rank" style="accent-color:var(--cyan)"> Giới hạn rank tối thiểu</label>
+                    <label style="display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt2);cursor:pointer"><input type="checkbox" name="req_public" checked style="accent-color:var(--cyan)"> Giải đấu công khai</label>
+                  </div>
+                </div>
+
+                <!-- TÓM TẮT -->
+                <div style="background:rgba(0,229,255,.04);border:1px solid var(--cyan-border);border-radius:var(--r);padding:16px;margin-top:4px">
+                  <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);margin-bottom:12px">📋 Tóm Tắt Giải Đấu</div>
+                  <div class="info-row"><i class="fas fa-trophy"></i><span class="info-lbl">ten_giai_dau:</span><span class="info-val" id="sum-name">—</span></div>
+                  <div class="info-row"><i class="fas fa-gamepad"></i><span class="info-lbl">ma_tro_choi:</span><span class="info-val" id="sum-game">—</span></div>
+                  <div class="info-row"><i class="fas fa-sitemap"></i><span class="info-lbl">the_thuc:</span><span class="info-val" id="sum-format">—</span></div>
+                  <div class="info-row"><i class="fas fa-users"></i><span class="info-lbl">Số đội:</span><span class="info-val" id="sum-teams">—</span></div>
+                  <div class="info-row"><i class="fas fa-coins"></i><span class="info-lbl">tong_giai_thuong:</span><span class="info-val text-gold" id="sum-prize">—</span></div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:18px;gap:12px">
+                  <button type="button" class="btn btn-outline" onclick="prevStep(3)"><i class="fas fa-arrow-left"></i> Quay Lại</button>
+                  <button type="submit" class="btn btn-cyan" style="flex:1;justify-content:center" onclick="submitForm()">
+                    <i class="fas fa-check-circle"></i> TẠO GIẢI ĐẤU
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- SIDEBAR PREVIEW -->
+      <div>
+        <div class="panel mb-20" style="position:sticky;top:80px">
+          <div class="panel-hd"><span class="panel-title">👁 Preview Thẻ Giải</span></div>
+          <div class="panel-body" style="padding:0">
+            <div class="t-card" style="border:none;border-radius:0" id="previewCard">
+              <div class="t-banner" style="background:linear-gradient(135deg,#1a1000,#2d1f00)" id="previewBanner">
+                <div class="t-banner-glow" style="background:var(--cyan)" id="previewGlow"></div>
+                <div class="t-banner-icon" id="previewIcon">🏆</div>
+                <div class="t-status chip" style="background:rgba(0,229,255,.85);color:var(--bg-0)">📝 ban_nhap</div>
+              </div>
+              <div class="t-body">
+                <div class="t-game-tag chip-cyan" id="previewGameTag">— Chọn game —</div>
+                <div class="t-name" id="previewName" style="color:var(--txt2);min-height:38px">Nhập tên giải đấu...</div>
+                <div class="t-meta">
+                  <div class="t-meta-item"><i class="fas fa-sitemap"></i><span id="previewFormat">Chọn thể thức</span></div>
+                  <div class="t-meta-item"><i class="fas fa-users"></i><span id="previewTeams">16 đội</span></div>
+                </div>
+                <div class="t-prize text-gold" id="previewPrize">🏆 Chưa nhập giải thưởng</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIPS -->
+        <div class="widget">
+          <div class="widget-hd">💡 Lưu Ý Schema SQL</div>
+          <div class="widget-body" style="font-size:12px;color:var(--txt2);line-height:1.8">
+            <div style="margin-bottom:8px"><b style="color:var(--cyan)">GIAI_DAU.the_thuc</b> chỉ nhận: loai_truc_tiep, loai_kep, vong_tron, thuy_si</div>
+            <div style="margin-bottom:8px"><b style="color:var(--cyan)">GIAI_DAU.trang_thai</b> chỉ nhận: ban_nhap, dang_dien_ra, ket_thuc</div>
+            <div style="margin-bottom:8px"><b style="color:var(--gold)">GIAI_THUONG.so_tien</b> kiểu DECIMAL(12,2)</div>
+            <div><b style="color:var(--green)">THAM_GIA_GIAI.trang_thai</b>: dang_ky, bi_loai, dang_thi_dau</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="ft-brand"><div class="ft-logo">ESPORT<span>ARENA</span>.VN</div><p>Nền tảng quản lý giải đấu Esport.</p><div class="ft-socials"><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-discord"></i></a></div></div>
+    <div class="ft-col"><div class="ft-col-title">Giải Đấu</div><ul><li><a href="danhsachgiaidau.html">Danh sách giải</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Cộng Đồng</div><ul><li><a href="danhsachdoi.html">Đội</a></li><li><a href="bangxephang.html">Xếp hạng</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Tài Khoản</div><ul><li><a href="dangnhap.html">Đăng nhập</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">© 2026 EsportArena.vn</div>
+</footer>
+
+<style>
+.game-opt-btn{padding:12px 8px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r-sm);text-align:center;transition:all .2s;cursor:pointer}
+.game-opt-btn:hover{border-color:var(--cyan-border);background:var(--cyan-glow)}
+.game-radio:checked + .game-opt-btn{border-color:var(--cyan)!important;background:var(--cyan-glow)!important}
+</style>
+
+<script>
+// Game data
+const gameData = {
+  1:{name:'Liên Quân',icon:'⚔️',color:'var(--lq)',bg:'linear-gradient(135deg,#1a1000,#2d1f00)',tag:'chip-lq',tagTxt:'⚔ Liên Quân'},
+  2:{name:'Free Fire',icon:'🔥',color:'var(--ff)',bg:'linear-gradient(135deg,#1a0500,#2d0800)',tag:'chip-ff',tagTxt:'🔥 Free Fire'},
+  3:{name:'LoL',icon:'🧙',color:'var(--lol)',bg:'linear-gradient(135deg,#0d1a00,#1a2e00)',tag:'chip-lol',tagTxt:'🧙 League of Legends'},
+  4:{name:'Valorant',icon:'🎯',color:'var(--val)',bg:'linear-gradient(135deg,#1a0005,#2d000a)',tag:'chip-val',tagTxt:'🎯 Valorant'},
+  5:{name:'PUBG',icon:'🪖',color:'var(--pubg)',bg:'linear-gradient(135deg,#0d1000,#1a2000)',tag:'chip-pubg',tagTxt:'🪖 PUBG'},
+  6:{name:'CS:GO',icon:'💣',color:'#607d8b',bg:'linear-gradient(135deg,#050a0d,#0a1520)',tag:'chip-csgo',tagTxt:'💣 CS:GO'}
+};
+
+// Live preview update
+document.querySelectorAll('.game-radio').forEach(r => {
+  r.addEventListener('change', () => {
+    const d = gameData[r.value];
+    document.getElementById('previewBanner').style.background = d.bg;
+    document.getElementById('previewGlow').style.background = d.color;
+    document.getElementById('previewIcon').textContent = d.icon;
+    document.getElementById('previewGameTag').className = 't-game-tag ' + d.tag;
+    document.getElementById('previewGameTag').textContent = d.tagTxt;
+  });
+});
+document.querySelector('[name="ten_giai_dau"]').addEventListener('input', e => {
+  document.getElementById('previewName').textContent = e.target.value || 'Nhập tên giải đấu...';
+  document.getElementById('previewName').style.color = e.target.value ? 'var(--txt)' : 'var(--txt2)';
+});
+document.querySelector('[name="the_thuc"]').addEventListener('change', e => {
+  const map = {loai_truc_tiep:'Loại Trực Tiếp',loai_kep:'Loại Kép',vong_tron:'Vòng Tròn',thuy_si:'Thụy Sĩ'};
+  document.getElementById('previewFormat').textContent = map[e.target.value] || 'Chọn thể thức';
+});
+document.querySelector('[name="so_doi"]').addEventListener('change', e => {
+  document.getElementById('previewTeams').textContent = e.target.value + ' đội';
+});
+
+// Prize calc
+function calcTotal(){
+  const p1 = parseInt(document.getElementById('prize1').value)||0;
+  const p2 = parseInt(document.getElementById('prize2').value)||0;
+  const p3 = parseInt(document.getElementById('prize3').value)||0;
+  const total = p1+p2+p3;
+  document.getElementById('totalPrize').textContent = total.toLocaleString('vi-VN') + ' VNĐ';
+  document.getElementById('previewPrize').textContent = '🏆 ' + (total > 0 ? total.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa nhập');
+}
+document.getElementById('prize1').addEventListener('input', calcTotal);
+document.getElementById('prize2').addEventListener('input', calcTotal);
+document.getElementById('prize3').addEventListener('input', calcTotal);
+
+// Steps
+function nextStep(n){
+  document.querySelectorAll('.step-content').forEach(s => s.style.display = 'none');
+  document.getElementById('step'+n).style.display = 'block';
+  // Update dots
+  for(let i=1;i<=4;i++){
+    const dot = document.querySelector('#step-dot-'+i+' .step-dot');
+    if(i < n) dot.className='step-dot done';
+    else if(i === n) dot.className='step-dot active';
+    else dot.className='step-dot';
+  }
+  for(let i=1;i<=3;i++){
+    const line = document.getElementById('sl-'+i);
+    line.className = 'step-line' + (i < n ? ' done' : '');
+  }
+  // Update summary on step 4
+  if(n===4){
+    const gName = document.querySelector('[name="ten_giai_dau"]').value;
+    const gGame = document.querySelector('.game-radio:checked');
+    const gFormat = document.querySelector('[name="the_thuc"]').value;
+    const gTeams = document.querySelector('[name="so_doi"]').value;
+    const gPrize = parseInt(document.getElementById('tongGiaiThuong').value)||0;
+    document.getElementById('sum-name').textContent = gName || '—';
+    document.getElementById('sum-game').textContent = gGame ? gameData[gGame.value]?.name : '—';
+    document.getElementById('sum-format').textContent = gFormat || '—';
+    document.getElementById('sum-teams').textContent = gTeams + ' đội';
+    document.getElementById('sum-prize').textContent = gPrize ? gPrize.toLocaleString('vi-VN') + ' VNĐ' : '—';
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function prevStep(n){ nextStep(n); }
+function submitForm(){
+  alert('✅ Tạo giải đấu thành công!\nChuyển sang trang quản lý giải đấu...');
+}
+</script>
+</body>
+</html>
