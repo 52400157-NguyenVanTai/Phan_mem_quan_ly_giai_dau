@@ -15,9 +15,9 @@ GO
 IF OBJECT_ID('NGUOI_DUNG', 'U') IS NULL
 CREATE TABLE NGUOI_DUNG (
     ma_nguoi_dung INT IDENTITY PRIMARY KEY,
-    ten_dang_nhap NVARCHAR(100) UNIQUE,
-    email NVARCHAR(150) UNIQUE,
-    mat_khau_ma_hoa NVARCHAR(255),
+    ten_dang_nhap NVARCHAR(100) UNIQUE ,
+    email NVARCHAR(150) UNIQUE NOT NULL,
+    mat_khau_ma_hoa NVARCHAR(255) NOT NULL,
     vai_tro_he_thong NVARCHAR(50) DEFAULT 'user', -- Chỉ phân Admin và User hệ thống
     ngay_tao DATETIME DEFAULT GETDATE(),
     CONSTRAINT chk_vai_tro_ht CHECK (vai_tro_he_thong IN ('admin','user'))
@@ -238,7 +238,20 @@ CREATE TABLE BANG_XEP_HANG (
 GO
 
 -- ==============================================================
--- 8. CHI TIẾT CHỈ SỐ NGƯỜI CHƠI THEO TRẬN (Để tính MVP Trận)
+-- 8. DANH MỤC VỊ TRÍ THEO GAME (Master Data)
+-- ==============================================================
+IF OBJECT_ID('DANH_MUC_VI_TRI', 'U') IS NULL
+CREATE TABLE DANH_MUC_VI_TRI (
+    ma_vi_tri INT IDENTITY PRIMARY KEY,
+    ma_tro_choi INT,
+    ten_vi_tri NVARCHAR(50), -- Ví dụ: Mid, AD, Jungle, Sniper, IGL...
+    ky_hieu NVARCHAR(10), -- Ví dụ: MID, ADC, SUP
+    loai_vi_tri NVARCHAR(50), -- ChuyenMon hoặc BanHuanLuyen
+    FOREIGN KEY (ma_tro_choi) REFERENCES TRO_CHOI(ma_tro_choi)
+);
+
+-- ==============================================================
+-- 9. CHI TIẾT CHỈ SỐ NGƯỜI CHƠI THEO TRẬN (Để tính MVP Trận)
 -- ==============================================================
 IF OBJECT_ID('CHI_TIET_NGUOI_CHOI_TRAN', 'U') IS NULL
 CREATE TABLE CHI_TIET_NGUOI_CHOI_TRAN (
@@ -257,7 +270,7 @@ CREATE TABLE CHI_TIET_NGUOI_CHOI_TRAN (
 );
 
 -- ==============================================================
--- 9. BẢNG XẾP HẠNG CÁ NHÂN GIẢI ĐẤU (Để tính MVP Giải)
+-- 10. BẢNG XẾP HẠNG CÁ NHÂN GIẢI ĐẤU (Để tính MVP Giải)
 -- ==============================================================
 IF OBJECT_ID('BANG_XEP_HANG_CA_NHAN', 'U') IS NULL
 CREATE TABLE BANG_XEP_HANG_CA_NHAN (
@@ -274,18 +287,7 @@ CREATE TABLE BANG_XEP_HANG_CA_NHAN (
     CONSTRAINT uq_bxh_ca_nhan UNIQUE (ma_giai_dau, ma_nguoi_dung)
 );
 
--- ==============================================================
--- 10. DANH MỤC VỊ TRÍ THEO GAME (Master Data)
--- ==============================================================
-IF OBJECT_ID('DANH_MUC_VI_TRI', 'U') IS NULL
-CREATE TABLE DANH_MUC_VI_TRI (
-    ma_vi_tri INT IDENTITY PRIMARY KEY,
-    ma_tro_choi INT,
-    ten_vi_tri NVARCHAR(50), -- Ví dụ: Mid, AD, Jungle, Sniper, IGL...
-    ky_hieu NVARCHAR(10), -- Ví dụ: MID, ADC, SUP
-    loai_vi_tri NVARCHAR(50), -- ChuyenMon hoặc BanHuanLuyen
-    FOREIGN KEY (ma_tro_choi) REFERENCES TRO_CHOI(ma_tro_choi)
-);
+
 
 -- ==============================================================
 -- 11. ĐỘI HÌNH ĐĂNG KÝ THI ĐẤU (Tournament Roster)
@@ -302,6 +304,144 @@ CREATE TABLE DOI_HINH_THI_DAU (
     FOREIGN KEY (ma_vi_tri) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri)
 );
 
+-- ==============================================================
+-- BẢNG GIAI_ĐOẠN (Quản lý các giai đoạn của một giải đấu)
+-- ==============================================================
+IF OBJECT_ID('GIAI_DOAN', 'U') IS NULL
+CREATE TABLE GIAI_DOAN (
+    ma_giai_doan INT IDENTITY PRIMARY KEY,
+    ma_giai_dau INT NOT NULL,
+    ten_giai_doan NVARCHAR(100) NOT NULL, -- VD: Vòng Bảng, Tứ Kết
+    the_thuc NVARCHAR(50) NOT NULL,
+    thu_tu INT NOT NULL, -- Thứ tự diễn ra: 1, 2, 3...
+    so_doi_di_tiep INT DEFAULT 0, -- Số đội lấy đi tiếp (0 = không cắt đội, hoặc vòng cuối)
+    CONSTRAINT FK_GiaiDoan_GiaiDau FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau),
+    CONSTRAINT CHK_TheThuc_GiaiDoan CHECK (the_thuc IN (
+        'loai_truc_tiep', 
+        'nhanh_thang_nhanh_thua', 
+        'vong_tron', 
+        'league_bang_cheo', 
+        'thuy_si', 
+        'champion_rush'
+    )),
+    CONSTRAINT CHK_ThuTu_GiaiDoan CHECK (thu_tu > 0),
+    CONSTRAINT CHK_SoDoiDiTiep CHECK (so_doi_di_tiep >= 0),
+    CONSTRAINT UQ_GiaiDau_ThuTu UNIQUE (ma_giai_dau, thu_tu)
+);
+GO
+
+
+-- A. SỬA BẢNG TRẬN ĐẤU
+-- Thêm cột Giai đoạn vào Trận đấu
+ALTER TABLE TRAN_DAU ADD ma_giai_doan INT;
+-- Ràng buộc Khóa ngoại
+ALTER TABLE TRAN_DAU ADD CONSTRAINT FK_TranDau_GiaiDoan FOREIGN KEY (ma_giai_doan) REFERENCES GIAI_DOAN(ma_giai_doan);
+
+
+-- B. SỬA BẢNG XẾP HẠNG (QUAN TRỌNG NHẤT)
+ALTER TABLE BANG_XEP_HANG ADD ma_giai_doan INT;
+ALTER TABLE BANG_XEP_HANG ADD CONSTRAINT FK_Bxh_GiaiDoan FOREIGN KEY (ma_giai_doan) REFERENCES GIAI_DOAN(ma_giai_doan);
+
+-- GHI CHÚ CHO DEV: 
+-- Ngày trước chúng ta khóa Unique (ma_giai_dau, ma_nhom). 
+-- Nhưng bây giờ 1 Đội có thể tham gia Giai đoạn 1, xong đi tiếp vào Giai đoạn 2 của CÙNG 1 GIẢI ĐẤU.
+-- Nên chúng ta phải XÓA khóa cũ đi, và thay bằng khóa mới: (ma_giai_doan, ma_nhom).
+
+-- Xóa Unique Key cũ (Tên uq_bxh_nhom có thể khác tùy máy SQL tự sinh, Dev cần check lại tên đúng)
+ALTER TABLE BANG_XEP_HANG DROP CONSTRAINT uq_bxh_nhom;
+
+-- Thêm Unique Key mới: Một đội chỉ có 1 dòng xếp hạng trong 1 GIAI_ĐOẠN
+ALTER TABLE BANG_XEP_HANG ADD CONSTRAINT UQ_GiaiDoan_Nhom UNIQUE (ma_giai_doan, ma_nhom);
+GO
+
+ALTER TABLE GIAI_DAU 
+ADD is_deleted BIT DEFAULT 0,          -- Xóa mềm (Chỉ dùng khi giải chưa duyệt)
+    hien_thi_public BIT DEFAULT 1;     -- 1: Mọi người thấy, 0: Bị Admin ẩn đi
+
+-- Đảm bảo một nhóm (squad) chỉ xuất hiện 1 lần trong danh sách đăng ký của 1 giải
+ALTER TABLE THAM_GIA_GIAI 
+ADD CONSTRAINT UQ_GiaiDau_Nhom UNIQUE (ma_giai_dau, ma_nhom);
+
+
+-- Thêm cột để check nhanh, tránh phải JOIN nhiều bảng khi kiểm tra trùng player
+ALTER TABLE DOI_HINH_THI_DAU ADD ma_giai_dau INT;
+
+-- Khóa cặp (Giải đấu, Người dùng) để một người không thể nằm trong 2 đội hình của cùng 1 giải
+ALTER TABLE DOI_HINH_THI_DAU 
+ADD CONSTRAINT UQ_GiaiDau_Player UNIQUE (ma_giai_dau, ma_nguoi_dung);
+
+-- Khóa ngoại đảm bảo ma_giai_dau hợp lệ
+ALTER TABLE DOI_HINH_THI_DAU 
+ADD CONSTRAINT FK_DoiHinh_GiaiDau FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau);
+
+CREATE PROCEDURE SP_XoaXachGiaiDau
+    @MaGiaiDau INT
+AS
+BEGIN
+    -- Bắt đầu một Transaction để đảm bảo tính an toàn
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        -- 1. XÓA NHÁNH TRẬN ĐẤU (Xóa Cháu trước, Con sau)
+        -- Xóa lịch sử sửa điểm của các trận trong giải
+        DELETE FROM LICH_SU_SUA_KET_QUA 
+        WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
+        
+        -- Xóa kết quả trận đấu
+        DELETE FROM KET_QUA_TRAN 
+        WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
+        
+        -- Xóa chi tiết thống kê K/D/A của người chơi trong trận
+        DELETE FROM CHI_TIET_NGUOI_CHOI_TRAN 
+        WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
+
+        -- Xóa điểm số của các đội trong trận
+        DELETE FROM CHI_TIET_TRAN_DAU 
+        WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
+
+        -- Cuối cùng mới xóa Trận đấu
+        DELETE FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau;
+
+
+        -- 2. XÓA NHÁNH ĐỘI HÌNH VÀ THAM GIA
+        -- Xóa đội hình thi đấu (Roster)
+        DELETE FROM DOI_HINH_THI_DAU 
+        WHERE ma_giai_dau = @MaGiaiDau;
+
+        -- Xóa danh sách đội tham gia giải
+        DELETE FROM THAM_GIA_GIAI WHERE ma_giai_dau = @MaGiaiDau;
+
+
+        -- 3. XÓA CÁC BẢNG LIÊN KẾT KHÁC CỦA GIẢI
+        DELETE FROM BANG_XEP_HANG WHERE ma_giai_dau = @MaGiaiDau;
+        DELETE FROM BANG_XEP_HANG_CA_NHAN WHERE ma_giai_dau = @MaGiaiDau;
+        DELETE FROM QUAN_TRI_GIAI_DAU WHERE ma_giai_dau = @MaGiaiDau;
+        DELETE FROM GIAI_THUONG WHERE ma_giai_dau = @MaGiaiDau;
+
+
+        -- 4. BƯỚC CUỐI: XÓA CHÍNH GIẢI ĐẤU ĐÓ (Xóa Cha)
+        DELETE FROM GIAI_DAU WHERE ma_giai_dau = @MaGiaiDau;
+
+        -- Nếu mọi thứ suôn sẻ, lưu thay đổi
+        COMMIT TRANSACTION;
+        PRINT 'Đã xóa thành công toàn bộ dữ liệu của giải đấu!';
+    END TRY
+    BEGIN CATCH
+        -- Nếu có bất kỳ lỗi nào xảy ra ở các bước trên, hoàn tác lại toàn bộ
+        ROLLBACK TRANSACTION;
+        
+        -- Trả về thông báo lỗi cho C#
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(@ErrorMessage, 16, 1);
+    END CATCH
+END;
+GO
+
+ALTER TABLE HO_SO_IN_GAME 
+ADD ma_vi_tri_so_truong INT;
+
+ALTER TABLE HO_SO_IN_GAME 
+ADD CONSTRAINT FK_HoSo_ViTri FOREIGN KEY (ma_vi_tri_so_truong) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri);
 
 -- Tìm HLV xuất sắc nhất giải (Dựa vào đội Top 1)
 SELECT 
