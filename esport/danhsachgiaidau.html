@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EsportArena VN — Danh Sách Giải Đấu</title>
+<link rel="stylesheet" href="giaodien.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="topbar-brand">ESPORT<span>ARENA</span>.VN</div>
+  <div class="topbar-links">
+    <a href="dangnhap.html" class="btn-login">Đăng Nhập</a>
+    <a href="dangky.html" class="btn-reg">Đăng Ký</a>
+  </div>
+</div></div>
+
+<nav class="navbar"><div class="inner">
+  <a href="trangchu.html" class="logo-wrap">
+    <div class="logo-hex">EA</div>
+    <div class="logo-text"><div class="lt1">ESPORT<span>ARENA</span></div><div class="lt2">6 Games · Pro Tournaments</div></div>
+  </a>
+  <nav class="main-nav">
+    <a href="trangchu.html" class="nav-a"><i class="fas fa-home"></i> Trang Chủ</a>
+    <a href="danhsachgiaidau.html" class="nav-a active"><i class="fas fa-trophy"></i> Giải Đấu</a>
+    <a href="danhsachdoi.html" class="nav-a"><i class="fas fa-users"></i> Đội</a>
+    <a href="lichthidau.html" class="nav-a"><i class="fas fa-gamepad"></i> Lịch Thi Đấu</a>
+    <a href="bangxephang.html" class="nav-a"><i class="fas fa-chart-bar"></i> Bảng Xếp Hạng</a>
+  </nav>
+  <a href="taogiai.html" class="nav-cta">+ Tạo Giải</a>
+  <button class="mob-btn"><i class="fas fa-bars"></i></button>
+</div></nav>
+
+<!-- PAGE BANNER -->
+<div class="page-banner">
+  <div class="inner">
+    <div class="breadcrumb"><a href="trangchu.html">Trang chủ</a><span>/</span>Giải Đấu</div>
+    <h1><i class="fas fa-trophy" style="color:var(--gold);margin-right:10px"></i>DANH SÁCH GIẢI ĐẤU</h1>
+    <p>Tất cả giải đấu 6 tựa game — Liên Quân · Free Fire · LoL · Valorant · PUBG · CS:GO</p>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div style="background:var(--bg-1);border-bottom:1px solid var(--border);padding:12px 0">
+  <div class="container">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <!-- Game filter -->
+      <a href="#" class="btn btn-outline btn-sm" style="border-color:var(--cyan);color:var(--cyan)">Tất Cả</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,193,7,.15);border:1px solid rgba(255,193,7,.4);color:var(--lq)">⚔️ Liên Quân</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,109,0,.12);border:1px solid rgba(255,109,0,.35);color:var(--ff)">🔥 Free Fire</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(198,155,58,.12);border:1px solid rgba(198,155,58,.3);color:var(--lol)">🧙 LoL</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,70,85,.1);border:1px solid rgba(255,70,85,.3);color:var(--val)">🎯 Valorant</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(232,184,75,.1);border:1px solid rgba(232,184,75,.3);color:var(--pubg)">🪖 PUBG</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(96,125,139,.18);border:1px solid rgba(96,125,139,.3);color:#90a4ae">💣 CS:GO</a>
+
+      <!-- Separator -->
+      <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+
+      <!-- Status filter — dựa trên trang_thai trong GIAI_DAU -->
+      <a href="#" class="btn btn-sm" style="background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.3);color:var(--red)">🔴 Đang Diễn Ra</a>
+      <a href="#" class="btn btn-sm btn-outline">🔵 Đang Đăng Ký</a>
+      <a href="#" class="btn btn-sm btn-outline">⬜ Đã Kết Thúc</a>
+
+      <!-- Search -->
+      <div style="position:relative;margin-left:auto">
+        <input placeholder="Tìm tên giải đấu..." style="background:var(--bg-3);border:1px solid var(--border);border-radius:20px;padding:7px 34px 7px 13px;font-size:13px;color:var(--txt);outline:none;width:220px">
+        <i class="fas fa-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--txt2);font-size:12px"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="page-section">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <span style="font-size:14px;color:var(--txt2)">Tìm thấy <b style="color:var(--txt)">29</b> giải đấu</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12px;color:var(--txt2)">Sắp xếp:</span>
+        <select style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 10px;font-size:12px;color:var(--txt);outline:none">
+          <option>Mới nhất</option>
+          <option>Giải thưởng cao nhất</option>
+          <option>Đang diễn ra</option>
+        </select>
+        <a href="taogiai.html" class="btn btn-cyan btn-sm"><i class="fas fa-plus"></i> Tạo Giải</a>
+      </div>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid-4" id="tournamentGrid">
+
+      <!-- ═══ Liên Quân ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="lq" data-status="dang_dien_ra">
+        <div class="t-banner" style="background:linear-gradient(135deg,#1a1000,#2d1f00)">
+          <div class="t-banner-glow" style="background:var(--lq)"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 18px var(--lq))">⚔️</div>
+          <div class="t-status chip st-dang-dien-ra">🔴 Đang Diễn Ra</div>
+          <div class="t-feat">⭐ HOT</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-lq">⚔ Liên Quân</div>
+          <div class="t-name">FAG Liên Quân Open Cup 2026 — Mùa Xuân</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Loại Trực Tiếp</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>16 đội</div>
+          </div>
+          <div class="t-prize text-gold">🏆 30,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">12/16 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:75%;background:linear-gradient(to right,var(--lq),#e09800)"></div></div></div>
+            <span class="btn btn-lq btn-sm">Xem</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ Free Fire ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="ff" data-status="dang_dien_ra">
+        <div class="t-banner" style="background:linear-gradient(135deg,#1a0500,#2d0800)">
+          <div class="t-banner-glow" style="background:var(--ff)"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 18px var(--ff))">🔥</div>
+          <div class="t-status chip st-dang-dien-ra">🔴 Đang Diễn Ra</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-ff">🔥 Free Fire</div>
+          <div class="t-name">Free Fire Squad Championship 2026</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Vòng Tròn</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>12 đội</div>
+          </div>
+          <div class="t-prize" style="color:var(--ff)">🏆 20,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">8/12 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:66%;background:linear-gradient(to right,var(--ff),#dd4400)"></div></div></div>
+            <span class="btn btn-ff btn-sm">Xem</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ LoL ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="lol" data-status="ban_nhap">
+        <div class="t-banner" style="background:linear-gradient(135deg,#0d1a00,#1a2e00)">
+          <div class="t-banner-glow" style="background:var(--lol)"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 18px var(--lol))">🧙</div>
+          <div class="t-status chip" style="background:rgba(0,229,255,.85);color:var(--bg-0)">🔵 Đăng Ký</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-lol">🧙 League of Legends</div>
+          <div class="t-name">VCS Mùa Hè 2026 — Vietnam Championship</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Loại Kép</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>8 đội</div>
+          </div>
+          <div class="t-prize" style="color:var(--lol)">🏆 50,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">4/8 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:50%;background:linear-gradient(to right,var(--lol),#a07a20)"></div></div></div>
+            <span class="btn btn-lol btn-sm">Xem</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ Valorant ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="val" data-status="ban_nhap">
+        <div class="t-banner" style="background:linear-gradient(135deg,#1a0005,#2d000a)">
+          <div class="t-banner-glow" style="background:var(--val)"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 18px var(--val))">🎯</div>
+          <div class="t-status chip" style="background:rgba(0,229,255,.85);color:var(--bg-0)">🔵 Đăng Ký</div>
+          <div class="t-feat">⭐ HOT</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-val">🎯 Valorant</div>
+          <div class="t-name">Valorant Vietnam Open 2026 Season 2</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Thụy Sĩ</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>32 đội</div>
+          </div>
+          <div class="t-prize" style="color:var(--val)">🏆 40,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">18/32 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:56%;background:linear-gradient(to right,var(--val),#cc2233)"></div></div></div>
+            <span class="btn btn-val btn-sm">Xem</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ PUBG ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="pubg" data-status="dang_dien_ra">
+        <div class="t-banner" style="background:linear-gradient(135deg,#0d1000,#1a2000)">
+          <div class="t-banner-glow" style="background:var(--pubg)"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 18px var(--pubg))">🪖</div>
+          <div class="t-status chip st-dang-dien-ra">🔴 Đang Diễn Ra</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-pubg">🪖 PUBG</div>
+          <div class="t-name">PUBG National Championship Vietnam 2026</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Vòng Tròn</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>16 đội</div>
+          </div>
+          <div class="t-prize" style="color:var(--pubg)">🏆 25,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">10/16 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:62%;background:linear-gradient(to right,var(--pubg),#c09030)"></div></div></div>
+            <span class="btn btn-pubg btn-sm">Xem</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ CS:GO ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="csgo" data-status="ban_nhap">
+        <div class="t-banner" style="background:linear-gradient(135deg,#050a0d,#0a1520)">
+          <div class="t-banner-glow" style="background:#607d8b"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 18px #607d8b)">💣</div>
+          <div class="t-status chip" style="background:rgba(0,229,255,.85);color:var(--bg-0)">🔵 Đăng Ký</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-csgo">💣 CS:GO</div>
+          <div class="t-name">CS:GO Vietnam Pro League Season 3 — 2026</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Loại Trực Tiếp</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>16 đội</div>
+          </div>
+          <div class="t-prize" style="color:#90a4ae">🏆 35,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">6/16 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:37%;background:linear-gradient(to right,#607d8b,#455a64)"></div></div></div>
+            <span class="btn btn-csgo btn-sm">Xem</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ More LQ ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="lq" data-status="ket_thuc">
+        <div class="t-banner" style="background:linear-gradient(135deg,#0d0d0d,#1a1a1a)">
+          <div class="t-banner-icon" style="opacity:.5">⚔️</div>
+          <div class="t-status chip st-ket-thuc">⬜ Kết Thúc</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-lq">⚔ Liên Quân</div>
+          <div class="t-name">LQ Ranked Rumble Season 1 — 2025</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Vòng Tròn</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>8 đội</div>
+          </div>
+          <div class="t-prize text-gold">🏆 15,000,000 VNĐ</div>
+          <div class="t-footer">
+            <span style="font-size:12px;color:var(--txt2)">Phoenix Esports vô địch 🏆</span>
+            <span class="btn btn-outline btn-sm">Kết Quả</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- ═══ More FF ═══ -->
+      <a href="chitietgiai.html" class="t-card" data-game="ff" data-status="ban_nhap">
+        <div class="t-banner" style="background:linear-gradient(135deg,#1a0500,#2d0800)">
+          <div class="t-banner-glow" style="background:var(--ff);opacity:.2"></div>
+          <div class="t-banner-icon" style="filter:drop-shadow(0 0 14px var(--ff))">🔥</div>
+          <div class="t-status chip" style="background:rgba(0,229,255,.85);color:var(--bg-0)">🔵 Đăng Ký</div>
+        </div>
+        <div class="t-body">
+          <div class="t-game-tag chip-ff">🔥 Free Fire</div>
+          <div class="t-name">FF Solos Showdown — Tháng 5/2026</div>
+          <div class="t-meta">
+            <div class="t-meta-item"><i class="fas fa-sitemap"></i>Thụy Sĩ</div>
+            <div class="t-meta-item"><i class="fas fa-users"></i>32 đội</div>
+          </div>
+          <div class="t-prize" style="color:var(--ff)">🏆 10,000,000 VNĐ</div>
+          <div class="t-footer">
+            <div style="font-size:11px;color:var(--txt2)">5/32 đội<div class="slot-bar mt-1"><div class="slot-fill" style="width:15%;background:linear-gradient(to right,var(--ff),#dd4400)"></div></div></div>
+            <span class="btn btn-ff btn-sm">Đăng Ký</span>
+          </div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- PAGINATION -->
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:28px">
+      <button style="width:36px;height:36px;background:var(--cyan);color:var(--bg-0);border:none;border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer">1</button>
+      <button style="width:36px;height:36px;background:var(--bg-2);color:var(--txt2);border:1px solid var(--border);border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;cursor:pointer">2</button>
+      <button style="width:36px;height:36px;background:var(--bg-2);color:var(--txt2);border:1px solid var(--border);border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;cursor:pointer">3</button>
+      <button style="padding:0 14px;height:36px;background:var(--bg-2);color:var(--txt2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;cursor:pointer">Tiếp →</button>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="ft-brand"><div class="ft-logo">ESPORT<span>ARENA</span>.VN</div><p>Nền tảng quản lý giải đấu Esport chuyên nghiệp Việt Nam.</p><div class="ft-socials"><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-youtube"></i></a><a href="#"><i class="fab fa-discord"></i></a></div></div>
+    <div class="ft-col"><div class="ft-col-title">Theo Game</div><ul><li><a href="#">⚔️ Liên Quân</a></li><li><a href="#">🔥 Free Fire</a></li><li><a href="#">🧙 LoL</a></li><li><a href="#">🎯 Valorant</a></li><li><a href="#">🪖 PUBG</a></li><li><a href="#">💣 CS:GO</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Cộng Đồng</div><ul><li><a href="danhsachdoi.html">Đội thi đấu</a></li><li><a href="bangxephang.html">Xếp hạng</a></li><li><a href="lichthidau.html">Lịch thi đấu</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Tài Khoản</div><ul><li><a href="dangnhap.html">Đăng nhập</a></li><li><a href="dangky.html">Đăng ký</a></li><li><a href="taogiai.html">Tạo giải</a></li><li><a href="lapdoi.html">Lập đội</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">© 2026 EsportArena.vn</div>
+</footer>
+</body>
+</html>

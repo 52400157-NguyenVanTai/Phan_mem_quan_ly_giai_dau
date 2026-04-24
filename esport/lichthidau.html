@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EsportArena VN — Lịch Thi Đấu</title>
+<link rel="stylesheet" href="giaodien.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="topbar"><div class="inner">
+  <div class="topbar-brand">ESPORT<span>ARENA</span>.VN</div>
+  <div class="topbar-links"><a href="dangnhap.html" class="btn-login">Đăng Nhập</a><a href="dangky.html" class="btn-reg">Đăng Ký</a></div>
+</div></div>
+
+<nav class="navbar"><div class="inner">
+  <a href="trangchu.html" class="logo-wrap">
+    <div class="logo-hex">EA</div>
+    <div class="logo-text"><div class="lt1">ESPORT<span>ARENA</span></div><div class="lt2">6 Games · Pro Tournaments</div></div>
+  </a>
+  <nav class="main-nav">
+    <a href="trangchu.html" class="nav-a"><i class="fas fa-home"></i> Trang Chủ</a>
+    <a href="danhsachgiaidau.html" class="nav-a"><i class="fas fa-trophy"></i> Giải Đấu</a>
+    <a href="danhsachdoi.html" class="nav-a"><i class="fas fa-users"></i> Đội</a>
+    <a href="lichthidau.html" class="nav-a active"><i class="fas fa-gamepad"></i> Lịch Thi Đấu <span class="nav-badge">LIVE</span></a>
+    <a href="bangxephang.html" class="nav-a"><i class="fas fa-chart-bar"></i> Bảng Xếp Hạng</a>
+  </nav>
+  <a href="taogiai.html" class="nav-cta">+ Tạo Giải</a>
+  <button class="mob-btn"><i class="fas fa-bars"></i></button>
+</div></nav>
+
+<!-- PAGE BANNER -->
+<div class="page-banner">
+  <div class="inner">
+    <div class="breadcrumb"><a href="trangchu.html">Trang chủ</a><span>/</span>Lịch Thi Đấu</div>
+    <h1><i class="fas fa-gamepad" style="color:var(--cyan);margin-right:10px"></i>LỊCH THI ĐẤU</h1>
+    <p>Bảng TRAN_DAU · LICH_THI_DAU · KET_QUA_TRAN — Theo dõi tất cả trận đấu 6 tựa game</p>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div style="background:var(--bg-1);border-bottom:1px solid var(--border);padding:12px 0">
+  <div class="container">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <a href="#" class="btn btn-outline btn-sm" style="border-color:var(--cyan);color:var(--cyan)">Tất Cả</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.35);color:var(--red)">🔴 Đang Đấu</a>
+      <a href="#" class="btn btn-sm btn-outline">📅 Sắp Diễn Ra</a>
+      <a href="#" class="btn btn-sm btn-outline">✅ Đã Kết Thúc</a>
+      <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);color:var(--lq)">⚔️ LQ</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,109,0,.1);border:1px solid rgba(255,109,0,.3);color:var(--ff)">🔥 FF</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(198,155,58,.1);border:1px solid rgba(198,155,58,.3);color:var(--lol)">🧙 LoL</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(255,70,85,.1);border:1px solid rgba(255,70,85,.3);color:var(--val)">🎯 Val</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(232,184,75,.1);border:1px solid rgba(232,184,75,.3);color:var(--pubg)">🪖 PUBG</a>
+      <a href="#" class="btn btn-sm" style="background:rgba(96,125,139,.15);border:1px solid rgba(96,125,139,.3);color:#90a4ae">💣 CS:GO</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-section">
+  <div class="container">
+
+    <!-- ══════ ĐANG LIVE ══════ -->
+    <div style="margin-bottom:28px">
+      <div class="sec-hd">
+        <div class="sec-title"><span class="live-pip"><div class="dot"></div>ĐANG LIVE</span></div>
+        <div class="sec-line" style="background:linear-gradient(to right,rgba(255,23,68,.4),transparent)"></div>
+      </div>
+
+      <!-- TRAN_DAU: ma_tran, ma_giai_dau, vong, thoi_gian_du_kien, trang_thai='dang_dau' -->
+      <div class="match-card is-live" style="padding:18px 22px">
+        <div style="text-align:center;min-width:60px;flex-shrink:0">
+          <div style="font-size:24px;margin-bottom:5px">⚔️</div>
+          <span class="live-pip" style="font-size:10px"><div class="dot"></div>LIVE</span>
+        </div>
+        <div class="match-teams">
+          <div class="match-team">
+            <div class="team-tag">[SDW]</div>
+            <div class="team-nm" style="font-size:18px">Team Shadow</div>
+          </div>
+          <div style="text-align:center;min-width:90px">
+            <div class="match-score" style="font-size:32px;color:var(--red)">1 — 1</div>
+            <div class="match-meta">Tứ Kết · Game 3</div>
+          </div>
+          <div class="match-team">
+            <div class="team-tag">[PHX]</div>
+            <div class="team-nm" style="font-size:18px">Phoenix Esports</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+          <a href="#" class="btn btn-red btn-sm"><i class="fas fa-play"></i> Watch Live</a>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+      </div>
+
+      <div class="match-card is-live" style="padding:18px 22px">
+        <div style="text-align:center;min-width:60px;flex-shrink:0">
+          <div style="font-size:24px;margin-bottom:5px">🎯</div>
+          <span class="live-pip" style="font-size:10px"><div class="dot"></div>LIVE</span>
+        </div>
+        <div class="match-teams">
+          <div class="match-team"><div class="team-tag">[VEN]</div><div class="team-nm" style="font-size:18px">Venom VN</div></div>
+          <div style="text-align:center;min-width:90px"><div class="match-score" style="font-size:32px;color:var(--red)">13 — 8</div><div class="match-meta">Vòng 2 · Valorant Open</div></div>
+          <div class="match-team"><div class="team-tag">[CRY]</div><div class="team-nm" style="font-size:18px">Crystal Rage</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+          <a href="#" class="btn btn-red btn-sm"><i class="fas fa-play"></i> Watch Live</a>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ TABS ══════ -->
+    <div class="tabs-bar">
+      <button class="tab-btn on" onclick="switchTab('lt-sapden',this)">📅 Sắp Diễn Ra <span style="background:var(--cyan);color:var(--bg-0);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:5px">12</span></button>
+      <button class="tab-btn" onclick="switchTab('lt-ketthuc',this)">✅ Đã Kết Thúc</button>
+    </div>
+
+    <!-- SẮP DIỄN RA -->
+    <div id="lt-sapden" class="tab-pane on">
+
+      <!-- Nhóm ngày - dựa trên LICH_THI_DAU: bat_dau, ket_thuc -->
+      <div style="margin-bottom:22px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="background:var(--cyan);color:var(--bg-0);padding:4px 14px;border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700">HÔM NAY · 24/04/2026</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <div class="match-card">
+          <div style="text-align:center;min-width:65px;flex-shrink:0">
+            <div style="font-size:20px">⚔️</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--txt)">19:00</div>
+            <div style="font-size:10px;color:var(--txt2)">bat_dau</div>
+          </div>
+          <div class="match-teams">
+            <div class="match-team"><div class="team-tag">[DRK]</div><div class="team-nm">Dark Legion</div></div>
+            <div class="match-vs">VS</div>
+            <div class="match-team"><div class="team-tag">[SDW]</div><div class="team-nm">Team Shadow</div></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:110px">
+            <div class="chip chip-lq" style="font-size:10px;margin-bottom:5px">Tứ Kết · LQ</div>
+            <div style="font-size:12px;color:var(--cyan);font-weight:700">Room: LQ2026A</div>
+            <div style="font-size:11px;color:var(--txt2)">vong: 2 · so_tran: 1</div>
+          </div>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+
+        <div class="match-card">
+          <div style="text-align:center;min-width:65px;flex-shrink:0">
+            <div style="font-size:20px">🔥</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--txt)">20:30</div>
+          </div>
+          <div class="match-teams">
+            <div class="match-team"><div class="team-tag">[BLZ]</div><div class="team-nm">Blaze Gaming</div></div>
+            <div class="match-vs">VS</div>
+            <div class="match-team"><div class="team-tag">[INF]</div><div class="team-nm">Inferno Squad</div></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:110px">
+            <div class="chip chip-ff" style="font-size:10px;margin-bottom:5px">Bảng A · FF</div>
+            <div style="font-size:11px;color:var(--txt2)">vong: 1 · so_tran: 3</div>
+          </div>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+
+        <div class="match-card">
+          <div style="text-align:center;min-width:65px;flex-shrink:0">
+            <div style="font-size:20px">💣</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--txt)">21:00</div>
+          </div>
+          <div class="match-teams">
+            <div class="match-team"><div class="team-tag">[SMG]</div><div class="team-nm">Smoke Grenade</div></div>
+            <div class="match-vs">VS</div>
+            <div class="match-team"><div class="team-tag">[HEK]</div><div class="team-nm">HeadShot Kings</div></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:110px">
+            <div class="chip chip-csgo" style="font-size:10px;margin-bottom:5px">Vòng 1 · CS:GO</div>
+          </div>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+      </div>
+
+      <div style="margin-bottom:22px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="background:var(--bg-3);color:var(--txt2);padding:4px 14px;border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;border:1px solid var(--border)">NGÀY MAI · 25/04/2026</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <div class="match-card">
+          <div style="text-align:center;min-width:65px;flex-shrink:0">
+            <div style="font-size:20px">🧙</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--txt)">15:00</div>
+          </div>
+          <div class="match-teams">
+            <div class="match-team"><div class="team-tag">[GDM]</div><div class="team-nm">Golden Mages</div></div>
+            <div class="match-vs">VS</div>
+            <div class="match-team"><div class="team-tag">[ARW]</div><div class="team-nm">Arcane Wolves</div></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:110px">
+            <div class="chip chip-lol" style="font-size:10px;margin-bottom:5px">Bán Kết · LoL</div>
+          </div>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+
+        <div class="match-card">
+          <div style="text-align:center;min-width:65px;flex-shrink:0">
+            <div style="font-size:20px">🪖</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--txt)">18:00</div>
+          </div>
+          <div class="match-teams">
+            <div class="match-team"><div class="team-tag">[IHM]</div><div class="team-nm">Iron Helmet</div></div>
+            <div class="match-vs">VS</div>
+            <div class="match-team"><div class="team-tag">[SRG]</div><div class="team-nm">Squad Reaper</div></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:110px">
+            <div class="chip chip-pubg" style="font-size:10px;margin-bottom:5px">Vòng 3 · PUBG</div>
+          </div>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+
+        <div class="match-card">
+          <div style="text-align:center;min-width:65px;flex-shrink:0">
+            <div style="font-size:20px">🎯</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--txt)">20:00</div>
+          </div>
+          <div class="match-teams">
+            <div class="match-team"><div class="team-tag">[VEN]</div><div class="team-nm">Venom VN</div></div>
+            <div class="match-vs">VS</div>
+            <div class="match-team"><div class="team-tag">[NVX]</div><div class="team-nm">Nova X</div></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:110px">
+            <div class="chip chip-val" style="font-size:10px;margin-bottom:5px">Tứ Kết · Valorant</div>
+          </div>
+          <a href="chitiettranda.html" class="btn btn-outline btn-sm">Detail</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ĐÃ KẾT THÚC -->
+    <div id="lt-ketthuc" class="tab-pane">
+      <!-- KET_QUA_TRAN: ma_ket_qua, ma_tran, ma_thang, chi_tiet_diem, thoi_diem_bao_cao -->
+      <!-- CHI_TIET_TRAN_DAU_LQ_LOL_VAL: doi_thang, doi_thua, ti_so -->
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="background:var(--bg-3);color:var(--txt2);padding:4px 14px;border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;border:1px solid var(--border)">23/04/2026</div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <div class="match-card" style="opacity:.95">
+        <div style="text-align:center;min-width:55px;flex-shrink:0">
+          <div style="font-size:18px">⚔️</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px">22:10</div>
+        </div>
+        <div class="match-teams">
+          <div class="match-team">
+            <div class="team-tag">[SDW]</div>
+            <div class="team-nm win">Team Shadow</div>
+            <div style="font-size:10px;color:var(--gold)">🏆 doi_thang</div>
+          </div>
+          <div style="text-align:center;min-width:80px">
+            <div class="match-score">2 — 0</div>
+            <div class="match-meta">ti_so: 2-0 · Vòng 1/8</div>
+          </div>
+          <div class="match-team">
+            <div class="team-tag">[DRG]</div>
+            <div class="team-nm">Dragon Force</div>
+            <div style="font-size:10px;color:var(--txt3)">doi_thua</div>
+          </div>
+        </div>
+        <a href="chitiettranda.html" class="btn btn-outline btn-sm">Kết Quả</a>
+      </div>
+
+      <div class="match-card" style="opacity:.95">
+        <div style="text-align:center;min-width:55px;flex-shrink:0">
+          <div style="font-size:18px">🔥</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px">20:45</div>
+        </div>
+        <div class="match-teams">
+          <div class="match-team">
+            <div class="team-tag">[INF]</div>
+            <div class="team-nm win">Inferno Squad</div>
+            <div style="font-size:10px;color:var(--gold)">🏆 top: #1 · 18pts</div>
+          </div>
+          <div style="text-align:center;min-width:80px">
+            <div class="match-score" style="font-size:16px;color:var(--ff)">18 pts<br><span style="font-size:12px">elims: 12</span></div>
+            <div class="match-meta">Bảng A · FF</div>
+          </div>
+          <div class="match-team">
+            <div class="team-tag">[NWF]</div>
+            <div class="team-nm">Neon Wolves</div>
+            <div style="font-size:10px;color:var(--txt3)">top: #4 · 8pts</div>
+          </div>
+        </div>
+        <a href="chitiettranda.html" class="btn btn-outline btn-sm">Kết Quả</a>
+      </div>
+
+      <div class="match-card" style="opacity:.9">
+        <div style="text-align:center;min-width:55px;flex-shrink:0">
+          <div style="font-size:18px">🧙</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px">19:30</div>
+        </div>
+        <div class="match-teams">
+          <div class="match-team"><div class="team-tag">[GDM]</div><div class="team-nm win">Golden Mages</div><div style="font-size:10px;color:var(--gold)">🏆</div></div>
+          <div style="text-align:center;min-width:80px"><div class="match-score">2 — 1</div><div class="match-meta">Tứ Kết · LoL</div></div>
+          <div class="match-team"><div class="team-tag">[ARW]</div><div class="team-nm">Arcane Wolves</div></div>
+        </div>
+        <a href="chitiettranda.html" class="btn btn-outline btn-sm">Kết Quả</a>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;margin:18px 0 12px">
+        <div style="background:var(--bg-3);color:var(--txt2);padding:4px 14px;border-radius:var(--r-sm);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;border:1px solid var(--border)">22/04/2026</div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <div class="match-card" style="opacity:.85">
+        <div style="text-align:center;min-width:55px;flex-shrink:0">
+          <div style="font-size:18px">💣</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px">21:00</div>
+        </div>
+        <div class="match-teams">
+          <div class="match-team"><div class="team-tag">[SMG]</div><div class="team-nm win">Smoke Grenade</div><div style="font-size:10px;color:var(--gold)">🏆</div></div>
+          <div style="text-align:center;min-width:80px"><div class="match-score">16 — 9</div><div class="match-meta">Vòng 1 · CS:GO</div></div>
+          <div class="match-team"><div class="team-tag">[HEK]</div><div class="team-nm">HeadShot Kings</div></div>
+        </div>
+        <a href="chitiettranda.html" class="btn btn-outline btn-sm">Kết Quả</a>
+      </div>
+
+      <div class="match-card" style="opacity:.85">
+        <div style="text-align:center;min-width:55px;flex-shrink:0">
+          <div style="font-size:18px">🪖</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px">18:30</div>
+        </div>
+        <div class="match-teams">
+          <div class="match-team"><div class="team-tag">[IHM]</div><div class="team-nm win">Iron Helmet</div><div style="font-size:10px;color:var(--gold)">🏆 top: #1</div></div>
+          <div style="text-align:center;min-width:80px"><div class="match-score" style="font-size:16px;color:var(--pubg)">22 pts<br><span style="font-size:12px">elims: 15</span></div><div class="match-meta">Vòng 2 · PUBG</div></div>
+          <div class="match-team"><div class="team-tag">[SRG]</div><div class="team-nm">Squad Reaper</div><div style="font-size:10px;color:var(--txt3)">top: #3</div></div>
+        </div>
+        <a href="chitiettranda.html" class="btn btn-outline btn-sm">Kết Quả</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="ft-brand"><div class="ft-logo">ESPORT<span>ARENA</span>.VN</div><p>Nền tảng quản lý giải đấu Esport chuyên nghiệp.</p><div class="ft-socials"><a href="#"><i class="fab fa-facebook-f"></i></a><a href="#"><i class="fab fa-youtube"></i></a><a href="#"><i class="fab fa-discord"></i></a></div></div>
+    <div class="ft-col"><div class="ft-col-title">Giải Đấu</div><ul><li><a href="danhsachgiaidau.html">Tất cả giải</a></li><li><a href="taogiai.html">Tạo giải</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Cộng Đồng</div><ul><li><a href="danhsachdoi.html">Đội</a></li><li><a href="bangxephang.html">Xếp hạng</a></li></ul></div>
+    <div class="ft-col"><div class="ft-col-title">Tài Khoản</div><ul><li><a href="dangnhap.html">Đăng nhập</a></li><li><a href="dangky.html">Đăng ký</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">© 2026 EsportArena.vn</div>
+</footer>
+
+<script>
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  btn.classList.add('on');
+}
+</script>
+</body>
+</html>

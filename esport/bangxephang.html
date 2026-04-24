@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EsportArena VN — Bảng Xếp Hạng</title>
+<link rel="stylesheet" href="giaodien.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar"><div class="inner">
+  <div class="topbar-brand">ESPORT<span>ARENA</span>.VN</div>
+  <div class="topbar-links">
+    <a href="dangnhap.html" class="btn-login">Đăng Nhập</a>
+    <a href="dangky.html" class="btn-reg">Đăng Ký</a>
+  </div>
+</div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar"><div class="inner">
+  <a href="trangchu.html" class="logo-wrap">
+    <div class="logo-hex">EA</div>
+    <div class="logo-text"><div class="lt1">ESPORT<span>ARENA</span></div><div class="lt2">6 Games · Pro Tournaments</div></div>
+  </a>
+  <nav class="main-nav">
+    <a href="trangchu.html" class="nav-a"><i class="fas fa-home"></i> Trang Chủ</a>
+    <a href="danhsachgiaidau.html" class="nav-a"><i class="fas fa-trophy"></i> Giải Đấu</a>
+    <a href="danhsachdoi.html" class="nav-a"><i class="fas fa-users"></i> Đội</a>
+    <a href="lichthidau.html" class="nav-a"><i class="fas fa-gamepad"></i> Lịch Thi Đấu</a>
+    <a href="bangxephang.html" class="nav-a active"><i class="fas fa-chart-bar"></i> Bảng Xếp Hạng</a>
+  </nav>
+  <a href="taogiai.html" class="nav-cta">+ Tạo Giải</a>
+  <button class="mob-btn"><i class="fas fa-bars"></i></button>
+</div></nav>
+
+<!-- PAGE BANNER -->
+<div class="page-banner">
+  <div class="inner">
+    <div class="breadcrumb"><a href="trangchu.html">Trang chủ</a><span>/</span>Bảng Xếp Hạng</div>
+    <h1><i class="fas fa-chart-bar" style="color:var(--cyan);margin-right:10px"></i>BẢNG XẾP HẠNG ELO</h1>
+    <p>BANG_XEP_HANG_5V5 · BANG_XEP_HANG_MAPLON · THONG_KE_NGUOI_CHOI — Cập nhật sau mỗi trận đấu</p>
+  </div>
+</div>
+
+<!-- GAME TABS NAV -->
+<div class="game-tabs">
+  <div class="gtab lq on" onclick="showGame('lq',this)"><span class="game-icon">⚔️</span> Liên Quân</div>
+  <div class="gtab ff" onclick="showGame('ff',this)"><span class="game-icon">🔥</span> Free Fire</div>
+  <div class="gtab lol" onclick="showGame('lol',this)"><span class="game-icon">🧙</span> League of Legends</div>
+  <div class="gtab val" onclick="showGame('val',this)"><span class="game-icon">🎯</span> Valorant</div>
+  <div class="gtab pubg" onclick="showGame('pubg',this)"><span class="game-icon">🪖</span> PUBG</div>
+  <div class="gtab csgo" onclick="showGame('csgo',this)"><span class="game-icon">💣</span> CS:GO</div>
+</div>
+
+<div class="page-section">
+  <div class="container">
+
+    <!-- ═══════════════════════════════════════
+         LIÊN QUÂN — BANG_XEP_HANG_5V5
+    ═══════════════════════════════════════ -->
+    <div id="game-lq" class="game-panel">
+
+      <!-- PODIUM TOP 3 -->
+      <div style="background:linear-gradient(135deg,rgba(255,193,7,.07),rgba(0,229,255,.03));border:1px solid rgba(255,193,7,.2);border-radius:var(--r);padding:28px;margin-bottom:24px">
+        <div style="text-align:center;margin-bottom:20px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--lq)">⚔ TOP LIÊN QUÂN MOBILE — BANG_XEP_HANG_5V5</div>
+        <div style="display:flex;align-items:flex-end;justify-content:center;gap:14px;flex-wrap:wrap">
+
+          <!-- Hạng 2 -->
+          <div style="text-align:center;flex:1;max-width:180px">
+            <div style="font-size:44px;margin-bottom:8px;filter:drop-shadow(0 0 12px var(--lq))">⚔️</div>
+            <div style="background:rgba(158,158,158,.1);border:1px solid rgba(158,158,158,.3);border-top:3px solid #9e9e9e;border-radius:var(--r-sm);padding:16px">
+              <div style="font-size:26px;margin-bottom:5px">🥈</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">Dark Legion</div>
+              <div class="chip chip-lq" style="font-size:9px;margin:4px 0">[DRK]</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e0e0e0;margin-top:6px">2260</div>
+              <div style="font-size:11px;color:var(--txt2)">20W · 7L</div>
+            </div>
+          </div>
+
+          <!-- Hạng 1 -->
+          <div style="text-align:center;flex:1;max-width:200px;transform:translateY(-12px)">
+            <div style="font-size:56px;margin-bottom:8px;filter:drop-shadow(0 0 22px var(--lq))">⚔️</div>
+            <div style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.4);border-top:3px solid var(--lq);border-radius:var(--r-sm);padding:20px">
+              <div style="font-size:32px;margin-bottom:5px">🥇</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--lq)">Phoenix Esports</div>
+              <div class="chip chip-lq" style="font-size:9px;margin:4px 0">[PHX]</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--lq);text-shadow:0 0 18px rgba(255,193,7,.4);margin-top:6px">2380</div>
+              <div style="font-size:11px;color:var(--txt2)">22W · 6L · 79%</div>
+            </div>
+          </div>
+
+          <!-- Hạng 3 -->
+          <div style="text-align:center;flex:1;max-width:180px">
+            <div style="font-size:44px;margin-bottom:8px;filter:drop-shadow(0 0 12px #cd7f32)">⚔️</div>
+            <div style="background:rgba(205,127,50,.08);border:1px solid rgba(205,127,50,.3);border-top:3px solid #cd7f32;border-radius:var(--r-sm);padding:16px">
+              <div style="font-size:26px;margin-bottom:5px">🥉</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">Team Shadow</div>
+              <div class="chip chip-lq" style="font-size:9px;margin:4px 0">[SDW]</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e8a87c;margin-top:6px">2150</div>
+              <div style="font-size:11px;color:var(--txt2)">18W · 4L</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FULL TABLE — BANG_XEP_HANG_5V5: ten_doi, so_tran_thang, so_tran_thua, diem, he_so, so_tran -->
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-title">⚔ BẢNG XẾP HẠNG ĐẦY ĐỦ — LIÊN QUÂN MOBILE</span>
+          <div style="display:flex;gap:8px">
+            <select style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 9px;font-size:12px;color:var(--txt);outline:none">
+              <option>Theo diem</option><option>Theo so_tran_thang</option><option>Theo he_so</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:55px">Hạng</th>
+                <th>Tên Đội (ten_doi)</th>
+                <th style="text-align:center">so_tran</th>
+                <th style="text-align:center">so_tran_thang</th>
+                <th style="text-align:center">so_tran_thua</th>
+                <th style="text-align:center">Tỉ Lệ Win</th>
+                <th style="text-align:center">he_so</th>
+                <th style="text-align:center">diem (ELO)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="rank-num rk-1">1</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:rgba(255,193,7,.12);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">⚔</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Phoenix Esports</div><div style="font-size:11px;color:var(--txt2)">[PHX] · PhoenixVN</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">28</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">22</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">6</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--green);margin-bottom:3px">78.6%</div><div class="prog-bar" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:78.6%;background:var(--green)"></div></div></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold)">1.8</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--lq)">2380</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:100%;background:linear-gradient(to right,var(--lq),#e09800)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-lq btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num rk-2">2</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:rgba(255,193,7,.1);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">⚔</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Dark Legion</div><div style="font-size:11px;color:var(--txt2)">[DRK] · DarkBlade</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">27</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">20</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">7</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--green);margin-bottom:3px">74.1%</div><div class="prog-bar" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:74%;background:var(--green)"></div></div></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold)">1.6</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--lq)">2260</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:95%;background:linear-gradient(to right,var(--lq),#e09800)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-lq btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num rk-3">3</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:rgba(255,193,7,.08);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">⚔</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Team Shadow</div><div style="font-size:11px;color:var(--txt2)">[SDW] · ShadowX</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">22</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">18</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">4</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--green);margin-bottom:3px">81.8%</div><div class="prog-bar" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:82%;background:var(--green)"></div></div></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold)">1.5</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--lq)">2150</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:90%;background:linear-gradient(to right,var(--lq),#e09800)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-lq btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num">4</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:var(--bg-3);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">⚔</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Dragon Force</div><div style="font-size:11px;color:var(--txt2)">[DRG] · BlazeKing</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">23</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">11</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">12</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--txt2);margin-bottom:3px">47.8%</div><div class="prog-bar" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:48%;background:var(--txt2)"></div></div></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--txt2)">1.1</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--txt2)">1690</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:71%;background:var(--txt2)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-outline btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num">5</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:var(--bg-3);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">⚔</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Neon Wolves</div><div style="font-size:11px;color:var(--txt2)">[NWF] · ShadowX</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">22</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">9</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">13</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--txt3);margin-bottom:3px">40.9%</div><div class="prog-bar" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:41%;background:var(--txt3)"></div></div></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--txt3)">0.9</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--txt3)">1580</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:66%;background:var(--txt3)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-outline btn-sm">Xem</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- THỐNG KÊ NGƯỜI CHƠI NỔI BẬT -->
+      <div style="margin-top:22px">
+        <div class="sec-hd">
+          <div class="sec-title"><span>🏅</span> Top Người Chơi <span style="color:var(--lq)">Liên Quân</span></div>
+          <div class="sec-line"></div>
+          <a href="thongkenguoichoi.html" class="sec-link">Xem tất cả →</a>
+        </div>
+        <!-- THONG_KE_NGUOI_CHOI: ha_guc, chet, ho_tro, mvp -->
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:55px">Hạng</th>
+                <th>Biệt Danh (biet_danh)</th>
+                <th>Đội</th>
+                <th>Role</th>
+                <th style="text-align:center">ha_guc (K)</th>
+                <th style="text-align:center">chet (D)</th>
+                <th style="text-align:center">ho_tro (A)</th>
+                <th style="text-align:center">KDA</th>
+                <th style="text-align:center">mvp</th>
+                <th style="text-align:center">so_tran</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="rank-num rk-1">1</div></td>
+                <td><a href="#" style="color:var(--lq);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">StarLight</a></td>
+                <td><span class="chip chip-lq" style="font-size:10px">[PHX]</span></td>
+                <td><span style="font-size:12px;color:var(--txt2)">Carry ADC</span></td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">9.1</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-weight:700">1.9</td>
+                <td style="text-align:center;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-weight:700">4.3</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold)">7.05</td>
+                <td style="text-align:center;color:var(--gold);font-weight:700">⭐ 15</td>
+                <td style="text-align:center;color:var(--txt2)">28</td>
+              </tr>
+              <tr>
+                <td><div class="rank-num rk-2">2</div></td>
+                <td><a href="#" style="color:var(--lq);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">PhoenixVN</a></td>
+                <td><span class="chip chip-lq" style="font-size:10px">[PHX]</span></td>
+                <td><span style="font-size:12px;color:var(--txt2)">Mid Laner</span></td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">8.4</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-weight:700">2.1</td>
+                <td style="text-align:center;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-weight:700">6.2</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold)">6.95</td>
+                <td style="text-align:center;color:var(--gold);font-weight:700">⭐ 12</td>
+                <td style="text-align:center;color:var(--txt2)">28</td>
+              </tr>
+              <tr>
+                <td><div class="rank-num rk-3">3</div></td>
+                <td><a href="#" style="color:var(--lq);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">ShadowX</a></td>
+                <td><span class="chip chip-lq" style="font-size:10px">[SDW]</span></td>
+                <td><span style="font-size:12px;color:var(--txt2)">Jungler</span></td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">7.6</td>
+                <td style="text-align:center;color:var(--red);font-family:'Rajdhani',sans-serif;font-weight:700">2.3</td>
+                <td style="text-align:center;color:var(--cyan);font-family:'Rajdhani',sans-serif;font-weight:700">5.8</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold)">5.83</td>
+                <td style="text-align:center;color:var(--gold);font-weight:700">⭐ 9</td>
+                <td style="text-align:center;color:var(--txt2)">22</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         FREE FIRE — BANG_XEP_HANG_MAPLON
+    ═══════════════════════════════════════ -->
+    <div id="game-ff" class="game-panel" style="display:none">
+      <div style="background:linear-gradient(135deg,rgba(255,109,0,.07),rgba(0,229,255,.03));border:1px solid rgba(255,109,0,.2);border-radius:var(--r);padding:28px;margin-bottom:24px">
+        <div style="text-align:center;margin-bottom:20px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ff)">🔥 TOP FREE FIRE — BANG_XEP_HANG_MAPLON</div>
+        <div style="display:flex;align-items:flex-end;justify-content:center;gap:14px;flex-wrap:wrap">
+          <div style="text-align:center;flex:1;max-width:180px">
+            <div style="font-size:44px;margin-bottom:8px;filter:drop-shadow(0 0 12px var(--ff))">🔥</div>
+            <div style="background:rgba(158,158,158,.1);border:1px solid rgba(158,158,158,.3);border-top:3px solid #9e9e9e;border-radius:var(--r-sm);padding:16px">
+              <div style="font-size:26px;margin-bottom:5px">🥈</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">Blaze Gaming</div>
+              <div class="chip chip-ff" style="font-size:9px;margin:4px 0">[BLZ]</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e0e0e0;margin-top:6px">1920</div>
+              <div style="font-size:11px;color:var(--txt2)">15W · 8L</div>
+            </div>
+          </div>
+          <div style="text-align:center;flex:1;max-width:200px;transform:translateY(-12px)">
+            <div style="font-size:56px;margin-bottom:8px;filter:drop-shadow(0 0 22px var(--ff))">🔥</div>
+            <div style="background:rgba(255,109,0,.1);border:1px solid rgba(255,109,0,.4);border-top:3px solid var(--ff);border-radius:var(--r-sm);padding:20px">
+              <div style="font-size:32px;margin-bottom:5px">🥇</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--ff)">Inferno Squad</div>
+              <div class="chip chip-ff" style="font-size:9px;margin:4px 0">[INF]</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--ff);text-shadow:0 0 18px rgba(255,109,0,.4);margin-top:6px">2050</div>
+              <div style="font-size:11px;color:var(--txt2)">16W · 6L · 72.7%</div>
+            </div>
+          </div>
+          <div style="text-align:center;flex:1;max-width:180px">
+            <div style="font-size:44px;margin-bottom:8px;filter:drop-shadow(0 0 12px #cd7f32)">🔥</div>
+            <div style="background:rgba(205,127,50,.08);border:1px solid rgba(205,127,50,.3);border-top:3px solid #cd7f32;border-radius:var(--r-sm);padding:16px">
+              <div style="font-size:26px;margin-bottom:5px">🥉</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">Storm Raiders</div>
+              <div class="chip chip-ff" style="font-size:9px;margin:4px 0">[STM]</div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e8a87c;margin-top:6px">1740</div>
+              <div style="font-size:11px;color:var(--txt2)">12W · 10L</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FF Table — BANG_XEP_HANG_MAPLON: ten_doix, so_tran, elims, top1, diem -->
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">🔥 BẢNG XẾP HẠNG ĐẦY ĐỦ — FREE FIRE (MAPLON)</span></div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:55px">Hạng</th>
+                <th>Tên Đội (ten_doix)</th>
+                <th style="text-align:center">so_tran</th>
+                <th style="text-align:center">top1 (Chicken)</th>
+                <th style="text-align:center">elims (Tổng)</th>
+                <th style="text-align:center">Elims/Trận</th>
+                <th style="text-align:center">diem</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="rank-num rk-1">1</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:rgba(255,109,0,.12);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">🔥</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Inferno Squad</div><div style="font-size:11px;color:var(--txt2)">[INF]</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">22</td>
+                <td style="text-align:center;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">🐔 8</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">264</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--ff)">12.0</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--ff)">2050</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:100%;background:linear-gradient(to right,var(--ff),#dd4400)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-ff btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num rk-2">2</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:rgba(255,109,0,.1);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">🔥</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Blaze Gaming</div><div style="font-size:11px;color:var(--txt2)">[BLZ]</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">23</td>
+                <td style="text-align:center;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">🐔 6</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">241</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--ff)">10.5</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--ff)">1920</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:94%;background:linear-gradient(to right,var(--ff),#dd4400)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-ff btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num rk-3">3</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:rgba(255,109,0,.08);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">🔥</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Storm Raiders</div><div style="font-size:11px;color:var(--txt2)">[STM]</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">22</td>
+                <td style="text-align:center;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">🐔 4</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">198</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--ff)">9.0</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--txt2)">1740</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:85%;background:var(--txt2)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-ff btn-sm">Xem</a></td>
+              </tr>
+              <tr>
+                <td><div class="rank-num">4</div></td>
+                <td><a href="chitietdoi.html" style="display:flex;align-items:center;gap:11px;color:var(--txt)"><div style="width:34px;height:34px;background:var(--bg-3);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px">🔥</div><div><div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px">Neon Wolves FF</div><div style="font-size:11px;color:var(--txt2)">[NWF]</div></div></a></td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700">20</td>
+                <td style="text-align:center;color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">🐔 2</td>
+                <td style="text-align:center;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700">156</td>
+                <td style="text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--txt2)">7.8</td>
+                <td style="text-align:center"><div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--txt3)">1420</div><div class="prog-bar mt-1" style="width:80px;margin:0 auto"><div class="prog-fill" style="width:69%;background:var(--txt3)"></div></div></td>
+                <td><a href="chitietdoi.html" class="btn btn-outline btn-sm">Xem</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ LOL ═══════════ -->
+    <div id="game-lol" class="game-panel" style="display:none">
+      <div style="background:linear-gradient(135deg,rgba(198,155,58,.07),transparent);border:1px solid rgba(198,155,58,.2);border-radius:var(--r);padding:24px;margin-bottom:22px;text-align:center">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--lol);margin-bottom:16px">🧙 BẢNG XẾP HẠNG LEAGUE OF LEGENDS</div>
+        <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">
+          <div style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);border-top:3px solid var(--lol);border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥇</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--lol)">Golden Mages</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--lol)">2200 ELO</div><div style="font-size:11px;color:var(--txt2)">19W · 5L</div></div>
+          <div style="background:rgba(158,158,158,.08);border:1px solid rgba(158,158,158,.25);border-top:3px solid #9e9e9e;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥈</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Arcane Wolves</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e0e0e0">1980 ELO</div><div style="font-size:11px;color:var(--txt2)">14W · 9L</div></div>
+          <div style="background:rgba(205,127,50,.07);border:1px solid rgba(205,127,50,.25);border-top:3px solid #cd7f32;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥉</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Storm Mages</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e8a87c">1820 ELO</div><div style="font-size:11px;color:var(--txt2)">11W · 12L</div></div>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-hd"><span class="panel-title">🧙 FULL TABLE — LEAGUE OF LEGENDS</span></div>
+        <div style="padding:30px;text-align:center;color:var(--txt2)"><i class="fas fa-chart-bar" style="font-size:32px;color:var(--lol);margin-bottom:10px;display:block"></i>Dữ liệu đang được cập nhật sau vòng 2</div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VALORANT ═══════════ -->
+    <div id="game-val" class="game-panel" style="display:none">
+      <div style="background:linear-gradient(135deg,rgba(255,70,85,.07),transparent);border:1px solid rgba(255,70,85,.2);border-radius:var(--r);padding:24px;margin-bottom:22px;text-align:center">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--val);margin-bottom:16px">🎯 BẢNG XẾP HẠNG VALORANT</div>
+        <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">
+          <div style="background:rgba(255,70,85,.1);border:1px solid rgba(255,70,85,.3);border-top:3px solid var(--val);border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥇</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--val)">Venom VN</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--val)">2310 ELO</div><div style="font-size:11px;color:var(--txt2)">21W · 4L · 84%</div></div>
+          <div style="background:rgba(158,158,158,.08);border:1px solid rgba(158,158,158,.25);border-top:3px solid #9e9e9e;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥈</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Crystal Rage</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e0e0e0">2080 ELO</div><div style="font-size:11px;color:var(--txt2)">16W · 8L</div></div>
+          <div style="background:rgba(205,127,50,.07);border:1px solid rgba(205,127,50,.25);border-top:3px solid #cd7f32;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥉</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Nova X</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e8a87c">1950 ELO</div><div style="font-size:11px;color:var(--txt2)">13W · 10L</div></div>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-hd"><span class="panel-title">🎯 FULL TABLE — VALORANT</span></div><div style="padding:30px;text-align:center;color:var(--txt2)"><i class="fas fa-chart-bar" style="font-size:32px;color:var(--val);margin-bottom:10px;display:block"></i>Dữ liệu đang được cập nhật</div></div>
+    </div>
+
+    <!-- ═══════════ PUBG ═══════════ -->
+    <div id="game-pubg" class="game-panel" style="display:none">
+      <div style="background:linear-gradient(135deg,rgba(232,184,75,.07),transparent);border:1px solid rgba(232,184,75,.2);border-radius:var(--r);padding:24px;margin-bottom:22px;text-align:center">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--pubg);margin-bottom:16px">🪖 BẢNG XẾP HẠNG PUBG — MAPLON</div>
+        <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">
+          <div style="background:rgba(232,184,75,.1);border:1px solid rgba(232,184,75,.3);border-top:3px solid var(--pubg);border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥇</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--pubg)">Iron Helmet</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--pubg)">2120 ELO</div><div style="font-size:11px;color:var(--txt2)">17W · 7L · top1: 6</div></div>
+          <div style="background:rgba(158,158,158,.08);border:1px solid rgba(158,158,158,.25);border-top:3px solid #9e9e9e;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥈</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Squad Reaper</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e0e0e0">1890 ELO</div><div style="font-size:11px;color:var(--txt2)">14W · 9L · top1: 4</div></div>
+          <div style="background:rgba(205,127,50,.07);border:1px solid rgba(205,127,50,.25);border-top:3px solid #cd7f32;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥉</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Thunder Squad</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e8a87c">1760 ELO</div><div style="font-size:11px;color:var(--txt2)">11W · 12L · top1: 3</div></div>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-hd"><span class="panel-title">🪖 FULL TABLE — PUBG</span></div><div style="padding:30px;text-align:center;color:var(--txt2)"><i class="fas fa-chart-bar" style="font-size:32px;color:var(--pubg);margin-bottom:10px;display:block"></i>Dữ liệu đang được cập nhật</div></div>
+    </div>
+
+    <!-- ═══════════ CS:GO ═══════════ -->
+    <div id="game-csgo" class="game-panel" style="display:none">
+      <div style="background:linear-gradient(135deg,rgba(96,125,139,.1),transparent);border:1px solid rgba(96,125,139,.25);border-radius:var(--r);padding:24px;margin-bottom:22px;text-align:center">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:#90a4ae;margin-bottom:16px">💣 BẢNG XẾP HẠNG CS:GO</div>
+        <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">
+          <div style="background:rgba(96,125,139,.15);border:1px solid rgba(96,125,139,.35);border-top:3px solid #607d8b;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥇</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:#90a4ae">Smoke Grenade</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#90a4ae">2050 ELO</div><div style="font-size:11px;color:var(--txt2)">13W · 9L</div></div>
+          <div style="background:rgba(96,125,139,.1);border:1px solid rgba(96,125,139,.25);border-top:3px solid #455a64;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥈</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">HeadShot Kings</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e0e0e0">1880 ELO</div><div style="font-size:11px;color:var(--txt2)">11W · 11L</div></div>
+          <div style="background:rgba(96,125,139,.08);border:1px solid rgba(96,125,139,.2);border-top:3px solid #37474f;border-radius:var(--r-sm);padding:16px 24px;text-align:center"><div style="font-size:26px">🥉</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700">Clutch Masters</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#e8a87c">1750 ELO</div><div style="font-size:11px;color:var(--txt2)">9W · 13L</div></div>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-hd"><span class="panel-title">💣 FULL TABLE — CS:GO</span></div><div style="padding:30px;text-align:center;color:var(--txt2)"><i class="fas fa-chart-bar" style="font-size:32px;color:#607d8b;margin-bottom:10px;display:block"></i>Dữ liệu đang được cập nhật</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="ft-brand">
+      <div class="ft-logo">ESPORT<span>ARENA</span>.VN</div>
+      <p>Nền tảng quản lý giải đấu Esport chuyên nghiệp cho 6 tựa game lớn tại Việt Nam.</p>
+      <div class="ft-socials">
+        <a href="#"><i class="fab fa-facebook-f"></i></a>
+        <a href="#"><i class="fab fa-youtube"></i></a>
+        <a href="#"><i class="fab fa-tiktok"></i></a>
+        <a href="#"><i class="fab fa-discord"></i></a>
+      </div>
+    </div>
+    <div class="ft-col">
+      <div class="ft-col-title">Giải Đấu</div>
+      <ul>
+        <li><a href="danhsachgiaidau.html">Tất cả giải</a></li>
+        <li><a href="taogiai.html">Tạo giải</a></li>
+      </ul>
+    </div>
+    <div class="ft-col">
+      <div class="ft-col-title">Cộng Đồng</div>
+      <ul>
+        <li><a href="danhsachdoi.html">Đội thi đấu</a></li>
+        <li><a href="lichthidau.html">Lịch thi đấu</a></li>
+        <li><a href="bangxephang.html">Xếp hạng</a></li>
+      </ul>
+    </div>
+    <div class="ft-col">
+      <div class="ft-col-title">Tài Khoản</div>
+      <ul>
+        <li><a href="dangnhap.html">Đăng nhập</a></li>
+        <li><a href="dangky.html">Đăng ký</a></li>
+        <li><a href="lapdoi.html">Lập đội</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 EsportArena.vn — Xếp hạng: Liên Quân · Free Fire · LoL · Valorant · PUBG · CS:GO</div>
+</footer>
+
+<script>
+function showGame(game, el) {
+  // Ẩn tất cả panels
+  document.querySelectorAll('.game-panel').forEach(p => p.style.display = 'none');
+  // Bỏ active tất cả tabs
+  document.querySelectorAll('.gtab').forEach(t => t.className = t.className.replace(/ on/g,''));
+  // Hiển thị panel được chọn
+  document.getElementById('game-' + game).style.display = 'block';
+  // Active tab
+  el.classList.add('on');
+}
+</script>
+</body>
+</html>
