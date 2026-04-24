@@ -1,6 +1,10 @@
 <Solution>
+  <Folder Name="/dulieumau/">
+    <File Path="database.sql" />
+    <File Path="dulieu.sql" />
+  </Folder>
   <Project Path="BUS/BUS.csproj" Id="9c14b24c-9918-4670-b808-475f4783bbb6" />
   <Project Path="DAL/DAL.csproj" Id="79fbf31a-7a35-43a1-b9ce-02402f8711e4" />
   <Project Path="DTO/DTO.csproj" Id="e7a98b0e-fab5-4fad-857e-9647ec0cb34d" />
-  <Project Path="Phan_mem_quan_ly_esport/GUI.csproj" Id="30ff87bc-8dc2-4086-a1b0-ec5c06702693" />
+  <Project Path="GUI_HTML/GUI_HTML.csproj" Id="453d1541-3300-434f-80cb-c1bf60834fc3" />
 </Solution>
