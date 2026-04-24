@@ -205,6 +205,122 @@ CREATE TABLE GIAI_THUONG (
 );
 GO
 
+-- ==============================================================
+-- 7. BẢNG XẾP HẠNG (LEADERBOARD)
+-- ==============================================================
+IF OBJECT_ID('BANG_XEP_HANG', 'U') IS NULL
+CREATE TABLE BANG_XEP_HANG (
+    ma_bxh INT IDENTITY PRIMARY KEY,
+    ma_giai_dau INT,
+    ma_nhom INT, -- Đội tuyển (Nhóm theo game)
+    
+    -- Thống kê chung
+    so_tran_da_dau INT DEFAULT 0,
+    
+    -- Dành cho MOBA/FPS (Tính Thắng/Thua/Hòa)
+    so_tran_thang INT DEFAULT 0,
+    so_tran_thua INT DEFAULT 0,
+    hieu_so_phu INT DEFAULT 0, -- Hiệu số ván thắng/thua (Kill/Death cho FPS)
+    
+    -- Dành cho Battle Royale (Tính Điểm)
+    tong_diem_hang FLOAT DEFAULT 0, -- Điểm vị trí (Placement Points)
+    tong_diem_kill FLOAT DEFAULT 0, -- Điểm hạ gục (Kill Points)
+    so_lan_top_1 INT DEFAULT 0, -- Tiêu chí Tie-breaker
+    
+    -- Điểm tổng quy đổi và Thứ hạng
+    diem_tong_ket FLOAT DEFAULT 0, 
+    thu_hang_hien_tai INT DEFAULT 0, -- Hạng 1, 2, 3...
+    
+    FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau),
+    FOREIGN KEY (ma_nhom) REFERENCES NHOM_DOI(ma_nhom),
+    CONSTRAINT uq_bxh_nhom UNIQUE (ma_giai_dau, ma_nhom) -- Một đội chỉ có 1 dòng xếp hạng trong 1 giải
+);
+GO
+
+-- ==============================================================
+-- 8. CHI TIẾT CHỈ SỐ NGƯỜI CHƠI THEO TRẬN (Để tính MVP Trận)
+-- ==============================================================
+IF OBJECT_ID('CHI_TIET_NGUOI_CHOI_TRAN', 'U') IS NULL
+CREATE TABLE CHI_TIET_NGUOI_CHOI_TRAN (
+    ma_chi_tiet_user_tran INT IDENTITY PRIMARY KEY,
+    ma_tran INT,
+    ma_nguoi_dung INT,
+    ma_vi_tri INT,
+    so_kill INT DEFAULT 0,
+    so_death INT DEFAULT 0,
+    so_assist INT DEFAULT 0,
+    diem_kda_tran FLOAT, -- Công thức: (Kill + Assist) / Max(1, Death)
+    is_mvp_tran BIT DEFAULT 0, -- Đánh dấu nếu là người giỏi nhất trận
+    FOREIGN KEY (ma_tran) REFERENCES TRAN_DAU(ma_tran),
+    FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+    FOREIGN KEY (ma_vi_tri) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri)
+);
+
+-- ==============================================================
+-- 9. BẢNG XẾP HẠNG CÁ NHÂN GIẢI ĐẤU (Để tính MVP Giải)
+-- ==============================================================
+IF OBJECT_ID('BANG_XEP_HANG_CA_NHAN', 'U') IS NULL
+CREATE TABLE BANG_XEP_HANG_CA_NHAN (
+    ma_bxh_ca_nhan INT IDENTITY PRIMARY KEY,
+    ma_giai_dau INT,
+    ma_nguoi_dung INT,
+    tong_kill INT DEFAULT 0,
+    tong_death INT DEFAULT 0,
+    tong_assist INT DEFAULT 0,
+    diem_kda_trung_binh FLOAT DEFAULT 0,
+    so_lan_dat_mvp_tran INT DEFAULT 0, -- Tiêu chí phụ cực quan trọng cho MVP Giải
+    FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau),
+    FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+    CONSTRAINT uq_bxh_ca_nhan UNIQUE (ma_giai_dau, ma_nguoi_dung)
+);
+
+-- ==============================================================
+-- 10. DANH MỤC VỊ TRÍ THEO GAME (Master Data)
+-- ==============================================================
+IF OBJECT_ID('DANH_MUC_VI_TRI', 'U') IS NULL
+CREATE TABLE DANH_MUC_VI_TRI (
+    ma_vi_tri INT IDENTITY PRIMARY KEY,
+    ma_tro_choi INT,
+    ten_vi_tri NVARCHAR(50), -- Ví dụ: Mid, AD, Jungle, Sniper, IGL...
+    ky_hieu NVARCHAR(10), -- Ví dụ: MID, ADC, SUP
+    loai_vi_tri NVARCHAR(50), -- ChuyenMon hoặc BanHuanLuyen
+    FOREIGN KEY (ma_tro_choi) REFERENCES TRO_CHOI(ma_tro_choi)
+);
+
+-- ==============================================================
+-- 11. ĐỘI HÌNH ĐĂNG KÝ THI ĐẤU (Tournament Roster)
+-- ==============================================================
+IF OBJECT_ID('DOI_HINH_THI_DAU', 'U') IS NULL
+CREATE TABLE DOI_HINH_THI_DAU (
+    ma_doi_hinh INT IDENTITY PRIMARY KEY,
+    ma_tham_gia INT, -- Link tới bảng THAM_GIA_GIAI (Nhóm đội đăng ký giải)
+    ma_nguoi_dung INT,
+    ma_vi_tri INT, -- Khai báo vị trí đánh giải này (Ví dụ: Mid, AD, HLV)
+    is_du_bi BIT DEFAULT 0, -- Có phải dự bị không?
+    FOREIGN KEY (ma_tham_gia) REFERENCES THAM_GIA_GIAI(ma_tham_gia),
+    FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+    FOREIGN KEY (ma_vi_tri) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri)
+);
+
+
+-- Tìm HLV xuất sắc nhất giải (Dựa vào đội Top 1)
+SELECT 
+    nd.ten_dang_nhap,
+    hsg.in_game_name,
+    vt.ten_vi_tri,
+    d.ten_doi
+FROM BANG_XEP_HANG bxh
+JOIN THAM_GIA_GIAI tgg ON bxh.ma_nhom = tgg.ma_nhom AND bxh.ma_giai_dau = tgg.ma_giai_dau
+JOIN DOI_HINH_THI_DAU dh ON dh.ma_tham_gia = tgg.ma_tham_gia
+JOIN NGUOI_DUNG nd ON dh.ma_nguoi_dung = nd.ma_nguoi_dung
+JOIN HO_SO_IN_GAME hsg ON nd.ma_nguoi_dung = hsg.ma_nguoi_dung
+JOIN DANH_MUC_VI_TRI vt ON dh.ma_vi_tri = vt.ma_vi_tri
+JOIN NHOM_DOI n ON tgg.ma_nhom = n.ma_nhom
+JOIN DOI d ON n.ma_doi = d.ma_doi
+WHERE bxh.ma_giai_dau = @MaGiaiDau
+  AND bxh.thu_hang_hien_tai = 1 -- Lấy đội hạng 1
+  AND vt.loai_vi_tri = 'BanHuanLuyen';
+
 SELECT * FROM NGUOI_DUNG;
 SELECT * FROM TRO_CHOI;
 SELECT * FROM DOI;
