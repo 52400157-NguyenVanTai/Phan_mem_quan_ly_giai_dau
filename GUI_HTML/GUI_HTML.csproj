@@ -120,8 +120,22 @@
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Controllers\AuthApiController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\MatchmakingApiController.cs" />
+    <Compile Include="Controllers\PortalController.cs" />
+    <Compile Include="Controllers\ProfileApiController.cs" />
+    <Compile Include="Controllers\RefereeApiController.cs" />
+    <Compile Include="Controllers\RecruitmentApiController.cs" />
     <Compile Include="Controllers\TaiKhoanController.cs" />
+    <Compile Include="Controllers\TeamApiController.cs" />
+    <Compile Include="Controllers\TournamentBuilderApiController.cs" />
+    <Compile Include="Controllers\TournamentApiController.cs" />
+    <Compile Include="Controllers\TournamentPublicController.cs" />
+    <Compile Include="Filters\RequireLoginAttribute.cs" />
+    <Compile Include="Filters\RequireRefereeMatchAccessAttribute.cs" />
+    <Compile Include="Filters\RequireSystemRoleAttribute.cs" />
+    <Compile Include="Filters\RequireTeamRoleAttribute.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -164,6 +178,8 @@
     <Content Include="Scripts\jquery.validate.unobtrusive.js" />
     <Content Include="Scripts\jquery.validate.unobtrusive.min.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
+    <Content Include="Scripts\portal.js" />
+    <Content Include="Scripts\tournament-public.js" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
@@ -178,6 +194,8 @@
     <Content Include="Views\Home\About.cshtml" />
     <Content Include="Views\Home\Contact.cshtml" />
     <Content Include="Views\Home\Index.cshtml" />
+    <Content Include="Views\Portal\Index.cshtml" />
+    <Content Include="Views\TournamentPublic\Index.cshtml" />
     <Content Include="Views\TaiKhoan\DangNhap.cshtml" />
   </ItemGroup>
   <ItemGroup>
@@ -215,6 +233,10 @@
     <ProjectReference Include="..\BUS\BUS.csproj">
       <Project>{9c14b24c-9918-4670-b808-475f4783bbb6}</Project>
       <Name>BUS</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DAL\DAL.csproj">
+      <Project>{79fbf31a-7a35-43a1-b9ce-02402f8711e4}</Project>
+      <Name>DAL</Name>
     </ProjectReference>
     <ProjectReference Include="..\DTO\DTO.csproj">
       <Project>{e7a98b0e-fab5-4fad-857e-9647ec0cb34d}</Project>

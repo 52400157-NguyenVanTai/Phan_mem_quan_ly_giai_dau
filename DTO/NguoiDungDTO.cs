@@ -12,7 +12,9 @@ namespace DTO
         public string TenDangNhap { get; set; }
         public string Email { get; set; }
         public string MatKhauMaHoa { get; set; }
-        public string VaiTro { get; set; }
+        public string VaiTroHeThong { get; set; }
+        public string AvatarUrl { get; set; }
+        public string Bio { get; set; }
         public DateTime NgayTao { get; set; }
     }
 }

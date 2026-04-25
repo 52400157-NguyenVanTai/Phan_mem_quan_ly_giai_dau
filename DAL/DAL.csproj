@@ -47,7 +47,15 @@
   <ItemGroup>
     <Compile Include="Class1.cs" />
     <Compile Include="DataProvider.cs" />
+    <Compile Include="IdentityDAL.cs" />
+    <Compile Include="MatchmakingDAL.cs" />
     <Compile Include="NguoiDungDAL.cs" />
+    <Compile Include="ProfileDAL.cs" />
+    <Compile Include="RefereeDAL.cs" />
+    <Compile Include="RecruitmentDAL.cs" />
+    <Compile Include="TeamDAL.cs" />
+    <Compile Include="TournamentBuilderDAL.cs" />
+    <Compile Include="TournamentRequestDAL.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

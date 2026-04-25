@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/dulieumau/">
     <File Path="database.sql" />
+    <File Path="database1.sql" />
     <File Path="dulieu.sql" />
   </Folder>
   <Project Path="BUS/BUS.csproj" Id="9c14b24c-9918-4670-b808-475f4783bbb6" />

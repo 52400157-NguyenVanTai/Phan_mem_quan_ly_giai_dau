@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EsportHub — Nền tảng Quản lý Giải đấu</title>
+    <meta name="description" content="Nền tảng quản lý giải đấu Esport chuyên nghiệp — Tổ chức, theo dõi và tham gia các giải đấu hàng đầu." />
+    <link rel="stylesheet" href="~/Content/esport.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     LANDING PAGE — Login / Register
+============================================================ -->
+<div id="landing-page">
+    <div style="width:100%;max-width:440px">
+        <div class="landing-brand">⚡ ESPORT HUB</div>
+        <p class="landing-sub">Nền tảng quản lý giải đấu Esport chuyên nghiệp</p>
+
+        <div class="auth-card">
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Đăng nhập</button>
+                <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Đăng ký</button>
+            </div>
+
+            <!-- Alert zones -->
+            <div id="auth-error" class="auth-error"></div>
+            <div id="auth-success" class="auth-success"></div>
+
+            <!-- LOGIN FORM -->
+            <form id="form-login" autocomplete="off">
+                <div class="auth-form-group">
+                    <label>Tên đăng nhập hoặc Email</label>
+                    <input id="login-dinh-danh" class="auth-input" type="text" placeholder="Nhập tên đăng nhập hoặc email" required autocomplete="username" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Mật khẩu</label>
+                    <input id="login-mat-khau" class="auth-input" type="password" placeholder="Nhập mật khẩu" required autocomplete="current-password" />
+                </div>
+                <button type="submit" class="btn-auth">Đăng nhập</button>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form id="form-register" autocomplete="off" style="display:none">
+                <div class="auth-form-group">
+                    <label>Tên đăng nhập</label>
+                    <input id="reg-ten" class="auth-input" type="text" placeholder="Tối thiểu 3 ký tự" required autocomplete="username" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Email</label>
+                    <input id="reg-email" class="auth-input" type="email" placeholder="example@email.com" required autocomplete="email" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Mật khẩu</label>
+                    <input id="reg-mk" class="auth-input" type="password" placeholder="Tối thiểu 8 ký tự" required autocomplete="new-password" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Xác nhận mật khẩu</label>
+                    <input id="reg-confirm" class="auth-input" type="password" placeholder="Nhập lại mật khẩu" required autocomplete="new-password" />
+                </div>
+                <button type="submit" class="btn-auth">Tạo tài khoản</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL — Dashboard (sau khi đăng nhập)
+============================================================ -->
+<div id="app-shell">
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-text">⚡ ESPORT HUB</div>
+            <div class="sidebar-logo-sub">Tournament Platform</div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-label">Điều hướng</div>
+            <button class="sidebar-item active" data-page="home" onclick="navigateTo('home')">
+                <span class="si-icon">🏠</span> Trang chủ
+            </button>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label" style="padding:8px 8px 4px">Game</div>
+            <button class="sidebar-item" data-page="game-aov" onclick="navigateTo('game-aov')">
+                <span class="si-icon">🎮</span><span style="color:#ffa502" class="game-dot"></span> Arena of Valor
+            </button>
+            <button class="sidebar-item" data-page="game-lol" onclick="navigateTo('game-lol')">
+                <span class="si-icon">🎮</span><span style="color:#6c63ff" class="game-dot"></span> League of Legends
+            </button>
+            <button class="sidebar-item" data-page="game-ff" onclick="navigateTo('game-ff')">
+                <span class="si-icon">🎮</span><span style="color:#ff4757" class="game-dot"></span> Free Fire
+            </button>
+            <button class="sidebar-item" data-page="game-pubg" onclick="navigateTo('game-pubg')">
+                <span class="si-icon">🎮</span><span style="color:#ffd700" class="game-dot"></span> PUBG
+            </button>
+            <button class="sidebar-item" data-page="game-val" onclick="navigateTo('game-val')">
+                <span class="si-icon">🎮</span><span style="color:#ff4655" class="game-dot"></span> Valorant
+            </button>
+            <button class="sidebar-item" data-page="game-cs2" onclick="navigateTo('game-cs2')">
+                <span class="si-icon">🎮</span><span style="color:#f0a500" class="game-dot"></span> CS2
+            </button>
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-item" data-page="follow" onclick="navigateTo('follow')">
+                <span class="si-icon">❤️</span> Theo dõi
+            </button>
+            <button class="sidebar-item" data-page="notifications" onclick="navigateTo('notifications')">
+                <span class="si-icon">🔔</span> Bảng thông báo
+                <span class="si-badge" id="sidebar-notif-count" style="display:none">0</span>
+            </button>
+            <button class="sidebar-item d-none" id="side-my-tournaments" data-page="my-tournaments" onclick="navigateTo('my-tournaments')">
+                <span class="si-icon">🏆</span> Giải đấu của tôi
+            </button>
+            <button class="sidebar-item d-none" id="side-my-teams" data-page="my-teams" onclick="navigateTo('my-teams')">
+                <span class="si-icon">👥</span> Đội của tôi
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN AREA -->
+    <div id="main-area">
+
+        <!-- TOPBAR -->
+        <header id="topbar">
+            <button id="sidebar-toggle" class="topbar-btn" onclick="toggleSidebar()" title="Menu">☰</button>
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input id="global-search" type="text" placeholder="Tìm kiếm giải đấu, đội, game..." />
+            </div>
+            <div class="topbar-spacer"></div>
+            <div class="topbar-actions">
+                <button class="topbar-btn" onclick="navigateTo('notifications')" title="Thông báo" id="notif-btn">
+                    🔔
+                    <span class="notif-dot" id="notif-dot" style="display:none"></span>
+                </button>
+                <div class="avatar-btn" id="avatar-btn" onclick="navigateTo('profile')" title="Hồ sơ cá nhân">
+                    <span id="avatar-initials">?</span>
+                </div>
+                <div class="hamburger-menu-wrap">
+                    <button class="topbar-btn" id="hamburger-btn" onclick="toggleHamburger()" title="Menu">≡</button>
+                    <div class="dropdown-menu-custom" id="hamburger-menu">
+                        <button class="dropdown-item-custom" onclick="navigateTo('profile');toggleHamburger()">
+                            👤 Thông tin cá nhân
+                        </button>
+                        <button class="dropdown-item-custom" onclick="navigateTo('player-profile');toggleHamburger()">
+                            🎮 Profile Player
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item-custom danger" onclick="doLogout()">
+                            🚪 Đăng xuất
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <div id="content-area">
+
+            <!-- HOME PAGE -->
+            <div id="page-home" class="page-section">
+                <div class="page-title">Chào mừng! 👋</div>
+                <p class="page-sub">Khám phá giải đấu, lập đội và chinh phục đỉnh cao.</p>
+                <div class="action-btns">
+                    <button class="btn-primary-glow" onclick="navigateTo('organize')">🏆 Tổ chức giải đấu</button>
+                    <button class="btn-outline-glow" onclick="navigateTo('create-team')">👥 Tạo đội</button>
+                </div>
+                <div class="section-title">🔥 Giải đấu nổi bật</div>
+                <div class="tournament-grid" id="featured-grid">
+                    <!-- Loaded by JS -->
+                </div>
+                <div class="section-title">📅 Sắp diễn ra</div>
+                <div class="tournament-grid" id="upcoming-grid">
+                    <!-- Loaded by JS -->
+                </div>
+            </div>
+
+            <!-- GAME PAGES -->
+            <div id="page-game" class="page-section" style="display:none">
+                <div class="page-title" id="game-page-title">Game</div>
+                <p class="page-sub" id="game-page-sub">Các giải đấu nổi bật</p>
+                <div class="section-title">🏆 Giải đấu nổi bật</div>
+                <div class="tournament-grid" id="game-grid"></div>
+            </div>
+
+            <!-- FOLLOW PAGE -->
+            <div id="page-follow" class="page-section" style="display:none">
+                <div class="page-title">❤️ Theo dõi</div>
+                <p class="page-sub">Các giải đấu và đội bạn đang theo dõi</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">❤️</div>
+                    <h4>Chưa theo dõi gì</h4>
+                    <p>Hãy theo dõi các giải đấu và đội yêu thích của bạn.</p>
+                </div>
+            </div>
+
+            <!-- NOTIFICATIONS PAGE -->
+            <div id="page-notifications" class="page-section" style="display:none">
+                <div class="page-title">🔔 Bảng thông báo</div>
+                <p class="page-sub">Cập nhật mới nhất từ hệ thống</p>
+                <div id="notif-list" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔔</div>
+                        <h4>Chưa có thông báo</h4>
+                        <p>Các thông báo sẽ hiển thị ở đây.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MY TOURNAMENTS -->
+            <div id="page-my-tournaments" class="page-section" style="display:none">
+                <div class="page-title">🏆 Giải đấu của tôi</div>
+                <p class="page-sub">Giải đấu bạn đã tạo hoặc đang tham gia</p>
+                <div class="action-btns">
+                    <button class="btn-primary-glow" onclick="navigateTo('organize')">+ Tổ chức giải mới</button>
+                </div>
+                <div class="tournament-grid" id="my-tournaments-grid">
+                    <div class="empty-state"><div class="empty-state-icon">🏆</div><h4>Chưa có giải đấu nào</h4></div>
+                </div>
+            </div>
+
+            <!-- MY TEAMS -->
+            <div id="page-my-teams" class="page-section" style="display:none">
+                <div class="page-title">👥 Đội của tôi</div>
+                <p class="page-sub">Đội bạn đã tạo hoặc đang tham gia</p>
+                <div class="action-btns">
+                    <button class="btn-outline-glow" onclick="navigateTo('create-team')">+ Tạo đội mới</button>
+                </div>
+                <div id="my-teams-list">
+                    <div class="empty-state"><div class="empty-state-icon">👥</div><h4>Chưa có đội nào</h4></div>
+                </div>
+            </div>
+
+            <!-- ORGANIZE (placeholder) -->
+            <div id="page-organize" class="page-section" style="display:none">
+                <div class="page-title">🏆 Tổ chức giải đấu</div>
+                <p class="page-sub">Tạo và quản lý giải đấu của bạn</p>
+                <div class="profile-card">
+                    <h5>Yêu cầu tạo giải đấu</h5>
+                    <div class="form-group-dark">
+                        <label>Tên giải đấu</label>
+                        <input class="form-control-dark" id="org-ten-giai" placeholder="Nhập tên giải đấu" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Game</label>
+                        <select class="select-dark" id="org-game"></select>
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Tổng giải thưởng (VNĐ)</label>
+                        <input class="form-control-dark" id="org-giai-thuong" type="number" min="0" placeholder="0" />
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="form-group-dark">
+                        <div>
+                            <label>Ngày bắt đầu</label>
+                            <input class="form-control-dark" id="org-start" type="datetime-local" />
+                        </div>
+                        <div>
+                            <label>Ngày kết thúc</label>
+                            <input class="form-control-dark" id="org-end" type="datetime-local" />
+                        </div>
+                    </div>
+                    <button class="btn-save" onclick="submitOrganize()">Gửi yêu cầu</button>
+                    <span id="org-msg" style="margin-left:12px;font-size:.85rem"></span>
+                </div>
+            </div>
+
+            <!-- CREATE TEAM (placeholder) -->
+            <div id="page-create-team" class="page-section" style="display:none">
+                <div class="page-title">👥 Tạo đội</div>
+                <p class="page-sub">Thành lập đội tuyển của bạn</p>
+                <div class="profile-card">
+                    <h5>Thông tin đội</h5>
+                    <div class="form-group-dark">
+                        <label>Tên đội</label>
+                        <input class="form-control-dark" id="team-ten" placeholder="Tên đội tuyển" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Slogan</label>
+                        <input class="form-control-dark" id="team-slogan" placeholder="Slogan đội" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Game mặc định</label>
+                        <select class="select-dark" id="team-game"></select>
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Tên nhóm thi đấu</label>
+                        <input class="form-control-dark" id="team-nhom" placeholder="VD: Team Alpha LoL" />
+                    </div>
+                    <button class="btn-save" onclick="submitCreateTeam()">Tạo đội</button>
+                    <span id="team-msg" style="margin-left:12px;font-size:.85rem"></span>
+                </div>
+            </div>
+
+            <!-- PROFILE PAGE -->
+            <div id="page-profile" class="page-section" style="display:none">
+                <div class="page-title">👤 Thông tin cá nhân</div>
+                <p class="page-sub">Quản lý thông tin tài khoản của bạn</p>
+                <div class="profile-header">
+                    <div class="profile-avatar-big" id="profile-avatar-big">?</div>
+                    <div class="profile-info">
+                        <h2 id="profile-username-display">-</h2>
+                        <p id="profile-email-display">-</p>
+                        <p style="color:var(--accent);font-size:.8rem;margin-top:4px" id="profile-role-display"></p>
+                    </div>
+                </div>
+                <div class="profile-card">
+                    <h5>Thông tin tài khoản</h5>
+                    <div class="form-group-dark">
+                        <label>Tên đăng nhập</label>
+                        <input class="form-control-dark" id="pf-username" disabled />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Email</label>
+                        <input class="form-control-dark" id="pf-email" disabled />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Avatar URL</label>
+                        <input class="form-control-dark" id="pf-avatar-url" placeholder="Đường dẫn ảnh đại diện" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Giới thiệu bản thân</label>
+                        <input class="form-control-dark" id="pf-bio" placeholder="Bio ngắn" />
+                    </div>
+                    <button class="btn-save" onclick="saveProfile()">Lưu thay đổi</button>
+                    <span id="pf-msg" style="margin-left:12px;font-size:.85rem"></span>
+                </div>
+                <div class="profile-card">
+                    <h5>🔒 Đổi mật khẩu</h5>
+                    <div class="form-group-dark">
+                        <label>Mật khẩu cũ</label>
+                        <input class="form-control-dark" id="pw-old" type="password" placeholder="Nhập mật khẩu hiện tại" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Mật khẩu mới</label>
+                        <input class="form-control-dark" id="pw-new" type="password" placeholder="Tối thiểu 8 ký tự" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Xác nhận mật khẩu mới</label>
+                        <input class="form-control-dark" id="pw-confirm" type="password" placeholder="Nhập lại mật khẩu mới" />
+                    </div>
+                    <button class="btn-save" onclick="changePassword()">Đổi mật khẩu</button>
+                    <span id="pw-msg" style="margin-left:12px;font-size:.85rem"></span>
+                </div>
+            </div>
+
+            <!-- PLAYER PROFILE PAGE -->
+            <div id="page-player-profile" class="page-section" style="display:none">
+                <div class="page-title">🎮 Profile Player</div>
+                <p class="page-sub">Tạo và quản lý hồ sơ trong game của bạn cho từng tựa game</p>
+                <div class="game-profile-tabs" id="game-profile-tabs"></div>
+                <div class="profile-card" id="game-profile-form-wrap">
+                    <h5 id="game-profile-title">Chọn game để xem hồ sơ</h5>
+                    <div id="game-profile-body">
+                        <div class="empty-state" style="padding:30px">
+                            <div class="empty-state-icon">🎮</div>
+                            <h4>Chọn một game</h4>
+                            <p>Bấm vào tab game ở trên để xem hoặc tạo hồ sơ.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /content-area -->
+    </div><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<script src="~/Scripts/jquery-3.7.0.min.js"></script>
+<script src="~/Scripts/app.js"></script>
+</body>
+</html>

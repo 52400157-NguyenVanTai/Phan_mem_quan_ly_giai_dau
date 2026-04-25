@@ -14,9 +14,15 @@ namespace GUI_HTML
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
             routes.MapRoute(
+                name: "TournamentPublic",
+                url: "giai/{id}",
+                defaults: new { controller = "TournamentPublic", action = "Index", id = UrlParameter.Optional }
+            );
+
+            routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
-                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
+                defaults: new { controller = "Portal", action = "Index", id = UrlParameter.Optional }
             );
         }
     }

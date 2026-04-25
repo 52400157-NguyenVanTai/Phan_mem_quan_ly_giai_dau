@@ -31,7 +31,7 @@ namespace DAL
                     MaNguoiDung = Convert.ToInt32(row["ma_nguoi_dung"]),
                     TenDangNhap = row["ten_dang_nhap"].ToString(),
                     Email = row["email"] != DBNull.Value ? row["email"].ToString() : "",
-                    VaiTro = row["vai_tro"].ToString(),
+                    VaiTroHeThong = row["vai_tro_he_thong"].ToString(),
                 };
             }
             return null;
