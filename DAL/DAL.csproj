@@ -45,8 +45,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdminDAL.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="DataProvider.cs" />
+    <Compile Include="GameDAL.cs" />
     <Compile Include="IdentityDAL.cs" />
     <Compile Include="MatchmakingDAL.cs" />
     <Compile Include="NguoiDungDAL.cs" />
@@ -56,6 +58,7 @@
     <Compile Include="TeamDAL.cs" />
     <Compile Include="TournamentBuilderDAL.cs" />
     <Compile Include="TournamentRequestDAL.cs" />
+    <Compile Include="TuongTacDAL.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

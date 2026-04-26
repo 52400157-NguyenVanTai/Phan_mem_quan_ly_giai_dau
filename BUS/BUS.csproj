@@ -57,7 +57,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdminBUS.cs" />
     <Compile Include="Class1.cs" />
+    <Compile Include="GameBUS.cs" />
     <Compile Include="IdentityBUS.cs" />
     <Compile Include="MatchmakingBUS.cs" />
     <Compile Include="NguoiDungBUS.cs" />
@@ -67,6 +69,7 @@
     <Compile Include="TeamBUS.cs" />
     <Compile Include="TournamentBuilderBUS.cs" />
     <Compile Include="TournamentRequestBUS.cs" />
+    <Compile Include="TuongTacBUS.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -76,18 +76,20 @@ window.switchTab = function(tab) {
 document.getElementById('form-register').addEventListener('submit', async function(e) {
   e.preventDefault();
   clearAuthMsg();
-  const ten = document.getElementById('reg-ten').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const mk = document.getElementById('reg-mk').value;
-  const confirm = document.getElementById('reg-confirm').value;
+  const ten    = document.getElementById('reg-ten').value.trim();
+  const email  = document.getElementById('reg-email').value.trim();
+  const mk     = document.getElementById('reg-mk').value;
+  const confirm= document.getElementById('reg-confirm').value;
 
-  if (!ten || ten.length < 3) { showAuthError('Tên đăng nhập phải có ít nhất 3 ký tự.'); return; }
-  if (mk.length < 8) { showAuthError('Mật khẩu phải có ít nhất 8 ký tự.'); return; }
-  if (mk !== confirm) { showAuthError('Mật khẩu không giống nhau.'); return; }
+  if (!ten || ten.length < 3)  { showAuthError('Tên đăng nhập phải có ít nhất 3 ký tự.'); return; }
+  if (!email || !email.includes('@')) { showAuthError('Email không hợp lệ.'); return; }
+  if (mk.length < 8)           { showAuthError('Mật khẩu phải có ít nhất 8 ký tự.'); return; }
+  if (mk !== confirm)          { showAuthError('Mật khẩu không giống nhau.'); return; }
 
   const btn = this.querySelector('button[type=submit]');
   btn.disabled = true; btn.textContent = 'Đang tạo...';
 
+  // Gửi JSON — AuthApi.DangKy nhận DangKyNguoiDungDTO
   const result = await api('/AuthApi/DangKy', 'POST', {
     TenDangNhap: ten, Email: email, MatKhau: mk
   });
@@ -95,15 +97,14 @@ document.getElementById('form-register').addEventListener('submit', async functi
   btn.disabled = false; btn.textContent = 'Tạo tài khoản';
 
   if (result.Success) {
-    showAuthSuccess('Tạo tài khoản thành công! Chuyển sang đăng nhập...');
+    showAuthSuccess('✅ Tạo tài khoản thành công! Đang chuyển sang đăng nhập...');
     this.reset();
-    setTimeout(() => switchTab('login'), 1500);
+    setTimeout(() => switchTab('login'), 1600);
   } else {
-    // Parse lỗi trùng username/email
-    const msg = result.Message || '';
-    if (msg.toLowerCase().includes('tên đăng nhập')) showAuthError('Tên đăng nhập đã được đăng ký.');
-    else if (msg.toLowerCase().includes('email')) showAuthError('Email đã được đăng ký.');
-    else showAuthError(msg || 'Đăng ký thất bại. Vui lòng thử lại.');
+    const msg = (result.Message || '').toLowerCase();
+    if (msg.includes('tên đăng nhập'))   showAuthError('Tên đăng nhập đã được đăng ký.');
+    else if (msg.includes('email'))       showAuthError('Email đã được đăng ký.');
+    else showAuthError(result.Message || 'Đăng ký thất bại. Vui lòng thử lại.');
   }
 });
 
@@ -112,20 +113,28 @@ document.getElementById('form-login').addEventListener('submit', async function(
   e.preventDefault();
   clearAuthMsg();
   const dinhDanh = document.getElementById('login-dinh-danh').value.trim();
-  const matKhau = document.getElementById('login-mat-khau').value;
-  if (!dinhDanh || !matKhau) { showAuthError('Vui lòng nhập đầy đủ thông tin.'); return; }
+  const matKhau  = document.getElementById('login-mat-khau').value;
+
+  if (!dinhDanh) { showAuthError('Vui lòng nhập tên đăng nhập hoặc email.'); return; }
+  if (!matKhau)  { showAuthError('Vui lòng nhập mật khẩu.'); return; }
 
   const btn = this.querySelector('button[type=submit]');
-  btn.disabled = true; btn.textContent = 'Đang đăng nhập...';
+  btn.disabled = true; btn.textContent = 'Đang kiểm tra...';
 
-  const result = await api('/AuthApi/DangNhap', 'POST', { DinhDanh: dinhDanh, MatKhau: matKhau });
+  // AuthApi.DangNhap nhận DangNhapDTO với DinhDanh + MatKhau
+  // Backend dùng BCrypt.Verify để so sánh hash
+  const result = await api('/AuthApi/DangNhap', 'POST', {
+    DinhDanh: dinhDanh,
+    MatKhau: matKhau
+  });
 
   btn.disabled = false; btn.textContent = 'Đăng nhập';
 
-  if (result.Success) {
+  if (result.Success && result.Data) {
     currentUser = result.Data;
     enterDashboard(currentUser);
   } else {
+    // Luôn hiển thị lỗi chung để không tiết lộ thông tin
     showAuthError('Tên đăng nhập, email hoặc mật khẩu sai.');
   }
 });
@@ -283,7 +292,8 @@ function loadHomePage() {
   loadFeaturedTournaments();
 }
 
-function buildTournamentCard(t) {
+function buildTournamentCard(t, opts) {
+  opts = opts || {};
   const gameInfo = GAMES.find(g => g.maGame == t.ma_tro_choi) || { emoji: '🎮', color: '#6c63ff', name: '' };
   const status = t.trang_thai || '';
   let statusHtml = '';
@@ -291,15 +301,107 @@ function buildTournamentCard(t) {
   else if (status === 'mo_dang_ky' || status === 'sap_dien_ra') statusHtml = "<span class='tc-status upcoming'>🔵 Sắp diễn ra</span>";
   else statusHtml = "<span class='tc-status finished'>✅ Kết thúc</span>";
 
-  const prize = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + '₫' : 'N/A';
-  return '<div class="tournament-card" onclick="openTournament(' + t.ma_giai_dau + ')">' +
-    '<div class="tc-banner" style="background:linear-gradient(135deg,#1a1f36,' + gameInfo.color + '33)">' +
+  const prize    = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + '₫' : 'N/A';
+  const maGiai   = t.ma_giai_dau;
+  const likeAct  = opts.da_like       ? 'tc-btn-like active'   : 'tc-btn-like';
+  const followAct= opts.dang_theo_doi ? 'tc-btn-follow active' : 'tc-btn-follow';
+  const tLike    = opts.tong_like    || 0;
+  const tFollow  = opts.tong_theo_doi || 0;
+
+  return '<div class="tournament-card" id="tc-' + maGiai + '">' +
+    '<div class="tc-banner" style="background:linear-gradient(135deg,#1a1f36,' + gameInfo.color + '33)" onclick="openTournament(' + maGiai + ')" style="cursor:pointer">' +
     '<span style="font-size:2.5rem">' + gameInfo.emoji + '</span></div>' +
     '<div class="tc-body">' +
     '<div class="tc-game-badge">' + (t.ten_game || gameInfo.name) + '</div>' +
-    '<div class="tc-name">' + (t.ten_giai_dau || 'Giải đấu') + '</div>' +
+    '<div class="tc-name" onclick="openTournament(' + maGiai + ')" style="cursor:pointer">' + (t.ten_giai_dau || 'Giải đấu') + '</div>' +
     '<div class="tc-meta">' + statusHtml + '<span>💰 ' + prize + '</span></div>' +
+    '<div class="tc-actions">' +
+      '<button class="' + likeAct + '" onclick="toggleLike(' + maGiai + ',this)" title="Thích">' +
+        '<span class="tc-icon">❤️</span> <span class="tc-like-count" id="like-count-' + maGiai + '">' + tLike + '</span>' +
+      '</button>' +
+      '<button class="' + followAct + '" onclick="toggleFollow(' + maGiai + ',this)" title="Theo dõi">' +
+        '<span class="tc-icon">🔔</span> <span id="follow-label-' + maGiai + '">' + (opts.dang_theo_doi ? 'Đang theo dõi' : 'Theo dõi') + '</span>' +
+        ' <span class="tc-follow-count" id="follow-count-' + maGiai + '">' + tFollow + '</span>' +
+      '</button>' +
+    '</div>' +
     '</div></div>';
+}
+
+// ---- Toggle Like ----
+window.toggleLike = async function(maGiaiDau, btn) {
+  if (!currentUser) { showToast('Vui lòng đăng nhập để thích giải đấu.'); return; }
+  btn.disabled = true;
+  const res = await fetch('/TuongTacApi/Like?maGiaiDau=' + maGiaiDau, { method: 'POST' });
+  const result = await res.json();
+  btn.disabled = false;
+  if (result.Success && result.Data) {
+    const d = result.Data;
+    btn.classList.toggle('active', d.DaLike);
+    const cnt = document.getElementById('like-count-' + maGiaiDau);
+    if (cnt) cnt.textContent = d.TongLike || 0;
+    // Sync tất cả card cùng giải trên trang
+    document.querySelectorAll('#tc-' + maGiaiDau + ' .tc-btn-like').forEach(b => b.classList.toggle('active', d.DaLike));
+  } else {
+    showToast(result.Message || 'Lỗi.');
+  }
+};
+
+// ---- Toggle Follow ----
+window.toggleFollow = async function(maGiaiDau, btn) {
+  if (!currentUser) { showToast('Vui lòng đăng nhập để theo dõi giải đấu.'); return; }
+  btn.disabled = true;
+  const res = await fetch('/TuongTacApi/Follow?maGiaiDau=' + maGiaiDau, { method: 'POST' });
+  const result = await res.json();
+  btn.disabled = false;
+  if (result.Success && result.Data) {
+    const d = result.Data;
+    btn.classList.toggle('active', d.DangTheoDoi);
+    const lbl = document.getElementById('follow-label-' + maGiaiDau);
+    if (lbl) lbl.textContent = d.DangTheoDoi ? 'Đang theo dõi' : 'Theo dõi';
+    const cnt = document.getElementById('follow-count-' + maGiaiDau);
+    if (cnt) cnt.textContent = d.TongTheoDoi || 0;
+    // Cập nhật sidebar nếu đang theo dõi
+    if (d.DangTheoDoi) showSidebarItem('side-my-follow');
+  } else {
+    showToast(result.Message || 'Lỗi.');
+  }
+};
+
+// ---- Load like/follow state cho các card sau khi render ----
+async function loadInteractionStates(maGiaiDauList) {
+  if (!currentUser || !Array.isArray(maGiaiDauList)) return;
+  maGiaiDauList.forEach(async function(id) {
+    const res = await fetch('/TuongTacApi/TrangThai?maGiaiDau=' + id);
+    const result = await res.json();
+    if (!result.Success || !result.Data) return;
+    const d = result.Data;
+    // Like
+    document.querySelectorAll('#tc-' + id + ' .tc-btn-like').forEach(b => b.classList.toggle('active', !!(d.caNhan && d.caNhan.da_like)));
+    const lc = document.getElementById('like-count-' + id);
+    if (lc) lc.textContent = d.TongLike || 0;
+    // Follow
+    const following = !!(d.caNhan && d.caNhan.dang_theo_doi);
+    document.querySelectorAll('#tc-' + id + ' .tc-btn-follow').forEach(b => b.classList.toggle('active', following));
+    const lbl = document.getElementById('follow-label-' + id);
+    if (lbl) lbl.textContent = following ? 'Đang theo dõi' : 'Theo dõi';
+    const fc = document.getElementById('follow-count-' + id);
+    if (fc) fc.textContent = d.TongTheoDoi || 0;
+  });
+}
+
+// ---- Toast notification ----
+function showToast(msg) {
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;color:var(--text-primary);font-size:.88rem;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
 }
 
 async function loadFeaturedTournaments() {
@@ -308,7 +410,6 @@ async function loadFeaturedTournaments() {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
 
-  // Load all public tournaments
   const result = await api('/MatchmakingApi/DanhSachGiaiCongKhai');
   if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
     grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><h4>Chưa có giải đấu nào</h4><p>Hãy là người đầu tiên tổ chức giải!</p></div>';
@@ -316,14 +417,21 @@ async function loadFeaturedTournaments() {
     return;
   }
 
-  const active = result.Data.filter(t => t.trang_thai === 'dang_dien_ra');
+  const active   = result.Data.filter(t => t.trang_thai === 'dang_dien_ra');
   const upcoming = result.Data.filter(t => t.trang_thai === 'mo_dang_ky' || t.trang_thai === 'sap_dien_ra');
 
-  grid.innerHTML = active.length ? active.slice(0, 6).map(buildTournamentCard).join('') :
+  const activeList = active.slice(0, 6);
+  const upList     = upcoming.slice(0, 6);
+
+  grid.innerHTML = activeList.length ? activeList.map(t => buildTournamentCard(t)).join('') :
     '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">🏆</div><h4>Không có giải đang diễn ra</h4></div>';
 
-  if (upGrid) upGrid.innerHTML = upcoming.length ? upcoming.slice(0, 6).map(buildTournamentCard).join('') :
+  if (upGrid) upGrid.innerHTML = upList.length ? upList.map(t => buildTournamentCard(t)).join('') :
     '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">📅</div><h4>Không có giải sắp diễn ra</h4></div>';
+
+  // Load trạng thái like/follow sau khi render
+  const allIds = [...activeList, ...upList].map(t => t.ma_giai_dau);
+  loadInteractionStates(allIds);
 }
 
 window.openTournament = function(maGiaiDau) {
@@ -348,7 +456,9 @@ async function loadGameTournaments(game) {
     grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">' + game.emoji + '</div><h4>Chưa có giải đấu ' + game.name + '</h4></div>';
     return;
   }
-  grid.innerHTML = result.Data.slice(0, 12).map(buildTournamentCard).join('');
+  const list = result.Data.slice(0, 12);
+  grid.innerHTML = list.map(t => buildTournamentCard(t)).join('');
+  loadInteractionStates(list.map(t => t.ma_giai_dau));
 }
 
 // ---- NOTIFICATIONS ----

@@ -835,13 +835,16 @@ IF COL_LENGTH('LICH_SU_SUA_KET_QUA', 'ly_do_sua') IS NULL
 
 IF COL_LENGTH('LICH_SU_SUA_KET_QUA', 'ma_trong_tai_sua') IS NOT NULL
 AND COL_LENGTH('LICH_SU_SUA_KET_QUA', 'nguoi_sua') IS NOT NULL
-    UPDATE LICH_SU_SUA_KET_QUA
-    SET nguoi_sua = ISNULL(nguoi_sua, ma_trong_tai_sua)
-    WHERE nguoi_sua IS NULL;
+BEGIN
+    EXEC('UPDATE LICH_SU_SUA_KET_QUA SET nguoi_sua = ISNULL(nguoi_sua, ma_trong_tai_sua) WHERE nguoi_sua IS NULL;');
+END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_LSSKQ_NGUOI_SUA')
 AND COL_LENGTH('LICH_SU_SUA_KET_QUA', 'nguoi_sua') IS NOT NULL
-    ALTER TABLE LICH_SU_SUA_KET_QUA ADD CONSTRAINT FK_LSSKQ_NGUOI_SUA FOREIGN KEY (nguoi_sua) REFERENCES NGUOI_DUNG(ma_nguoi_dung);
+BEGIN
+    EXEC('ALTER TABLE LICH_SU_SUA_KET_QUA ADD CONSTRAINT FK_LSSKQ_NGUOI_SUA FOREIGN KEY (nguoi_sua) REFERENCES NGUOI_DUNG(ma_nguoi_dung);');
+END;
+
 
 IF OBJECT_ID('KHIEU_NAI_KET_QUA', 'U') IS NULL
 CREATE TABLE KHIEU_NAI_KET_QUA (
@@ -861,6 +864,8 @@ CREATE TABLE KHIEU_NAI_KET_QUA (
     CONSTRAINT FK_KN_ADMIN_XU_LY FOREIGN KEY (ma_admin_xu_ly) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
     CONSTRAINT CHK_KN_TRANGTHAI CHECK (trang_thai IN ('cho_xu_ly', 'da_xu_ly', 'tu_choi'))
 );
+GO
+
 
 IF OBJECT_ID('KHIEU_NAI_KET_QUA', 'U') IS NOT NULL
 AND NOT EXISTS (
@@ -924,7 +929,10 @@ IF COL_LENGTH('NGUOI_DUNG', 'ma_admin_ban') IS NULL
 
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ND_ADMIN_BAN')
 AND COL_LENGTH('NGUOI_DUNG', 'ma_admin_ban') IS NOT NULL
-    ALTER TABLE NGUOI_DUNG ADD CONSTRAINT FK_ND_ADMIN_BAN FOREIGN KEY (ma_admin_ban) REFERENCES NGUOI_DUNG(ma_nguoi_dung);
+BEGIN
+    EXEC('ALTER TABLE NGUOI_DUNG ADD CONSTRAINT FK_ND_ADMIN_BAN FOREIGN KEY (ma_admin_ban) REFERENCES NGUOI_DUNG(ma_nguoi_dung);');
+END;
+
 
 -- M2: Bảng TRO_CHOI — thêm is_active để ẩn game thay vì xóa
 IF COL_LENGTH('TRO_CHOI', 'is_active') IS NULL
@@ -950,3 +958,39 @@ SELECT
 GO
 
 
+
+GO
+
+-- ==============================================================
+-- 16. MIGRATION TƯƠNG TÁC GIẢI ĐẤU (Like & Follow)
+-- ==============================================================
+
+-- Bảng lưu trạng thái Like và Follow của từng user với từng giải đấu.
+-- Mỗi cặp (ma_nguoi_dung, ma_giai_dau) chỉ có 1 dòng duy nhất.
+IF OBJECT_ID('TUONG_TAC_GIAI_DAU', 'U') IS NULL
+CREATE TABLE TUONG_TAC_GIAI_DAU (
+    ma_tuong_tac   INT IDENTITY PRIMARY KEY,
+    ma_nguoi_dung  INT NOT NULL,
+    ma_giai_dau    INT NOT NULL,
+    da_like        BIT NOT NULL DEFAULT 0,
+    dang_theo_doi  BIT NOT NULL DEFAULT 0,
+    thoi_gian_tao  DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_TTGD_ND    FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+    CONSTRAINT FK_TTGD_GD    FOREIGN KEY (ma_giai_dau)   REFERENCES GIAI_DAU(ma_giai_dau),
+    CONSTRAINT UQ_TTGD       UNIQUE (ma_nguoi_dung, ma_giai_dau)
+);
+GO
+
+-- View tổng hợp đếm like / follow nhanh theo giải đấu
+IF OBJECT_ID('VW_TUONG_TAC_TONG_HOP', 'V') IS NOT NULL
+    DROP VIEW VW_TUONG_TAC_TONG_HOP;
+GO
+
+CREATE VIEW VW_TUONG_TAC_TONG_HOP AS
+SELECT
+    ma_giai_dau,
+    SUM(CAST(da_like       AS INT)) AS tong_like,
+    SUM(CAST(dang_theo_doi AS INT)) AS tong_theo_doi
+FROM TUONG_TAC_GIAI_DAU
+GROUP BY ma_giai_dau;
+GO

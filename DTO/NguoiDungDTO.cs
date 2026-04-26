@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,5 +16,10 @@ namespace DTO
         public string AvatarUrl { get; set; }
         public string Bio { get; set; }
         public DateTime NgayTao { get; set; }
+
+        // --- Trụ cột 5: Ban/Unban ---
+        public bool IsBanned { get; set; }
+        public string LyDoBan { get; set; }
+        public DateTime? ThoiGianBan { get; set; }
     }
 }

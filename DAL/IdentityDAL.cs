@@ -50,7 +50,8 @@ VALUES(@TenDangNhap, @Email, @MatKhauMaHoa, @VaiTroHeThong, @AvatarUrl, @Bio);";
         public NguoiDungDTO LayTheoDinhDanh(string dinhDanh)
         {
             const string query = @"
-SELECT TOP 1 ma_nguoi_dung, ten_dang_nhap, email, mat_khau_ma_hoa, vai_tro_he_thong, avatar_url, bio, ngay_tao
+SELECT TOP 1 ma_nguoi_dung, ten_dang_nhap, email, mat_khau_ma_hoa, vai_tro_he_thong, avatar_url, bio, ngay_tao,
+    ISNULL(is_banned, 0) AS is_banned, ly_do_ban, thoi_gian_ban
 FROM NGUOI_DUNG
 WHERE ten_dang_nhap = @DinhDanh OR email = @DinhDanh;";
 
@@ -65,7 +66,8 @@ WHERE ten_dang_nhap = @DinhDanh OR email = @DinhDanh;";
         public NguoiDungDTO LayTheoId(int maNguoiDung)
         {
             const string query = @"
-SELECT TOP 1 ma_nguoi_dung, ten_dang_nhap, email, mat_khau_ma_hoa, vai_tro_he_thong, avatar_url, bio, ngay_tao
+SELECT TOP 1 ma_nguoi_dung, ten_dang_nhap, email, mat_khau_ma_hoa, vai_tro_he_thong, avatar_url, bio, ngay_tao,
+    ISNULL(is_banned, 0) AS is_banned, ly_do_ban, thoi_gian_ban
 FROM NGUOI_DUNG
 WHERE ma_nguoi_dung = @MaNguoiDung;";
 
@@ -110,14 +112,17 @@ WHERE ma_nguoi_dung = @MaNguoiDung";
         {
             return new NguoiDungDTO
             {
-                MaNguoiDung = Convert.ToInt32(row["ma_nguoi_dung"]),
-                TenDangNhap = row["ten_dang_nhap"].ToString(),
-                Email = row["email"].ToString(),
-                MatKhauMaHoa = row["mat_khau_ma_hoa"].ToString(),
+                MaNguoiDung   = Convert.ToInt32(row["ma_nguoi_dung"]),
+                TenDangNhap   = row["ten_dang_nhap"].ToString(),
+                Email         = row["email"].ToString(),
+                MatKhauMaHoa  = row["mat_khau_ma_hoa"].ToString(),
                 VaiTroHeThong = row["vai_tro_he_thong"].ToString(),
-                AvatarUrl = row["avatar_url"] == DBNull.Value ? null : row["avatar_url"].ToString(),
-                Bio = row["bio"] == DBNull.Value ? null : row["bio"].ToString(),
-                NgayTao = Convert.ToDateTime(row["ngay_tao"])
+                AvatarUrl     = row["avatar_url"]   == DBNull.Value ? null : row["avatar_url"].ToString(),
+                Bio           = row["bio"]          == DBNull.Value ? null : row["bio"].ToString(),
+                NgayTao       = Convert.ToDateTime(row["ngay_tao"]),
+                IsBanned      = row.Table.Columns.Contains("is_banned") && Convert.ToBoolean(row["is_banned"]),
+                LyDoBan       = row.Table.Columns.Contains("ly_do_ban")     && row["ly_do_ban"]     != DBNull.Value ? row["ly_do_ban"].ToString()     : null,
+                ThoiGianBan   = row.Table.Columns.Contains("thoi_gian_ban") && row["thoi_gian_ban"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(row["thoi_gian_ban"]) : null
             };
         }
     }

@@ -346,3 +346,46 @@ button { cursor: pointer; }
   #sidebar.open { transform: translateX(0); }
   #content-area { padding: 16px; }
 }
+
+/* ============ TOURNAMENT CARD — LIKE & FOLLOW ============ */
+.tc-actions {
+  display: flex; gap: 8px; margin-top: 10px;
+  padding-top: 10px; border-top: 1px solid var(--border);
+}
+.tc-btn-like,
+.tc-btn-follow {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-muted);
+  font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s ease;
+  user-select: none;
+}
+.tc-btn-like:hover  { border-color: rgba(255,71,87,0.5);  color: var(--danger);  background: rgba(255,71,87,0.08);  }
+.tc-btn-follow:hover{ border-color: rgba(108,99,255,0.5); color: var(--accent);  background: rgba(108,99,255,0.08); }
+.tc-btn-like.active  { border-color: var(--danger);  color: var(--danger);  background: rgba(255,71,87,0.15);  }
+.tc-btn-follow.active{ border-color: var(--accent);  color: var(--accent);  background: rgba(108,99,255,0.15); }
+.tc-btn-like:active,
+.tc-btn-follow:active { transform: scale(0.95); }
+.tc-btn-like.active .tc-icon   { animation: heartbeat 0.4s ease; }
+.tc-btn-follow.active .tc-icon { animation: ring     0.5s ease; }
+.tc-like-count, .tc-follow-count {
+  opacity: 0.7; font-size: 0.72rem;
+}
+@keyframes heartbeat {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.35); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+@keyframes ring {
+  0%   { transform: rotate(0); }
+  20%  { transform: rotate(-15deg); }
+  40%  { transform: rotate(15deg); }
+  60%  { transform: rotate(-8deg); }
+  80%  { transform: rotate(8deg); }
+  100% { transform: rotate(0); }
+}
+.tc-icon { display: inline-block; }

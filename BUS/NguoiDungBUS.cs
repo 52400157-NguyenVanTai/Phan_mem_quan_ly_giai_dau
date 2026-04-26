@@ -1,25 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DAL;
 using DTO;
+using BCryptNet = BCrypt.Net.BCrypt;
 
 namespace BUS
 {
+    /// <summary>
+    /// BUS cho luồng đăng nhập cũ (TaiKhoanController).
+    /// Verify BCrypt tại đây vì BUS project có package BCrypt.Net-Next.
+    /// DAL chỉ lấy dữ liệu, không verify.
+    /// </summary>
     public class NguoiDungBUS
     {
-        private NguoiDungDAL nguoiDungDAL = new NguoiDungDAL();
+        private readonly NguoiDungDAL _dal = new NguoiDungDAL();
 
-        public NguoiDungDTO KiemTraDangNhap(string tenDangNhap, string matKhau)
+        /// <summary>
+        /// Kiểm tra đăng nhập: tìm theo username hoặc email, verify BCrypt.
+        /// Trả null nếu không tìm thấy hoặc sai mật khẩu.
+        /// </summary>
+        public NguoiDungDTO KiemTraDangNhap(string dinhDanh, string matKhau)
         {
-            if (string.IsNullOrWhiteSpace(tenDangNhap) || string.IsNullOrWhiteSpace(matKhau))
-            {
+            if (string.IsNullOrWhiteSpace(dinhDanh) || string.IsNullOrWhiteSpace(matKhau))
                 return null;
-            }
 
-            return nguoiDungDAL.KiemTraDangNhap(tenDangNhap, matKhau);
+            // DAL chỉ lấy user từ DB theo username/email
+            NguoiDungDTO user = _dal.LayTheoDinhDanh(dinhDanh.Trim());
+            if (user == null) return null;
+
+            // Verify BCrypt tại tầng BUS (BCrypt.Net-Next chỉ có trong BUS project)
+            if (!BCryptNet.Verify(matKhau.Trim(), user.MatKhauMaHoa))
+                return null;
+
+            return user;
         }
     }
 }
