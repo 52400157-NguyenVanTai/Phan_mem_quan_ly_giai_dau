@@ -116,5 +116,17 @@ namespace BUS
             bool ok = _identityDal.CapNhatThongTinCoBan(dto);
             return ok ? ServiceResultDTO.Ok("Cập nhật thông tin thành công.") : ServiceResultDTO.Fail("Không thể cập nhật thông tin.");
         }
+
+        public ServiceResultDTO CapNhatAvatarUrl(int maNguoiDung, string avatarUrl)
+        {
+            if (maNguoiDung <= 0 || string.IsNullOrWhiteSpace(avatarUrl))
+            {
+                return ServiceResultDTO.Fail("Dữ liệu cập nhật avatar không hợp lệ.");
+            }
+
+            bool ok = _identityDal.CapNhatAvatarUrl(maNguoiDung, avatarUrl.Trim());
+            return ok ? ServiceResultDTO.Ok("Cập nhật avatar thành công.", new { AvatarUrl = avatarUrl.Trim() })
+                      : ServiceResultDTO.Fail("Không thể cập nhật avatar.");
+        }
     }
 }

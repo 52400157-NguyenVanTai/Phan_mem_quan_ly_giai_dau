@@ -110,11 +110,14 @@
                 <span class="si-icon">🔔</span> Bảng thông báo
                 <span class="si-badge" id="sidebar-notif-count" style="display:none">0</span>
             </button>
-            <button class="sidebar-item d-none" id="side-my-tournaments" data-page="my-tournaments" onclick="navigateTo('my-tournaments')">
+            <button class="sidebar-item" id="side-my-tournaments" data-page="my-tournaments" onclick="navigateTo('my-tournaments')">
                 <span class="si-icon">🏆</span> Giải đấu của tôi
             </button>
-            <button class="sidebar-item d-none" id="side-my-teams" data-page="my-teams" onclick="navigateTo('my-teams')">
+            <button class="sidebar-item" id="side-my-teams" data-page="my-teams" onclick="navigateTo('my-teams')">
                 <span class="si-icon">👥</span> Đội của tôi
+            </button>
+            <button class="sidebar-item d-none" id="btn-admin-module" data-page="admin-requests" onclick="navigateTo('admin-requests')">
+                <span class="si-icon">A</span> YÃªu cáº§u admin
             </button>
         </div>
     </nav>
@@ -331,7 +334,12 @@
                 <div class="page-title">👤 Thông tin cá nhân</div>
                 <p class="page-sub">Quản lý thông tin tài khoản của bạn</p>
                 <div class="profile-header">
-                    <div class="profile-avatar-big" id="profile-avatar-big">?</div>
+                    <div class="profile-avatar-big" id="profile-avatar-big" onclick="triggerAvatarUpload()" title="Bấm để đổi ảnh đại diện" style="cursor:pointer;position:relative;overflow:hidden">
+                        <span id="avatar-initials-big">?</span>
+                        <img id="profile-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;top:0;left:0" />
+                        <div class="avatar-camera-overlay">📷</div>
+                    </div>
+                    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
                     <div class="profile-info">
                         <h2 id="profile-username-display">-</h2>
                         <p id="profile-email-display">-</p>
@@ -349,8 +357,8 @@
                         <input class="form-control-dark" id="pf-email" disabled />
                     </div>
                     <div class="form-group-dark">
-                        <label>Avatar URL</label>
-                        <input class="form-control-dark" id="pf-avatar-url" placeholder="Đường dẫn ảnh đại diện" />
+                        <label>Đội</label>
+                        <input class="form-control-dark" id="pf-team" placeholder="Chưa tham gia đội nào" disabled />
                     </div>
                     <div class="form-group-dark">
                         <label>Giới thiệu bản thân</label>
@@ -395,6 +403,24 @@
                 </div>
             </div>
 
+            <div id="page-manage-tournament" class="page-section" style="display:none">
+                <div class="page-title">Quan ly giai dau</div>
+                <p class="page-sub" id="manage-tournament-sub">Duyet doi tham gia cho giai dau cua ban</p>
+                <div id="manage-tournament-list"></div>
+            </div>
+            <div id="page-admin-requests" class="page-section" style="display:none">
+                <div class="page-title">Yeu cau admin</div>
+                <p class="page-sub">Phe duyet hoac tu choi yeu cau tao giai dau</p>
+                <div class="profile-card">
+                    <h5>Yeu cau cho xu ly</h5>
+                    <div id="admin-request-list">
+                        <div class="empty-state" style="padding:30px">
+                            <div class="empty-state-icon">!</div>
+                            <h4>Chua co du lieu</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div><!-- /content-area -->
     </div><!-- /main-area -->
 </div><!-- /app-shell -->

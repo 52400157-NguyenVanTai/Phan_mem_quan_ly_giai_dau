@@ -167,5 +167,28 @@ WHERE ma_nguoi_dung = @MaNguoiDung
 
             return Convert.ToInt32(result) > 0;
         }
+
+        public DataTable LayDoiCuaToi(int maNguoiDung)
+        {
+            const string query = @"
+SELECT TOP 1
+    d.ma_doi, d.ten_doi, d.logo_url, d.slogan, d.trang_thai,
+    tv.vai_tro_noi_bo, tv.phan_he,
+    tc.ten_game,
+    nd.ten_nhom
+FROM THANH_VIEN_DOI tv
+JOIN NHOM_DOI nd ON tv.ma_nhom = nd.ma_nhom
+JOIN DOI d ON nd.ma_doi = d.ma_doi
+JOIN TRO_CHOI tc ON nd.ma_tro_choi = tc.ma_tro_choi
+WHERE tv.ma_nguoi_dung = @MaNguoiDung
+  AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+  AND d.trang_thai <> 'giai_tan'
+ORDER BY d.ma_doi;";
+
+            return DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung }
+            });
+        }
     }
 }

@@ -133,5 +133,29 @@ namespace BUS
                 ? ServiceResultDTO.Ok("Giải tán đội thành công. Thành viên đã chuyển về trạng thái Free Agent.")
                 : ServiceResultDTO.Fail("Bạn không có quyền giải tán đội hoặc đội không tồn tại.");
         }
+
+        public ServiceResultDTO LayDoiCuaToi(int maNguoiDung)
+        {
+            if (maNguoiDung <= 0) return ServiceResultDTO.Fail("Người dùng không hợp lệ.");
+
+            System.Data.DataTable dt = _teamDal.LayDoiCuaToi(maNguoiDung);
+            if (dt.Rows.Count == 0)
+                return ServiceResultDTO.Ok("Không thuộc đội nào.", null);
+
+            var row = dt.Rows[0];
+            var data = new
+            {
+                ma_doi       = System.Convert.ToInt32(row["ma_doi"]),
+                ten_doi      = row["ten_doi"].ToString(),
+                logo_url     = row["logo_url"] == System.DBNull.Value ? null : row["logo_url"].ToString(),
+                slogan       = row["slogan"] == System.DBNull.Value ? null : row["slogan"].ToString(),
+                trang_thai   = row["trang_thai"].ToString(),
+                vai_tro      = row["vai_tro_noi_bo"].ToString(),
+                phan_he      = row["phan_he"] == System.DBNull.Value ? null : row["phan_he"].ToString(),
+                ten_game     = row["ten_game"].ToString(),
+                ten_nhom     = row["ten_nhom"].ToString()
+            };
+            return ServiceResultDTO.Ok("Lấy thông tin đội thành công.", data);
+        }
     }
 }

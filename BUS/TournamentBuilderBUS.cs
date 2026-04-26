@@ -428,5 +428,65 @@ namespace BUS
 
             return Convert.ToInt32(giaiDau["ma_nguoi_tao"]) == maNguoiDung;
         }
+
+        public ServiceResultDTO LayGiaiCuaToi(int maNguoiDung)
+        {
+            if (maNguoiDung <= 0) return ServiceResultDTO.Fail("Người dùng không hợp lệ.");
+
+            System.Data.DataTable dt = _dal.LayGiaiCuaToi(maNguoiDung);
+            var list = new System.Collections.Generic.List<object>();
+            foreach (System.Data.DataRow row in dt.Rows)
+            {
+                list.Add(new
+                {
+                    ma_giai_dau      = Convert.ToInt32(row["ma_giai_dau"]),
+                    ten_giai_dau     = row["ten_giai_dau"].ToString(),
+                    trang_thai       = row["trang_thai"].ToString(),
+                    tong_giai_thuong = row["tong_giai_thuong"] == DBNull.Value ? 0 : Convert.ToDouble(row["tong_giai_thuong"]),
+                    ngay_bat_dau     = row["ngay_bat_dau"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_bat_dau"]),
+                    ngay_ket_thuc    = row["ngay_ket_thuc"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_ket_thuc"]),
+                    ten_game         = row["ten_game"] == DBNull.Value ? null : row["ten_game"].ToString(),
+                    ma_tro_choi      = row["ma_tro_choi"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_tro_choi"])
+                });
+            }
+            return ServiceResultDTO.Ok("Lấy danh sách giải thành công.", list);
+        }
+        public ServiceResultDTO LayDanhSachDangKyDoi(int maNguoiThucHien, int maGiaiDau)
+        {
+            if (maNguoiThucHien <= 0 || maGiaiDau <= 0)
+            {
+                return ServiceResultDTO.Fail("Du lieu dang ky doi khong hop le.");
+            }
+
+            DataRow giaiDau = _dal.LayGiaiTheoId(maGiaiDau);
+            if (giaiDau == null)
+            {
+                return ServiceResultDTO.Fail("Khong tim thay giai dau.");
+            }
+
+            if (!CoQuyenQuanLyGiai(maNguoiThucHien, giaiDau))
+            {
+                return ServiceResultDTO.Fail("Ban khong co quyen xem danh sach dang ky doi.");
+            }
+
+            System.Data.DataTable dt = _dal.LayDanhSachDangKyDoi(maGiaiDau);
+            var list = new System.Collections.Generic.List<object>();
+            foreach (System.Data.DataRow row in dt.Rows)
+            {
+                list.Add(new
+                {
+                    ma_nhom = Convert.ToInt32(row["ma_nhom"]),
+                    ten_nhom = row["ten_nhom"].ToString(),
+                    ma_doi = Convert.ToInt32(row["ma_doi"]),
+                    ten_doi = row["ten_doi"].ToString(),
+                    slogan = row["slogan"] == DBNull.Value ? null : row["slogan"].ToString(),
+                    ten_game = row["ten_game"] == DBNull.Value ? null : row["ten_game"].ToString(),
+                    trang_thai_duyet = row["trang_thai_duyet"].ToString(),
+                    hat_giong = row["hat_giong"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["hat_giong"])
+                });
+            }
+
+            return ServiceResultDTO.Ok("Lay danh sach dang ky doi thanh cong.", list);
+        }
     }
 }
