@@ -162,13 +162,24 @@ namespace DTO
         public int MaNguoiTao { get; set; }
         public string TenGiaiDau { get; set; }
         public int? MaTroChoi { get; set; }
+        public string TheThuc { get; set; }
         public string BannerUrl { get; set; }
         public decimal TongGiaiThuong { get; set; }
+        public string MoTa { get; set; }
+        public int? SoNguoiMoiDoi { get; set; }
         public DateTime? ThoiGianMoDangKy { get; set; }
         public DateTime? ThoiGianDongDangKy { get; set; }
         public DateTime NgayBatDau { get; set; }
         public DateTime NgayKetThuc { get; set; }
         public string TrangThaiKhoiTao { get; set; }
+        public List<TaoGiaiThuongDTO> GiaiThuongs { get; set; }
+    }
+
+    public class TaoGiaiThuongDTO
+    {
+        public string TenGiai { get; set; }
+        public string PhanThuong { get; set; }
+        public string MoTa { get; set; }
     }
 
     public class CapNhatTrangThaiGiaiDTO

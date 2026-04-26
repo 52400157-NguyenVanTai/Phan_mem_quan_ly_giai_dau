@@ -24,6 +24,17 @@ namespace BUS
                 return ServiceResultDTO.Fail("Dữ liệu khởi tạo giải đấu không hợp lệ.");
             }
 
+            dto.TenGiaiDau = dto.TenGiaiDau.Trim();
+            if (System.Text.RegularExpressions.Regex.IsMatch(dto.TenGiaiDau, @"^[\d\W_]"))
+            {
+                return ServiceResultDTO.Fail("Tên giải đấu không được bắt đầu bằng số hoặc ký tự đặc biệt.");
+            }
+
+            if (dto.NgayBatDau <= DateTime.Now)
+            {
+                return ServiceResultDTO.Fail("Ngày bắt đầu phải là ngày trong tương lai.");
+            }
+
             if (dto.NgayBatDau >= dto.NgayKetThuc)
             {
                 return ServiceResultDTO.Fail("Thời gian bắt đầu giải phải nhỏ hơn thời gian kết thúc giải.");
@@ -34,8 +45,22 @@ namespace BUS
                 return ServiceResultDTO.Fail("Thời gian đóng đăng ký phải nhỏ hơn thời gian diễn ra giải.");
             }
 
-            int maGiaiDau = _dal.TaoGiaiDau(dto, TrangThaiBanNhap);
-            return ServiceResultDTO.Ok("Tạo bản nháp giải đấu thành công.", new { maGiaiDau, trangThai = "bản nháp" });
+            if (string.IsNullOrWhiteSpace(dto.TheThuc))
+            {
+                return ServiceResultDTO.Fail("Vui lòng chọn thể thức thi đấu.");
+            }
+
+            string trangThai = LaAdmin(dto.MaNguoiTao) ? TrangThaiMoDangKy : TrangThaiChoPheDuyet;
+
+            int maGiaiDau = _dal.TaoGiaiDau(dto, trangThai);
+
+            if (dto.GiaiThuongs != null && dto.GiaiThuongs.Count > 0)
+            {
+                _dal.ThemGiaiThuong(maGiaiDau, dto.GiaiThuongs);
+            }
+
+            string msg = LaAdmin(dto.MaNguoiTao) ? "Tạo giải đấu thành công. Giải đấu đã được tự động phê duyệt." : "Tạo giải đấu thành công. Vui lòng chờ admin phê duyệt.";
+            return ServiceResultDTO.Ok(msg, new { maGiaiDau, trangThai });
         }
 
         public ServiceResultDTO GuiXetDuyet(int maNguoiGui, int maGiaiDau)

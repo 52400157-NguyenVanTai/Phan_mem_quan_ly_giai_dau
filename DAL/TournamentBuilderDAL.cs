@@ -13,14 +13,14 @@ namespace DAL
             const string query = @"
 INSERT INTO GIAI_DAU
 (
-    ten_giai_dau, ma_nguoi_tao, ma_tro_choi, banner_url, tong_giai_thuong,
+    ten_giai_dau, ma_nguoi_tao, ma_tro_choi, the_thuc, banner_url, tong_giai_thuong, mo_ta, so_nguoi_moi_doi,
     thoi_gian_mo_dang_ky, thoi_gian_dong_dang_ky, ngay_bat_dau, ngay_ket_thuc,
     trang_thai, hien_thi_public, is_deleted
 )
 OUTPUT INSERTED.ma_giai_dau
 VALUES
 (
-    @TenGiaiDau, @MaNguoiTao, @MaTroChoi, @BannerUrl, @TongGiaiThuong,
+    @TenGiaiDau, @MaNguoiTao, @MaTroChoi, @TheThuc, @BannerUrl, @TongGiaiThuong, @MoTa, @SoNguoiMoiDoi,
     @ThoiGianMoDangKy, @ThoiGianDongDangKy, @NgayBatDau, @NgayKetThuc,
     @TrangThai, 0, 0
 );";
@@ -30,8 +30,11 @@ VALUES
                 new SqlParameter("@TenGiaiDau", SqlDbType.NVarChar){ Value = dto.TenGiaiDau.Trim() },
                 new SqlParameter("@MaNguoiTao", SqlDbType.Int){ Value = dto.MaNguoiTao },
                 new SqlParameter("@MaTroChoi", SqlDbType.Int){ Value = (object)dto.MaTroChoi ?? DBNull.Value },
+                new SqlParameter("@TheThuc", SqlDbType.NVarChar){ Value = (object)dto.TheThuc ?? DBNull.Value },
                 new SqlParameter("@BannerUrl", SqlDbType.NVarChar){ Value = (object)dto.BannerUrl ?? DBNull.Value },
                 new SqlParameter("@TongGiaiThuong", SqlDbType.Decimal){ Value = dto.TongGiaiThuong },
+                new SqlParameter("@MoTa", SqlDbType.NVarChar){ Value = (object)dto.MoTa ?? DBNull.Value },
+                new SqlParameter("@SoNguoiMoiDoi", SqlDbType.Int){ Value = (object)dto.SoNguoiMoiDoi ?? DBNull.Value },
                 new SqlParameter("@ThoiGianMoDangKy", SqlDbType.DateTime){ Value = (object)dto.ThoiGianMoDangKy ?? DBNull.Value },
                 new SqlParameter("@ThoiGianDongDangKy", SqlDbType.DateTime){ Value = (object)dto.ThoiGianDongDangKy ?? DBNull.Value },
                 new SqlParameter("@NgayBatDau", SqlDbType.DateTime){ Value = dto.NgayBatDau },
@@ -40,6 +43,24 @@ VALUES
             });
 
             return Convert.ToInt32(result);
+        }
+
+        public void ThemGiaiThuong(int maGiaiDau, List<TaoGiaiThuongDTO> giaiThuongs)
+        {
+            if (giaiThuongs == null || giaiThuongs.Count == 0) return;
+
+            foreach (var item in giaiThuongs)
+            {
+                const string q = @"INSERT INTO GIAI_THUONG(ma_giai_dau, ten_giai, phan_thuong, mo_ta) 
+                                   VALUES(@MaGiaiDau, @TenGiai, @PhanThuong, @MoTa)";
+                DataProvider.ExecuteNonQuery(q, new[]
+                {
+                    new SqlParameter("@MaGiaiDau", SqlDbType.Int){ Value = maGiaiDau },
+                    new SqlParameter("@TenGiai", SqlDbType.NVarChar){ Value = (object)item.TenGiai ?? DBNull.Value },
+                    new SqlParameter("@PhanThuong", SqlDbType.NVarChar){ Value = (object)item.PhanThuong ?? DBNull.Value },
+                    new SqlParameter("@MoTa", SqlDbType.NVarChar){ Value = (object)item.MoTa ?? DBNull.Value }
+                });
+            }
         }
 
         public DataRow LayGiaiTheoId(int maGiaiDau)

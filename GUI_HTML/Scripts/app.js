@@ -303,11 +303,8 @@ window.navigateTo = function(page) {
     if (page === 'notifications') loadNotifications();
     if (page === 'player-profile') loadPlayerProfileTabs();
     if (page === 'my-tournaments') loadMyTournaments();
-<<<<<<< HEAD
     if (page === 'manage-tournament') loadManageTournament();
-=======
     if (page === 'my-teams') loadMyTeams();
->>>>>>> 7df51e49ef4801811f08d15a2fcf400287dcc536
   }
 };
 
@@ -648,22 +645,77 @@ window.saveGameProfile = async function(maTroChoi) {
 };
 
 // ---- ORGANIZE TOURNAMENT ----
+let prizeCount = 0;
+window.addPrizeInput = function() {
+  const list = document.getElementById('org-prizes-list');
+  prizeCount++;
+  const div = document.createElement('div');
+  div.id = 'prize-item-' + prizeCount;
+  div.style.border = '1px solid var(--border)';
+  div.style.padding = '10px';
+  div.style.marginBottom = '10px';
+  div.style.borderRadius = 'var(--radius)';
+  div.innerHTML = `
+    <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
+      <strong>Giải thưởng #${prizeCount}</strong>
+      <button class="btn-outline-glow" style="border-color:#ff4757; color:#ff4757; padding:2px 8px; font-size:0.8rem;" onclick="removePrizeInput(${prizeCount})">Xóa</button>
+    </div>
+    <div class="form-group-dark">
+      <input class="form-control-dark prize-name" placeholder="Tên giải (VD: Top 1, MVP...)" />
+    </div>
+    <div class="form-group-dark">
+      <input class="form-control-dark prize-reward" placeholder="Phần thưởng (VD: 5.000.000 VNĐ, Bằng khen...)" />
+    </div>
+    <div class="form-group-dark" style="margin-bottom:0;">
+      <textarea class="form-control-dark prize-desc" placeholder="Mô tả thêm (tùy chọn)" rows="2"></textarea>
+    </div>
+  `;
+  list.appendChild(div);
+};
+
+window.removePrizeInput = function(id) {
+  const el = document.getElementById('prize-item-' + id);
+  if (el) el.remove();
+};
+
 window.submitOrganize = async function() {
   const msg = document.getElementById('org-msg');
+  
+  const prizes = [];
+  document.querySelectorAll('#org-prizes-list > div').forEach(el => {
+    const ten = el.querySelector('.prize-name').value.trim();
+    const thuong = el.querySelector('.prize-reward').value.trim();
+    const mota = el.querySelector('.prize-desc').value.trim();
+    if (ten || thuong) {
+      prizes.push({ TenGiai: ten, PhanThuong: thuong, MoTa: mota });
+    }
+  });
+
   const payload = {
     TenGiaiDau: document.getElementById('org-ten-giai').value.trim(),
+    MoTa: document.getElementById('org-mo-ta').value.trim(),
     MaTroChoi: Number(document.getElementById('org-game').value) || null,
+    SoNguoiMoiDoi: Number(document.getElementById('org-so-nguoi').value) || null,
+    TheThuc: document.getElementById('org-the-thuc').value,
+    BannerUrl: document.getElementById('org-banner').value.trim(),
     TongGiaiThuong: Number(document.getElementById('org-giai-thuong').value) || 0,
     NgayBatDau: document.getElementById('org-start').value ? new Date(document.getElementById('org-start').value).toISOString() : null,
-    NgayKetThuc: document.getElementById('org-end').value ? new Date(document.getElementById('org-end').value).toISOString() : null
+    NgayKetThuc: document.getElementById('org-end').value ? new Date(document.getElementById('org-end').value).toISOString() : null,
+    GiaiThuongs: prizes
   };
+
   if (!payload.TenGiaiDau) { msg.style.color='#ff4757'; msg.textContent='Nhập tên giải đấu.'; return; }
   const result = await api('/TournamentBuilderApi/TaoBanNhap', 'POST', payload);
   msg.style.color = result.Success ? '#2ed573' : '#ff4757';
   if (result.Success) {
-    msg.textContent = '✅ Đã tạo! Mã giải: #' + (result.Data && result.Data.MaGiaiDau ? result.Data.MaGiaiDau : '');
+    msg.textContent = result.Message;
+    document.getElementById('org-ten-giai').value = '';
+    document.getElementById('org-mo-ta').value = '';
+    document.getElementById('org-banner').value = '';
+    document.getElementById('org-prizes-list').innerHTML = '';
+    
     showSidebarItem('side-my-tournaments');
-    setTimeout(() => navigateTo('my-tournaments'), 1000);
+    setTimeout(() => navigateTo('my-tournaments'), 1500);
   } else {
     msg.textContent = result.Message || 'Tạo giải thất bại.';
   }

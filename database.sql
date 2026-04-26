@@ -994,3 +994,23 @@ SELECT
 FROM TUONG_TAC_GIAI_DAU
 GROUP BY ma_giai_dau;
 GO
+
+-- ==============================================================
+-- UPDATE THEO YEU CAU TAO GIAI DAU
+-- ==============================================================
+IF COL_LENGTH('GIAI_DAU', 'mo_ta') IS NULL
+    ALTER TABLE GIAI_DAU ADD mo_ta NVARCHAR(MAX) NULL;
+
+IF COL_LENGTH('GIAI_DAU', 'so_nguoi_moi_doi') IS NULL
+    ALTER TABLE GIAI_DAU ADD so_nguoi_moi_doi INT NULL;
+
+IF COL_LENGTH('GIAI_THUONG', 'ten_giai') IS NULL
+    ALTER TABLE GIAI_THUONG ADD ten_giai NVARCHAR(200) NULL;
+
+IF COL_LENGTH('GIAI_THUONG', 'mo_ta') IS NULL
+    ALTER TABLE GIAI_THUONG ADD mo_ta NVARCHAR(MAX) NULL;
+
+IF COL_LENGTH('GIAI_THUONG', 'phan_thuong') IS NULL
+    ALTER TABLE GIAI_THUONG ADD phan_thuong NVARCHAR(MAX) NULL;
+GO
+

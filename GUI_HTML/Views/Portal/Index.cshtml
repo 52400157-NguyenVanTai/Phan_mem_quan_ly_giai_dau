@@ -280,12 +280,43 @@
                         <input class="form-control-dark" id="org-ten-giai" placeholder="Nhập tên giải đấu" />
                     </div>
                     <div class="form-group-dark">
-                        <label>Game</label>
-                        <select class="select-dark" id="org-game"></select>
+                        <label>Mô tả giải đấu</label>
+                        <textarea class="form-control-dark" id="org-mo-ta" placeholder="Nhập mô tả giải đấu" rows="3"></textarea>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="form-group-dark">
+                        <div>
+                            <label>Game</label>
+                            <select class="select-dark" id="org-game"></select>
+                        </div>
+                        <div>
+                            <label>Quy định số người/đội</label>
+                            <input class="form-control-dark" id="org-so-nguoi" type="number" min="1" placeholder="Ví dụ: 5" />
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="form-group-dark">
+                        <div>
+                            <label>Thể thức thi đấu</label>
+                            <select class="select-dark" id="org-the-thuc">
+                                <option value="loai_truc_tiep">Loại trực tiếp</option>
+                                <option value="nhanh_thang_nhanh_thua">Nhánh thắng / Nhánh thua</option>
+                                <option value="vong_tron">Đấu vòng tròn</option>
+                                <option value="thuy_si">Hệ Thụy Sĩ (Swiss)</option>
+                                <option value="champion_rush">Champion Rush</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Banner giải đấu (URL)</label>
+                            <input class="form-control-dark" id="org-banner" placeholder="Nhập link ảnh banner" />
+                        </div>
                     </div>
                     <div class="form-group-dark">
                         <label>Tổng giải thưởng (VNĐ)</label>
                         <input class="form-control-dark" id="org-giai-thuong" type="number" min="0" placeholder="0" />
+                    </div>
+                    <div class="form-group-dark">
+                        <label>Giải thưởng chi tiết (Tùy chọn)</label>
+                        <div id="org-prizes-list" style="margin-bottom: 10px;"></div>
+                        <button class="btn-outline-glow" onclick="addPrizeInput()">+ Thêm giải thưởng</button>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="form-group-dark">
                         <div>
