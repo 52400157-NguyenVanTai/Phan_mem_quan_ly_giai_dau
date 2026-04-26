@@ -215,6 +215,26 @@ namespace BUS
             return ok ? ServiceResultDTO.Ok("Xóa giai đoạn thành công.") : ServiceResultDTO.Fail("Không thể xóa giai đoạn.");
         }
 
+        public ServiceResultDTO LayDanhSachGiaiCuaToi(int maNguoiTao)
+        {
+            DataTable dt = _dal.LayDanhSachGiaiCuaToi(maNguoiTao);
+            List<object> list = new List<object>();
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new
+                {
+                    ma_giai_dau = Convert.ToInt32(row["ma_giai_dau"]),
+                    ten_giai_dau = row["ten_giai_dau"].ToString(),
+                    ma_tro_choi = row["ma_tro_choi"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_tro_choi"]),
+                    ten_game = row["ten_game"].ToString(),
+                    tong_giai_thuong = Convert.ToDecimal(row["tong_giai_thuong"]),
+                    trang_thai = row["trang_thai"].ToString(),
+                    ngay_bat_dau = row["ngay_bat_dau"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_bat_dau"])
+                });
+            }
+            return ServiceResultDTO.Ok("Thành công", list);
+        }
+
         public ServiceResultDTO LayDanhSachGiaiDoan(int maGiaiDau)
         {
             List<GiaiDoanDTO> data = _dal.LayDanhSachGiaiDoan(maGiaiDau);

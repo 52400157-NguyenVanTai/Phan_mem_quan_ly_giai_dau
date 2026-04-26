@@ -17,6 +17,14 @@ namespace GUI_HTML.Controllers
             return Json(_bus.TaoBanNhap(dto), JsonRequestBehavior.AllowGet);
         }
 
+        [HttpGet]
+        [RequireLogin]
+        public JsonResult DanhSachCuaToi()
+        {
+            int maNguoiTao = (int)Session["CurrentUserId"];
+            return Json(_bus.LayDanhSachGiaiCuaToi(maNguoiTao), JsonRequestBehavior.AllowGet);
+        }
+
         [HttpPost]
         [RequireLogin]
         public JsonResult GuiXetDuyet(int maGiaiDau)

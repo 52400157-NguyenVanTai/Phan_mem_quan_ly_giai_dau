@@ -221,6 +221,39 @@
                 </div>
             </div>
 
+            <!-- MANAGE TOURNAMENT -->
+            <div id="page-manage-tournament" class="page-section" style="display:none">
+                <button class="btn-outline-glow" style="margin-bottom:15px; padding: 4px 12px; font-size: 0.9rem" onclick="navigateTo('my-tournaments')">← Quay lại</button>
+                <div class="page-title" id="manage-tour-name">Quản lý Giải đấu</div>
+                <div class="mb-3" id="manage-tour-status"></div>
+                <p id="manage-tour-msg" style="margin-bottom: 10px"></p>
+                
+                <div class="profile-card" style="margin-bottom: 20px" id="manage-tour-actions">
+                    <!-- Buttons will be injected here -->
+                </div>
+
+                <h5>Các giai đoạn thi đấu</h5>
+                <div class="profile-card" style="margin-bottom: 20px">
+                    <div id="manage-stage-list" style="margin-bottom: 15px"></div>
+                    <div id="manage-add-stage-area" style="border-top: 1px solid var(--border); padding-top: 15px;">
+                        <h6>Thêm giai đoạn mới</h6>
+                        <div style="display:flex; gap:10px; margin-top: 10px; flex-wrap:wrap">
+                            <input type="text" id="manage-stage-name" class="form-control-dark" placeholder="Tên giai đoạn (Vòng bảng, Playoff...)" style="flex:2" />
+                            <select id="manage-stage-format" class="select-dark" style="flex:2">
+                                <option value="loai_truc_tiep">Loại trực tiếp (Single Elim)</option>
+                                <option value="nhanh_thang_nhanh_thua">Nhánh thắng / Nhánh thua</option>
+                                <option value="vong_tron">Đấu vòng tròn</option>
+                                <option value="thuy_si">Hệ Thụy Sĩ (Swiss)</option>
+                                <option value="champion_rush">Champion Rush</option>
+                            </select>
+                            <input type="number" id="manage-stage-teams" class="form-control-dark" placeholder="Số đội đi tiếp" min="1" value="2" style="flex:1"/>
+                        </div>
+                        <button class="btn-primary-glow" style="margin-top:10px" onclick="submitAddStage()">+ Thêm giai đoạn</button>
+                    </div>
+                </div>
+            </div>
+
+
             <!-- MY TEAMS -->
             <div id="page-my-teams" class="page-section" style="display:none">
                 <div class="page-title">👥 Đội của tôi</div>

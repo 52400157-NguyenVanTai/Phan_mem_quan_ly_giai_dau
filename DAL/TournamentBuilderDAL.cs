@@ -415,6 +415,21 @@ WHERE ma_giai_dau = @MaGiaiDau
             return affected > 0;
         }
 
+        public DataTable LayDanhSachGiaiCuaToi(int maNguoiTao)
+        {
+            const string query = @"
+SELECT g.*, t.ten_game 
+FROM GIAI_DAU g
+LEFT JOIN TRO_CHOI t ON g.ma_tro_choi = t.ma_tro_choi
+WHERE g.ma_nguoi_tao = @MaNguoiTao AND g.is_deleted = 0
+ORDER BY g.ma_giai_dau DESC;";
+
+            return DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiTao", SqlDbType.Int){ Value = maNguoiTao }
+            });
+        }
+
         public List<int> LayDanhSachNhomDaDuyet(int maGiaiDau)
         {
             const string query = @"

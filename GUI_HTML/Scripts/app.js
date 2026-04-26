@@ -235,6 +235,7 @@ window.navigateTo = function(page) {
     'create-team': 'page-create-team',
     'profile': 'page-profile',
     'player-profile': 'page-player-profile',
+    'manage-tournament': 'page-manage-tournament'
   };
   const target = pageMap[page];
   if (target) {
@@ -243,6 +244,8 @@ window.navigateTo = function(page) {
     if (page === 'home') loadHomePage();
     if (page === 'notifications') loadNotifications();
     if (page === 'player-profile') loadPlayerProfileTabs();
+    if (page === 'my-tournaments') loadMyTournaments();
+    if (page === 'manage-tournament') loadManageTournament();
   }
 };
 
@@ -578,8 +581,173 @@ window.submitOrganize = async function() {
   if (result.Success) {
     msg.textContent = '✅ Đã tạo! Mã giải: #' + (result.Data && result.Data.MaGiaiDau ? result.Data.MaGiaiDau : '');
     showSidebarItem('side-my-tournaments');
+    setTimeout(() => navigateTo('my-tournaments'), 1000);
   } else {
     msg.textContent = result.Message || 'Tạo giải thất bại.';
+  }
+};
+
+let myTournamentsData = [];
+
+async function loadMyTournaments() {
+  const grid = document.getElementById('my-tournaments-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
+
+  const result = await api('/TournamentBuilderApi/DanhSachCuaToi');
+  if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><h4>Chưa có giải đấu nào</h4><p>Bạn chưa tổ chức giải đấu nào.</p></div>';
+    return;
+  }
+
+  myTournamentsData = result.Data;
+
+  grid.innerHTML = result.Data.map(t => {
+    const gameInfo = GAMES.find(g => g.maGame == t.ma_tro_choi) || { emoji: '🎮', color: '#6c63ff', name: '' };
+    const status = t.trang_thai || '';
+    let statusHtml = '';
+    if (status === 'ban_nhap') statusHtml = "<span class='tc-status' style='color:#a4b0be'>📝 Bản nháp</span>";
+    else if (status === 'cho_phe_duyet') statusHtml = "<span class='tc-status' style='color:#eccc68'>⏳ Chờ duyệt</span>";
+    else if (status === 'dang_dien_ra') statusHtml = "<span class='tc-status live'>🔴 Live</span>";
+    else statusHtml = "<span class='tc-status upcoming'>🔵 Đã duyệt (" + status + ")</span>";
+
+    const prize = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + '₫' : 'N/A';
+    
+    return '<div class="tournament-card">' +
+      '<div class="tc-banner" style="background:linear-gradient(135deg,#1a1f36,' + gameInfo.color + '33); cursor:default">' +
+      '<span style="font-size:2.5rem">' + gameInfo.emoji + '</span></div>' +
+      '<div class="tc-body">' +
+      '<div class="tc-game-badge">' + (t.ten_game || gameInfo.name) + '</div>' +
+      '<div class="tc-name">' + (t.ten_giai_dau || 'Giải đấu') + '</div>' +
+      '<div class="tc-meta">' + statusHtml + '<span>💰 ' + prize + '</span></div>' +
+      '<div style="margin-top:12px; display:flex; gap:8px;">' +
+        '<button class="btn-primary-glow" style="padding:4px 8px; font-size:0.8rem; flex:1" onclick="manageTournament(' + t.ma_giai_dau + ')">Quản lý</button>' +
+        '<button class="btn-outline-glow" style="padding:4px 8px; font-size:0.8rem; flex:1" onclick="openTournament(' + t.ma_giai_dau + ')">Xem public</button>' +
+      '</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+let currentManageId = 0;
+let currentManageStatus = '';
+
+window.manageTournament = function(maGiaiDau) {
+  currentManageId = maGiaiDau;
+  navigateTo('manage-tournament');
+};
+
+async function loadManageTournament() {
+  if (!currentManageId) return;
+  document.getElementById('manage-tour-name').textContent = 'Quản lý Giải đấu #' + currentManageId;
+  document.getElementById('manage-tour-msg').textContent = 'Đang tải dữ liệu...';
+  
+  // 1. Fetch stage list
+  const stagesRes = await api('/TournamentBuilderApi/DanhSachGiaiDoan?maGiaiDau=' + currentManageId);
+  
+  // To get status, we look up myTournamentsData
+  const t = myTournamentsData.find(x => x.ma_giai_dau === currentManageId);
+  document.getElementById('manage-tour-msg').textContent = '';
+  
+  const actionsEl = document.getElementById('manage-tour-actions');
+  actionsEl.innerHTML = '';
+  
+  if (t) {
+    const status = t.trang_thai || '';
+    currentManageStatus = status;
+    
+    let statusText = status;
+    if (status === 'ban_nhap') statusText = 'Bản nháp';
+    if (status === 'cho_phe_duyet') statusText = 'Đang chờ Admin duyệt';
+    if (status === 'sap_dien_ra' || status === 'mo_dang_ky') statusText = 'Sắp diễn ra';
+    
+    document.getElementById('manage-tour-status').innerHTML = 'Trạng thái hiện tại: <strong style="color:var(--primary)">' + statusText + '</strong>';
+    
+    // Action buttons based on status
+    if (status === 'ban_nhap') {
+      actionsEl.innerHTML = '<button class="btn-primary-glow" onclick="submitGuiDuyet()">Gửi yêu cầu xét duyệt</button>' +
+                            '<p style="margin-top:10px; font-size: 0.9em; color:var(--text-muted)">Sau khi thêm xong các giai đoạn, hãy bấm Gửi yêu cầu để admin duyệt giải.</p>';
+    } else if (status === 'mo_dang_ky' || status === 'sap_dien_ra') {
+      actionsEl.innerHTML = '<button class="btn-primary-glow" onclick="submitBatDauGiai()">Bắt đầu giải ngay</button>' +
+                            '<p style="margin-top:10px; font-size: 0.9em; color:var(--text-muted)">Khóa danh sách đăng ký và bắt đầu thi đấu.</p>';
+    } else if (status === 'dang_dien_ra') {
+      actionsEl.innerHTML = '<span style="color:#2ed573">Giải đang diễn ra live!</span>';
+    }
+  }
+  
+  // 2. Render stages
+  const listEl = document.getElementById('manage-stage-list');
+  if (stagesRes.Success && stagesRes.Data && stagesRes.Data.length > 0) {
+    listEl.innerHTML = stagesRes.Data.map(s => {
+      return '<div style="border:1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 5px; display:flex; justify-content:space-between">' +
+        '<div><strong>' + s.TenGiaiDoan + '</strong> <span style="color:var(--text-muted);font-size:0.9em">(' + s.TheThuc + ')</span></div>' +
+        '<button class="btn-outline-glow" style="padding: 2px 8px; border-color: #ff4757; color:#ff4757" onclick="submitXoaGiaiDoan(' + s.MaGiaiDoan + ')">Xóa</button>' +
+        '</div>';
+    }).join('');
+  } else {
+    listEl.innerHTML = '<div class="text-muted">Chưa có giai đoạn thi đấu nào.</div>';
+  }
+}
+
+window.submitAddStage = async function() {
+  const name = document.getElementById('manage-stage-name').value.trim();
+  const format = document.getElementById('manage-stage-format').value;
+  const teams = Number(document.getElementById('manage-stage-teams').value) || 2;
+  const msg = document.getElementById('manage-tour-msg');
+  
+  if (!name) { msg.textContent = 'Vui lòng nhập tên giai đoạn.'; msg.style.color='#ff4757'; return; }
+  
+  const payload = {
+    MaGiaiDau: currentManageId,
+    TenGiaiDoan: name,
+    TheThuc: format,
+    SoDoiDiTiep: teams,
+    DiemNguongMatchPoint: 50 // default if champion_rush
+  };
+  
+  const res = await api('/TournamentBuilderApi/ThemGiaiDoan', 'POST', payload);
+  if (res.Success) {
+    document.getElementById('manage-stage-name').value = '';
+    loadManageTournament();
+  } else {
+    msg.textContent = res.Message;
+    msg.style.color='#ff4757';
+  }
+};
+
+window.submitXoaGiaiDoan = async function(maGiaiDoan) {
+  if (!confirm('Bạn có chắc muốn xóa giai đoạn này?')) return;
+  const res = await api('/TournamentBuilderApi/XoaGiaiDoan', 'POST', { maGiaiDau: currentManageId, maGiaiDoan: maGiaiDoan });
+  if (res.Success) loadManageTournament();
+  else alert(res.Message);
+};
+
+window.submitGuiDuyet = async function() {
+  const msg = document.getElementById('manage-tour-msg');
+  msg.textContent = 'Đang gửi...';
+  msg.style.color = 'var(--text-muted)';
+  
+  const res = await api('/TournamentBuilderApi/GuiXetDuyet', 'POST', { maGiaiDau: currentManageId });
+  if (res.Success) {
+    // Reload my tournaments so the status updates in the array
+    await loadMyTournaments();
+    loadManageTournament();
+  } else {
+    msg.textContent = res.Message;
+    msg.style.color = '#ff4757';
+  }
+};
+
+window.submitBatDauGiai = async function() {
+  const msg = document.getElementById('manage-tour-msg');
+  if (!confirm('Sau khi bắt đầu, bạn không thể thay đổi danh sách đội tham gia. Xác nhận bắt đầu giải?')) return;
+  
+  const res = await api('/TournamentBuilderApi/BatDauGiai', 'POST', { maGiaiDau: currentManageId });
+  if (res.Success) {
+    await loadMyTournaments();
+    loadManageTournament();
+  } else {
+    msg.textContent = res.Message;
+    msg.style.color = '#ff4757';
   }
 };
 

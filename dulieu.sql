@@ -4,11 +4,12 @@ GO
 /*
   Seed data tương thích schema mới.
   Tài khoản mẫu dùng cùng mật khẩu: password
-  BCrypt hash của "password":
-  $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+  BCrypt hash của "123456789":
+  '$2a$12$HYM5ai8pKv9FQEXvZmact.udJI.eSup7L7O9Vez7DW/KlT6ULTbPi'
 */
 
-DECLARE @PwdHash NVARCHAR(255) = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+DECLARE @PwdHash NVARCHAR(255) = '$2a$12$HYM5ai8pKv9FQEXvZmact.udJI.eSup7L7O9Vez7DW/KlT6ULTbPi';
+
 
 -- ========================================
 -- 1) USERS (admin + users)
