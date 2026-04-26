@@ -88,7 +88,8 @@ namespace DTO
     {
         public int MaDoi { get; set; }
         public string TenDoi { get; set; }
-        public int MaManager { get; set; }
+        public int MaDoiTruong { get; set; }
+        public int? MaManager { get; set; }
         public string LogoUrl { get; set; }
         public string Slogan { get; set; }
         public string TrangThai { get; set; }
@@ -196,6 +197,7 @@ namespace DTO
         public int? MaNguoiTao { get; set; }
         public string TenGiaiDau { get; set; }
         public int? MaTroChoi { get; set; }
+        public string TheThuc { get; set; }
         public string BannerUrl { get; set; }
         public decimal TongGiaiThuong { get; set; }
         public DateTime? ThoiGianMoDangKy { get; set; }

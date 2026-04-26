@@ -10,7 +10,7 @@ namespace GUI_HTML.Controllers
     {
         public ActionResult Index()
         {
-            return RedirectToAction("Index", "Portal");
+            return View();
         }
 
         public ActionResult About()

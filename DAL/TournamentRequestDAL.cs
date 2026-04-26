@@ -62,13 +62,14 @@ WHERE ma_yeu_cau = @MaYeuCau";
         public int TaoGiaiDauTuYeuCau(DataRow row)
         {
             const string query = @"
-INSERT INTO GIAI_DAU(ten_giai_dau, ma_tro_choi, the_thuc, ngay_bat_dau, ngay_ket_thuc, tong_giai_thuong, trang_thai, hien_thi_public, is_deleted)
+INSERT INTO GIAI_DAU(ten_giai_dau, ma_nguoi_tao, ma_tro_choi, the_thuc, ngay_bat_dau, ngay_ket_thuc, tong_giai_thuong, trang_thai, hien_thi_public, is_deleted)
 OUTPUT INSERTED.ma_giai_dau
-VALUES(@TenGiaiDau, @MaTroChoi, @TheThuc, @NgayBatDau, @NgayKetThuc, @TongGiaiThuong, 'sap_dien_ra', 1, 0);";
+VALUES(@TenGiaiDau, @MaNguoiTao, @MaTroChoi, @TheThuc, @NgayBatDau, @NgayKetThuc, @TongGiaiThuong, 'sap_dien_ra', 1, 0);";
 
             object result = DataProvider.ExecuteScalar(query, new[]
             {
                 new SqlParameter("@TenGiaiDau", SqlDbType.NVarChar){ Value = row["ten_giai_dau"].ToString() },
+                new SqlParameter("@MaNguoiTao", SqlDbType.Int){ Value = Convert.ToInt32(row["ma_nguoi_gui"]) },
                 new SqlParameter("@MaTroChoi", SqlDbType.Int){ Value = row["ma_tro_choi"] == DBNull.Value ? (object)DBNull.Value : Convert.ToInt32(row["ma_tro_choi"]) },
                 new SqlParameter("@TheThuc", SqlDbType.NVarChar){ Value = row["the_thuc"].ToString() },
                 new SqlParameter("@NgayBatDau", SqlDbType.DateTime){ Value = Convert.ToDateTime(row["ngay_bat_dau"]) },

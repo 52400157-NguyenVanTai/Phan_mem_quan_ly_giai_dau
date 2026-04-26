@@ -29,7 +29,7 @@ namespace DAL
         {
             const string query = @"SELECT ma_vi_tri, ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri
 FROM DANH_MUC_VI_TRI
-WHERE ma_tro_choi = @MaTroChoi
+WHERE ma_tro_choi = @MaTroChoi OR (ma_tro_choi IS NULL AND loai_vi_tri = 'HuanLuyen')
 ORDER BY loai_vi_tri, ten_vi_tri";
             DataTable dt = DataProvider.ExecuteQuery(query, new[]
             {

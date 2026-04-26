@@ -13,14 +13,22 @@ namespace DAL
             const string query = @"
 INSERT INTO GIAI_DAU
 (
+<<<<<<< HEAD
     ten_giai_dau, ma_nguoi_tao, ma_tro_choi, the_thuc, banner_url, tong_giai_thuong, mo_ta, so_nguoi_moi_doi,
+=======
+    ten_giai_dau, ma_nguoi_tao, ma_tro_choi, the_thuc, banner_url, tong_giai_thuong,
+>>>>>>> b055aa5 (new)
     thoi_gian_mo_dang_ky, thoi_gian_dong_dang_ky, ngay_bat_dau, ngay_ket_thuc,
     trang_thai, hien_thi_public, is_deleted
 )
 OUTPUT INSERTED.ma_giai_dau
 VALUES
 (
+<<<<<<< HEAD
     @TenGiaiDau, @MaNguoiTao, @MaTroChoi, @TheThuc, @BannerUrl, @TongGiaiThuong, @MoTa, @SoNguoiMoiDoi,
+=======
+    @TenGiaiDau, @MaNguoiTao, @MaTroChoi, @TheThuc, @BannerUrl, @TongGiaiThuong,
+>>>>>>> b055aa5 (new)
     @ThoiGianMoDangKy, @ThoiGianDongDangKy, @NgayBatDau, @NgayKetThuc,
     @TrangThai, 0, 0
 );";
@@ -30,7 +38,11 @@ VALUES
                 new SqlParameter("@TenGiaiDau", SqlDbType.NVarChar){ Value = dto.TenGiaiDau.Trim() },
                 new SqlParameter("@MaNguoiTao", SqlDbType.Int){ Value = dto.MaNguoiTao },
                 new SqlParameter("@MaTroChoi", SqlDbType.Int){ Value = (object)dto.MaTroChoi ?? DBNull.Value },
+<<<<<<< HEAD
                 new SqlParameter("@TheThuc", SqlDbType.NVarChar){ Value = (object)dto.TheThuc ?? DBNull.Value },
+=======
+                new SqlParameter("@TheThuc", SqlDbType.NVarChar){ Value = (object)dto.TheThuc ?? "hon_hop" },
+>>>>>>> b055aa5 (new)
                 new SqlParameter("@BannerUrl", SqlDbType.NVarChar){ Value = (object)dto.BannerUrl ?? DBNull.Value },
                 new SqlParameter("@TongGiaiThuong", SqlDbType.Decimal){ Value = dto.TongGiaiThuong },
                 new SqlParameter("@MoTa", SqlDbType.NVarChar){ Value = (object)dto.MoTa ?? DBNull.Value },

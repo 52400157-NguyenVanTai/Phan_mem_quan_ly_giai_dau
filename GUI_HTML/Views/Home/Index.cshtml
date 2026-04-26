@@ -1,196 +1,30 @@
 ﻿@{
-    ViewBag.Title = "Trang Chủ — Esport VN";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = null;
 }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EsportHub — Nền tảng Quản lý Giải đấu</title>
+    <link rel="stylesheet" href="~/Content/esport.css" />
+</head>
+<body class="public-page">
 
-@section styles {
-    <link rel="stylesheet" href="Content/esport.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />  
-}
-
-<!-- ====== NAVBAR ====== -->
-<nav class="home-navbar">
-    <a href="@Url.Action("Index", "Home")" class="navbar-brand">
-        ESPORT<span style="color:var(--text-muted);">VN</span>
-    </a>
-
-    <div style="flex: 1;"></div>
-
-    <div class="navbar-right">
-        <a href="/Account/Login" class="btn-nav-login">Đăng nhập</a>
-        <a href="/Account/Register" class="btn-nav-register">Đăng ký</a>
+<!-- ====== TOP TASKBAR (Public) ====== -->
+<nav class="public-topbar">
+    <a href="/" class="public-logo">⚡ ESPORT HUB</a>
+    <div style="flex:1"></div>
+    <div class="public-topbar-actions">
+        <a href="/login" class="btn-nav-login">Đăng nhập</a>
+        <a href="/login?tab=register" class="btn-nav-register">Đăng ký</a>
     </div>
 </nav>
 
-<!-- ====== HERO SECTION ====== -->
-<section class="home-hero">
-    <div class="hero-grid-bg"></div>
-    <div class="hero-scan-line"></div>
-    <div class="hero-inner">
-        <div class="hero-eyebrow">
-            <div class="hero-dot"></div>
-            SEASON 2026 — ĐANG MỞ ĐĂNG KÝ
-        </div>
-        <h1 class="hero-h1">
-            Chào mừng đến với <span class="txt-accent">QUẢN LÝ</span><br>
-            <span class="txt-cyan">GIẢI ĐẤU</span><br>
-            <span class="txt-gold">ESPORT</span> VN
-        </h1>
-        <p class="hero-desc">
-            Nền tảng tổ chức giải đấu chuyên nghiệp cho 6 tựa game lớn. Bracket tự động, thống kê thời gian thực.
-        </p>
-        <div class="hero-actions">
-            <a href="@Url.Action("Index","TournamentPublic")" class="btn-hero-primary">
-                <i class="fas fa-trophy"></i> Xem Giải Đấu
-            </a>
-            <a href="#" class="btn-hero-secondary">
-                <i class="fas fa-plus"></i> Tổ Chức Giải
-            </a>
-            <a href="#" class="btn-hero-secondary">
-                <i class="fas fa-users"></i> Lập Đội
-            </a>
-        </div>
-        <div class="hero-stats">
-            <div class="hero-stat-item">
-                <div class="hero-stat-val" id="stat-tournaments">—</div>
-                <div class="hero-stat-lbl">Giải Đấu</div>
-            </div>
-            <div class="hero-stat-item">
-                <div class="hero-stat-val" id="stat-teams">—</div>
-                <div class="hero-stat-lbl">Đội Thi Đấu</div>
-            </div>
-            <div class="hero-stat-item">
-                <div class="hero-stat-val" id="stat-players">—</div>
-                <div class="hero-stat-lbl">Người Chơi</div>
-            </div>
-            <div class="hero-stat-item">
-                <div class="hero-stat-val">6</div>
-                <div class="hero-stat-lbl">Tựa Game</div>
-            </div>
-        </div>
-    </div>
-</section>
+<!-- ====== BODY PLACEHOLDER ====== -->
+<main class="public-body">
+    <!-- TODO: Nội dung trang chủ công khai sẽ được phát triển sau -->
+</main>
 
-<!-- ====== SEARCH SECTION ====== -->
-<div class="search-section">
-    <p class="search-section-title"><i class="fas fa-search"></i>&nbsp; Tìm kiếm giải đấu</p>
-    <div class="big-search-wrap">
-        <i class="fas fa-search big-search-icon"></i>
-        <input type="text" class="big-search-input" id="searchInput"
-               placeholder="Nhập tên giải đấu, game, hoặc từ khoá..."
-               oninput="handleSearch(this.value)" />
-        <button class="big-search-btn" onclick="doSearch()">Tìm</button>
-    </div>
-</div>
-
-<!-- ====== GIẢI ĐẤU NỔI BẬT ====== -->
-<div class="tournaments-section">
-    <!-- Filter bar -->
-    <div class="filter-game-bar">
-        <button class="filter-game-btn filter-all active" onclick="filterGame('all', this)" id="filter-all">⭐ Tất cả giải đấu nổi bật</button>
-        <button class="filter-game-btn" onclick="filterGame('lq', this)">⚔️ Liên Quân</button>
-        <button class="filter-game-btn" onclick="filterGame('ff', this)">🔥 Free Fire</button>
-        <button class="filter-game-btn" onclick="filterGame('lol', this)">🧙 LoL</button>
-        <button class="filter-game-btn" onclick="filterGame('val', this)">🎯 Valorant</button>
-        <button class="filter-game-btn" onclick="filterGame('pubg', this)">🪖 PUBG</button>
-        <button class="filter-game-btn" onclick="filterGame('csgo', this)">💣 CS:GO</button>
-        <span class="filter-sep"></span>
-        <a href="@Url.Action("Index","TournamentPublic")" class="view-all-link">
-            Xem tất cả <i class="fas fa-arrow-right"></i>
-        </a>
-    </div>
-
-    <!-- Grid giải đấu — được render từ ViewBag hoặc placeholder -->
-    <div class="tournament-grid-home" id="tournamentGrid">
-        @if (ViewBag.Tournaments != null && ((IEnumerable<dynamic>)ViewBag.Tournaments).Any())
-        {
-            foreach (var t in (IEnumerable<dynamic>)ViewBag.Tournaments)
-            {
-                string gameKey = (t.GameKey ?? "").ToString().ToLower();
-                string emoji = gameKey == "lq" ? "⚔️" : gameKey == "ff" ? "🔥" : gameKey == "lol" ? "🧙" : gameKey == "val" ? "🎯" : gameKey == "pubg" ? "🪖" : "💣";
-                string bannerBg = gameKey == "lq" ? "linear-gradient(135deg,#1a1000,#2d1f00)" :
-                                  gameKey == "ff" ? "linear-gradient(135deg,#1a0500,#2d0800)" :
-                                  gameKey == "lol" ? "linear-gradient(135deg,#0d1a00,#1a2e00)" :
-                                  gameKey == "val" ? "linear-gradient(135deg,#1a0005,#2d000a)" :
-                                  gameKey == "pubg" ? "linear-gradient(135deg,#1a1400,#2d2500)" :
-                                                     "linear-gradient(135deg,#001a0d,#002d1a)";
-                string statusClass = (t.TrangThai ?? "").ToString() == "DangDienRa" ? "status-live" :
-                                     (t.TrangThai ?? "").ToString() == "DangKyMo" ? "status-open" : "status-done";
-                string statusText = (t.TrangThai ?? "").ToString() == "DangDienRa" ? "🔴 Đang Diễn Ra" :
-                                     (t.TrangThai ?? "").ToString() == "DangKyMo" ? "🔵 Đăng Ký" : "✓ Kết Thúc";
-                <a href="#" class="t-card-home" data-game="@gameKey">
-                    <div class="t-banner-home" style="background:@bannerBg">
-                        <div class="t-banner-glow" style="background:var(--accent)"></div>
-                        <span style="position:relative;z-index:1">@emoji</span>
-                        <span class="t-status-badge @statusClass">@statusText</span>
-                    </div>
-                    <div class="t-body-home">
-                        <div class="t-game-tag">@(t.TenGame ?? gameKey.ToUpper())</div>
-                        <div class="t-name-home">@(t.TenGiai ?? "Chưa có tên")</div>
-                        <div class="t-meta-row">
-                            <span><i class="fas fa-sitemap"></i> @(t.LoaiGiai ?? "—")</span>
-                            <span><i class="fas fa-users"></i> @(t.SoDoi ?? "—") đội</span>
-                            <span><i class="far fa-calendar"></i> @(t.NgayBatDau ?? "—")</span>
-                        </div>
-                        <div class="t-footer-home">
-                            <div class="t-prize-text">🏆 @(t.GiaiThuong ?? "TBD")</div>
-                            <span class="btn-detail">Chi Tiết</span>
-                        </div>
-                    </div>
-                </a>
-            }
-        }
-        else
-        {
-            <!-- Placeholder cards khi chưa có data -->
-            string[] games = { "lq", "ff", "lol", "val", "pubg", "csgo" };
-            string[] emojis = { "⚔️", "🔥", "🧙", "🎯", "🪖", "💣" };
-            string[] gameTags = { "Liên Quân Mobile", "Free Fire", "League of Legends", "Valorant", "PUBG", "CS:GO" };
-            string[] names = {
-                "FAG Liên Quân Open Cup 2026",
-                "Free Fire Squad Championship",
-                "VCS Mùa Hè 2026",
-                "VCT Vietnam 2026",
-                "PUBG Nations Cup VN",
-                "ESL Vietnam CS:GO Open"
-            };
-            string[] bgs = {
-                "linear-gradient(135deg,#1a1000,#2d1f00)",
-                "linear-gradient(135deg,#1a0500,#2d0800)",
-                "linear-gradient(135deg,#0d1a00,#1a2e00)",
-                "linear-gradient(135deg,#1a0005,#2d000a)",
-                "linear-gradient(135deg,#1a1400,#2d2500)",
-                "linear-gradient(135deg,#001a0d,#002d1a)"
-            };
-            string[] statuses = { "status-live", "status-live", "status-open", "status-open", "status-done", "status-open" };
-            string[] statusTx = { "🔴 Đang Diễn Ra", "🔴 Đang Diễn Ra", "🔵 Đăng Ký", "🔵 Đăng Ký", "✓ Kết Thúc", "🔵 Đăng Ký" };
-            string[] teams = { "16", "12", "8", "10", "20", "16" };
-            string[] prizes = { "30,000,000 VNĐ", "20,000,000 VNĐ", "50,000,000 VNĐ", "40,000,000 VNĐ", "25,000,000 VNĐ", "15,000,000 VNĐ" };
-
-            for (int i = 0; i < 6; i++)
-            {
-                <a href="#" class="t-card-home" data-game="@games[i]">
-                    <div class="t-banner-home" style="background:@bgs[i]">
-                        <div class="t-banner-glow" style="background:var(--accent)"></div>
-                        <span style="position:relative;z-index:1">@emojis[i]</span>
-                        <span class="t-status-badge @statuses[i]">@statusTx[i]</span>
-                    </div>
-                    <div class="t-body-home">
-                        <div class="t-game-tag">@gameTags[i]</div>
-                        <div class="t-name-home">@names[i]</div>
-                        <div class="t-meta-row">
-                            <span><i class="fas fa-sitemap"></i> Loại Trực Tiếp</span>
-                            <span><i class="fas fa-users"></i> @teams[i] đội</span>
-                            <span><i class="far fa-calendar"></i> 2026</span>
-                        </div>
-                        <div class="t-footer-home">
-                            <div class="t-prize-text">🏆 @prizes[i]</div>
-                            <span class="btn-detail">Chi Tiết</span>
-                        </div>
-                    </div>
-                </a>
-            }
-        }
-    </div>
-</div>
-}
+</body>
+</html>

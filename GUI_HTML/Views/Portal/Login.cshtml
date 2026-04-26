@@ -1,0 +1,73 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập — EsportHub</title>
+    <link rel="stylesheet" href="~/Content/esport.css" />
+</head>
+<body>
+
+<div id="landing-page">
+    <div style="width:100%;max-width:440px">
+        <div class="landing-brand">⚡ ESPORT HUB</div>
+        <p class="landing-sub">Nền tảng quản lý giải đấu Esport chuyên nghiệp</p>
+
+        <div class="auth-card">
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Đăng nhập</button>
+                <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Đăng ký</button>
+            </div>
+
+            <!-- Alert zones -->
+            <div id="auth-error" class="auth-error"></div>
+            <div id="auth-success" class="auth-success"></div>
+
+            <!-- LOGIN FORM -->
+            <form id="form-login" autocomplete="off">
+                <div class="auth-form-group">
+                    <label>Tên đăng nhập hoặc Email</label>
+                    <input id="login-dinh-danh" class="auth-input" type="text" placeholder="Nhập tên đăng nhập hoặc email" required autocomplete="username" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Mật khẩu</label>
+                    <input id="login-mat-khau" class="auth-input" type="password" placeholder="Nhập mật khẩu" required autocomplete="current-password" />
+                </div>
+                <button type="submit" class="btn-auth">Đăng nhập</button>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form id="form-register" autocomplete="off" style="display:none">
+                <div class="auth-form-group">
+                    <label>Tên đăng nhập</label>
+                    <input id="reg-ten" class="auth-input" type="text" placeholder="Tối thiểu 3 ký tự" required autocomplete="username" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Email</label>
+                    <input id="reg-email" class="auth-input" type="email" placeholder="example@email.com" required autocomplete="email" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Mật khẩu</label>
+                    <input id="reg-mk" class="auth-input" type="password" placeholder="Tối thiểu 8 ký tự" required autocomplete="new-password" />
+                </div>
+                <div class="auth-form-group">
+                    <label>Xác nhận mật khẩu</label>
+                    <input id="reg-confirm" class="auth-input" type="password" placeholder="Nhập lại mật khẩu" required autocomplete="new-password" />
+                </div>
+                <button type="submit" class="btn-auth">Tạo tài khoản</button>
+            </form>
+        </div>
+
+        <div style="text-align:center;margin-top:16px">
+            <a href="/" style="color:var(--text-muted);font-size:.85rem;text-decoration:none">← Quay lại trang chủ</a>
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/auth.js"></script>
+</body>
+</html>

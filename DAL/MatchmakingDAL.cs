@@ -250,10 +250,10 @@ SELECT nd.ma_nguoi_dung,
 FROM Champion c
 JOIN NHOM_DOI n ON n.ma_nhom = c.ma_nhom
 JOIN DOI d ON d.ma_doi = n.ma_doi
-JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = d.ma_manager
+JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = d.ma_doi_truong
 LEFT JOIN GIAI_DAU g ON g.ma_giai_dau = @MaGiaiDau
 LEFT JOIN HO_SO_IN_GAME hsg ON hsg.ma_nguoi_dung = nd.ma_nguoi_dung AND hsg.ma_tro_choi = g.ma_tro_choi
-WHERE d.ma_manager IS NOT NULL;";
+WHERE d.ma_doi_truong IS NOT NULL;";
 
             DataTable dt = DataProvider.ExecuteQuery(query, new[]
             {
