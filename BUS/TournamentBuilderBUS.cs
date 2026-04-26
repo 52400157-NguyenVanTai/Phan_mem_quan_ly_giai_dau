@@ -24,7 +24,6 @@ namespace BUS
                 return ServiceResultDTO.Fail("Dữ liệu khởi tạo giải đấu không hợp lệ.");
             }
 
-<<<<<<< HEAD
             dto.TenGiaiDau = dto.TenGiaiDau.Trim();
             if (System.Text.RegularExpressions.Regex.IsMatch(dto.TenGiaiDau, @"^[\d\W_]"))
             {
@@ -34,12 +33,6 @@ namespace BUS
             if (dto.NgayBatDau <= DateTime.Now)
             {
                 return ServiceResultDTO.Fail("Ngày bắt đầu phải là ngày trong tương lai.");
-=======
-            var theThucHopLe = new[] { "loai_truc_tiep", "nhanh_thang_nhanh_thua", "dau_theo_bang", "vong_tron_tinh_diem", "hon_hop" };
-            if (string.IsNullOrWhiteSpace(dto.TheThuc) || System.Array.IndexOf(theThucHopLe, dto.TheThuc.Trim()) < 0)
-            {
-                return ServiceResultDTO.Fail("Thể thức giải đấu không hợp lệ.");
->>>>>>> b055aa5 (new)
             }
 
             if (dto.NgayBatDau >= dto.NgayKetThuc)

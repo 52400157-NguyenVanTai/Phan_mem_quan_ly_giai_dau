@@ -218,15 +218,98 @@
             </div>
 
 
-            <!-- MY TEAMS -->
+            <!-- MY TEAMS (Workspace) -->
             <div id="page-my-teams" class="page-section" style="display:none">
-                <div class="page-title">👥 Đội của tôi</div>
-                <p class="page-sub">Đội bạn đã tạo hoặc đang tham gia</p>
-                <div class="action-btns">
-                    <button class="btn-outline-glow" onclick="navigateTo('create-team')">+ Tạo đội mới</button>
-                    <button class="btn-outline-glow" onclick="navigateTo('team-explorer')">🔍 Tìm đội</button>
+                <!-- Breadcrumb -->
+                <div class="mt-breadcrumb" id="mt-breadcrumb">Trang chủ / Đội / <span id="mt-team-name-bc">...</span></div>
+
+                <!-- Team Header -->
+                <div class="mt-header" id="mt-header">
+                    <div class="mt-header-left">
+                        <div class="mt-logo" id="mt-logo">⚔</div>
+                        <div class="mt-info">
+                            <div class="mt-title-row">
+                                <h2 id="mt-team-name">Đang tải...</h2>
+                                <span class="mt-game-badge" id="mt-game-badge"></span>
+                                <span class="mt-tag" id="mt-tag"></span>
+                            </div>
+                            <p class="mt-slogan" id="mt-slogan"></p>
+                            <div class="mt-meta-badges" id="mt-meta-badges"></div>
+                        </div>
+                    </div>
+                    <div class="mt-stats-row" id="mt-stats-row">
+                        <div class="mt-stat"><span class="mt-stat-val" id="mt-elo">-</span><span class="mt-stat-label">ELO RATING</span></div>
+                        <div class="mt-stat"><span class="mt-stat-val stat-green" id="mt-wins">0</span><span class="mt-stat-label">THẮNG</span></div>
+                        <div class="mt-stat"><span class="mt-stat-val stat-red" id="mt-losses">0</span><span class="mt-stat-label">THUA</span></div>
+                        <div class="mt-stat"><span class="mt-stat-val stat-cyan" id="mt-winrate">-</span><span class="mt-stat-label">WIN RATE</span></div>
+                    </div>
                 </div>
-                <div id="my-teams-list"></div>
+
+                <!-- Squad Filter (game tabs) -->
+                <div class="mt-squad-filter" id="mt-squad-filter"></div>
+
+                <!-- Main Layout: Content + Sidebar -->
+                <div class="mt-layout">
+                    <div class="mt-main">
+                        <!-- 4 Tabs -->
+                        <div class="mt-tabs" id="mt-tabs">
+                            <button class="mt-tab active" data-tab="roster" onclick="switchMyTeamTab('roster', this)">🎖 ROSTER</button>
+                            <button class="mt-tab" data-tab="history" onclick="switchMyTeamTab('history', this)">⚡ LỊCH SỬ THI ĐẤU</button>
+                            <button class="mt-tab" data-tab="tournaments" onclick="switchMyTeamTab('tournaments', this)">🏆 GIẢI ĐẤU</button>
+                            <button class="mt-tab" data-tab="stats" onclick="switchMyTeamTab('stats', this)">📊 THỐNG KÊ</button>
+                        </div>
+                        <!-- Tab Content -->
+                        <div id="mt-tab-content"></div>
+                        <!-- Invite Member (visible for leader/captain on roster tab) -->
+                        <div id="mt-invite-section" style="display:none">
+                            <div class="mt-invite-box">
+                                <div class="mt-invite-title">📨 Mời thành viên mới</div>
+                                <div class="mt-invite-row">
+                                    <input class="form-control-dark" id="mt-invite-input" placeholder="Biệt danh / ID người chơi..." />
+                                    <button class="btn-primary-glow" onclick="submitInviteMember()">MỜI</button>
+                                </div>
+                                <span id="mt-invite-msg" style="font-size:.82rem;margin-top:6px;display:block"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right Sidebar -->
+                    <div class="mt-sidebar" id="mt-sidebar">
+                        <div class="mt-sidebar-card" id="mt-sidebar-info"></div>
+                        <div class="mt-sidebar-actions">
+                            <button class="btn-primary-glow" style="width:100%" onclick="navigateTo('team-explorer')">🏆 Đăng ký giải đấu</button>
+                            <button class="btn-outline-glow" style="width:100%;margin-top:8px" id="mt-btn-add-squad" onclick="toggleMyTeamAddSquad()">➕ Thêm nhóm thi đấu</button>
+                            <button class="btn-outline-glow" style="width:100%;margin-top:8px" id="mt-btn-delete-squad" onclick="deleteSelectedMyTeamSquad()">🗑️ Xóa nhóm đang chọn</button>
+                            <button class="btn-outline-glow" style="width:100%;margin-top:8px;border-color:#ff4757;color:#ff6b81" id="mt-btn-delete-team" onclick="deleteMyTeam()">❌ Xóa đội</button>
+                        </div>
+                        <!-- Add Squad Form (hidden) -->
+                        <div id="mt-add-squad-form" style="display:none" class="mt-sidebar-card">
+                            <h6>Thêm nhóm mới</h6>
+                            <div class="form-group-dark" style="margin-bottom:8px">
+                                <label>Game</label>
+                                <select class="select-dark" id="mt-add-squad-game"></select>
+                            </div>
+                            <div class="form-group-dark" style="margin-bottom:8px">
+                                <label>Tên nhóm</label>
+                                <input class="form-control-dark" id="mt-add-squad-name" placeholder="VD: Đội hình chính LoL" />
+                            </div>
+                            <button class="btn-save" style="width:100%" onclick="submitMyTeamAddSquad()">Tạo nhóm</button>
+                            <span id="mt-add-squad-msg" style="font-size:.82rem;margin-top:6px;display:block"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty state (when not in any team) -->
+                <div id="mt-empty" style="display:none">
+                    <div class="empty-state" style="padding:60px 20px">
+                        <div class="empty-state-icon">👥</div>
+                        <h4>Chưa thuộc đội nào</h4>
+                        <p>Hãy tạo đội mới hoặc tìm kiếm và gia nhập một đội!</p>
+                        <div style="margin-top:16px;display:flex;gap:12px;justify-content:center">
+                            <button class="btn-primary-glow" onclick="navigateTo('create-team')">+ Tạo đội mới</button>
+                            <button class="btn-outline-glow" onclick="navigateTo('team-explorer')">🔍 Tìm đội</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- TEAM EXPLORER -->
@@ -331,7 +414,7 @@
             <!-- CREATE TEAM (placeholder) -->
             <div id="page-create-team" class="page-section" style="display:none">
                 <div class="page-title">👥 Tạo đội</div>
-                <p class="page-sub">Thành lập đội tuyển của bạn</p>
+                <p class="page-sub">Thành lập đội và tạo ít nhất 1 nhóm thi đấu</p>
                 <div class="profile-card">
                     <h5>Thông tin đội</h5>
                     <div class="form-group-dark">
@@ -343,12 +426,9 @@
                         <input class="form-control-dark" id="team-slogan" placeholder="Slogan đội" />
                     </div>
                     <div class="form-group-dark">
-                        <label>Game mặc định</label>
-                        <select class="select-dark" id="team-game"></select>
-                    </div>
-                    <div class="form-group-dark">
-                        <label>Tên nhóm thi đấu</label>
-                        <input class="form-control-dark" id="team-nhom" placeholder="VD: Team Alpha LoL" />
+                        <label>Nhóm thi đấu (bắt buộc ít nhất 1)</label>
+                        <div id="team-squads-container"></div>
+                        <button class="btn-outline-glow" style="margin-top:8px;font-size:.85rem;padding:6px 12px" onclick="addSquadRow()">+ Thêm nhóm</button>
                     </div>
                     <button class="btn-save" onclick="submitCreateTeam()">Tạo đội</button>
                     <span id="team-msg" style="margin-left:12px;font-size:.85rem"></span>
@@ -437,6 +517,23 @@
             </div>
         </div><!-- /content-area -->
     </div><!-- /main-area -->
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="custom-modal" style="display:none">
+        <div class="modal-overlay" onclick="closeConfirmModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Xác nhận</h3>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Bạn có chắc chắn?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeConfirmModal()">Hủy</button>
+                <button class="btn-confirm" id="modal-confirm-btn">Đồng ý</button>
+            </div>
+        </div>
+    </div>
 </div><!-- /app-shell -->
 
 <script src="~/Scripts/jquery-3.7.0.min.js"></script>

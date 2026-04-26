@@ -11,10 +11,10 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        public JsonResult TaoDoi(TaoDoiDTO dto, int maTroChoiMacDinh, string tenNhomMacDinh)
+        public JsonResult TaoDoi(TaoDoiDTO dto, string Squads)
         {
             dto.MaNguoiDungTao = (int)Session["CurrentUserId"];
-            return Json(_teamBus.TaoDoiVaNhomMacDinh(dto, maTroChoiMacDinh, tenNhomMacDinh), JsonRequestBehavior.AllowGet);
+            return Json(_teamBus.TaoDoiVaNhieuNhom(dto, Squads), JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]
@@ -42,6 +42,22 @@ namespace GUI_HTML.Controllers
             return Json(_teamBus.GiaiTanDoi(maNguoiThucHien, maDoi), JsonRequestBehavior.AllowGet);
         }
 
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult XoaDoi(int maDoi)
+        {
+            int uid = (int)Session["CurrentUserId"];
+            return Json(_teamBus.XoaDoi(uid, maDoi), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult XoaNhom(int maDoi, int maNhom)
+        {
+            int uid = (int)Session["CurrentUserId"];
+            return Json(_teamBus.XoaNhom(uid, maDoi, maNhom), JsonRequestBehavior.AllowGet);
+        }
+
         [HttpGet]
         [RequireLogin]
         public JsonResult DoiCuaToi()
@@ -66,11 +82,12 @@ namespace GUI_HTML.Controllers
             return Json(_teamBus.LayDanhSachDoiCongKhai(maTroChoi, dangTuyen, tuKhoa), JsonRequestBehavior.AllowGet);
         }
 
-        // Chi tiết đội (public)
+        // Chi tiết đội (public, nhưng trả thêm vai_tro_hien_tai nếu đã đăng nhập)
         [HttpGet]
         public JsonResult ChiTietDoi(int maDoi)
         {
-            return Json(_teamBus.LayChiTietDoi(maDoi), JsonRequestBehavior.AllowGet);
+            int uid = Session["CurrentUserId"] != null ? (int)Session["CurrentUserId"] : 0;
+            return Json(_teamBus.LayChiTietDoi(maDoi, uid), JsonRequestBehavior.AllowGet);
         }
 
         // Thành viên nhóm (public)

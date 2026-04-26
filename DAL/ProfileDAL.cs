@@ -42,7 +42,7 @@ ORDER BY loai_vi_tri, ten_vi_tri";
                 list.Add(new ViTriDTO
                 {
                     MaViTri = Convert.ToInt32(row["ma_vi_tri"]),
-                    MaTroChoi = Convert.ToInt32(row["ma_tro_choi"]),
+                    MaTroChoi = row["ma_tro_choi"] == DBNull.Value ? 0 : Convert.ToInt32(row["ma_tro_choi"]),
                     TenViTri = row["ten_vi_tri"].ToString(),
                     KyHieu = row["ky_hieu"] == DBNull.Value ? null : row["ky_hieu"].ToString(),
                     LoaiViTri = row["loai_vi_tri"].ToString()

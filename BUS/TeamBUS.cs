@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Web.Script.Serialization;
 using DAL;
 using DTO;
 
@@ -12,16 +13,11 @@ namespace BUS
         private readonly TeamDAL _teamDal = new TeamDAL();
         private readonly RecruitmentDAL _recruitDal = new RecruitmentDAL();
 
-        public ServiceResultDTO TaoDoiVaNhomMacDinh(TaoDoiDTO doi, int maTroChoiMacDinh, string tenNhomMacDinh)
+        public ServiceResultDTO TaoDoiVaNhieuNhom(TaoDoiDTO doi, string squadsJson)
         {
             if (doi == null || doi.MaNguoiDungTao <= 0 || string.IsNullOrWhiteSpace(doi.TenDoi))
             {
                 return ServiceResultDTO.Fail("Dữ liệu đội không hợp lệ.");
-            }
-
-            if (maTroChoiMacDinh <= 0 || string.IsNullOrWhiteSpace(tenNhomMacDinh))
-            {
-                return ServiceResultDTO.Fail("Thông tin nhóm mặc định không hợp lệ.");
             }
 
             if (_teamDal.TenDoiTonTai(doi.TenDoi))
@@ -34,6 +30,22 @@ namespace BUS
                 return ServiceResultDTO.Fail("Bạn đang thuộc đội khác, không thể tạo đội mới.");
             }
 
+            List<dynamic> squads;
+            try
+            {
+                var serializer = new JavaScriptSerializer();
+                squads = serializer.Deserialize<List<dynamic>>(squadsJson);
+            }
+            catch
+            {
+                return ServiceResultDTO.Fail("Dữ liệu nhóm không hợp lệ.");
+            }
+
+            if (squads == null || squads.Count == 0)
+            {
+                return ServiceResultDTO.Fail("Khi tạo đội bắt buộc phải có ít nhất 1 nhóm hợp lệ.");
+            }
+
             using (SqlConnection conn = DataProvider.CreateConnection())
             {
                 conn.Open();
@@ -42,11 +54,25 @@ namespace BUS
                 try
                 {
                     int maDoi = _teamDal.TaoDoi(doi.MaNguoiDungTao, doi.TenDoi, doi.LogoUrl, doi.Slogan, conn, tran);
-                    int maNhom = _teamDal.TaoNhom(maDoi, maTroChoiMacDinh, tenNhomMacDinh, doi.MaNguoiDungTao, conn, tran);
-                    _teamDal.ThemThanhVien(doi.MaNguoiDungTao, maNhom, "leader", "thi_dau", null, conn, tran);
+
+                    var squadIds = new List<object>();
+                    foreach (var sq in squads)
+                    {
+                        int maTroChoi = Convert.ToInt32(sq["maTroChoi"]);
+                        string tenNhom = sq["tenNhom"].ToString();
+                        if (maTroChoi <= 0 || string.IsNullOrWhiteSpace(tenNhom))
+                        {
+                            tran.Rollback();
+                            return ServiceResultDTO.Fail("Dữ liệu nhóm không hợp lệ.");
+                        }
+
+                        int maNhom = _teamDal.TaoNhom(maDoi, maTroChoi, tenNhom, doi.MaNguoiDungTao, conn, tran);
+                        _teamDal.ThemThanhVien(doi.MaNguoiDungTao, maNhom, "leader", "thi_dau", null, conn, tran);
+                        squadIds.Add(new { maNhom });
+                    }
 
                     tran.Commit();
-                    return ServiceResultDTO.Ok("Tạo đội và nhóm mặc định thành công.", new { maDoi, maNhom });
+                    return ServiceResultDTO.Ok("Tạo đội và các nhóm thành công.", new { maDoi, squads = squadIds });
                 }
                 catch (Exception ex)
                 {
@@ -58,14 +84,33 @@ namespace BUS
 
         public ServiceResultDTO TaoNhom(int maNguoiTao, int maDoi, int maTroChoi, string tenNhom, int maCaptain)
         {
-            if (maNguoiTao <= 0 || maDoi <= 0 || maTroChoi <= 0 || maCaptain <= 0 || string.IsNullOrWhiteSpace(tenNhom))
+            if (maCaptain <= 0) maCaptain = maNguoiTao;
+
+            if (maNguoiTao <= 0 || maDoi <= 0 || maTroChoi <= 0 || string.IsNullOrWhiteSpace(tenNhom))
             {
                 return ServiceResultDTO.Fail("Dữ liệu tạo nhóm không hợp lệ.");
             }
 
-            if (_teamDal.NguoiDungDangThuocDoiKhac(maCaptain))
+            if (_teamDal.DemSoNhomCuaDoi(maDoi) >= 12)
             {
-                return ServiceResultDTO.Fail("Captain đang thuộc đội khác, không thể chỉ định.");
+                return ServiceResultDTO.Fail("Đội đã đạt tối đa 12 nhóm thi đấu.");
+            }
+
+            if (_teamDal.DemSoNhomTheoGame(maDoi, maTroChoi) >= 2)
+            {
+                return ServiceResultDTO.Fail("Mỗi tựa game chỉ được tạo tối đa 2 nhóm.");
+            }
+
+            // Only block if captain belongs to a DIFFERENT team
+            if (_teamDal.NguoiDungDangThuocDoiKhac(maCaptain) && !_teamDal.LaChairman(maCaptain, maDoi))
+            {
+                // Check if captain is already a member of THIS team
+                DataTable dtCap = _teamDal.LayTatCaDoiCuaToi(maCaptain);
+                bool thuocDoiNay = false;
+                foreach (DataRow r in dtCap.Rows)
+                    if (Convert.ToInt32(r["ma_doi"]) == maDoi) { thuocDoiNay = true; break; }
+                if (!thuocDoiNay)
+                    return ServiceResultDTO.Fail("Captain đang thuộc đội khác, không thể chỉ định.");
             }
 
             using (SqlConnection conn = DataProvider.CreateConnection())
@@ -75,6 +120,7 @@ namespace BUS
                 try
                 {
                     int maNhom = _teamDal.TaoNhom(maDoi, maTroChoi, tenNhom, maCaptain, conn, tran);
+                    // Only add as member if not already in this squad (avoid dupe when leader creates)
                     _teamDal.ThemThanhVien(maCaptain, maNhom, "captain", "thi_dau", null, conn, tran);
                     tran.Commit();
                     return ServiceResultDTO.Ok("Tạo nhóm thành công.", new { maNhom });
@@ -137,6 +183,73 @@ namespace BUS
                 : ServiceResultDTO.Fail("Bạn không có quyền giải tán đội hoặc đội không tồn tại.");
         }
 
+        public ServiceResultDTO XoaNhom(int maNguoiThucHien, int maDoi, int maNhom)
+        {
+            if (maNguoiThucHien <= 0 || maDoi <= 0 || maNhom <= 0)
+                return ServiceResultDTO.Fail("Dữ liệu xóa nhóm không hợp lệ.");
+
+            if (!_teamDal.LaChairman(maNguoiThucHien, maDoi))
+                return ServiceResultDTO.Fail("Chỉ Chairman mới có quyền xóa nhóm.");
+
+            if (!_teamDal.NhomThuocDoi(maNhom, maDoi))
+                return ServiceResultDTO.Fail("Nhóm không thuộc đội này.");
+
+            if (_teamDal.DemSoNhomCuaDoi(maDoi) <= 1)
+                return ServiceResultDTO.Fail("Đội phải còn ít nhất 1 nhóm. Nếu muốn xóa toàn bộ, hãy dùng xóa đội.");
+
+            if (_teamDal.NhomChuaChairman(maNhom))
+                return ServiceResultDTO.Fail("Không thể xóa nhóm đang chứa Chairman. Hãy chuyển Chairman sang nhóm khác trước.");
+
+            if (_teamDal.NhomCoDuLieuThamGiaGiai(maNhom))
+                return ServiceResultDTO.Fail("Nhóm đã phát sinh dữ liệu giải đấu/trận đấu, không thể xóa.");
+
+            using (SqlConnection conn = DataProvider.CreateConnection())
+            {
+                conn.Open();
+                SqlTransaction tran = conn.BeginTransaction();
+                try
+                {
+                    _teamDal.XoaNhom(maNhom, conn, tran);
+                    tran.Commit();
+                    return ServiceResultDTO.Ok("Xóa nhóm thành công.");
+                }
+                catch (Exception ex)
+                {
+                    tran.Rollback();
+                    return ServiceResultDTO.Fail("Không thể xóa nhóm: " + ex.Message);
+                }
+            }
+        }
+
+        public ServiceResultDTO XoaDoi(int maNguoiThucHien, int maDoi)
+        {
+            if (maNguoiThucHien <= 0 || maDoi <= 0)
+                return ServiceResultDTO.Fail("Dữ liệu xóa đội không hợp lệ.");
+
+            if (!_teamDal.LaChairman(maNguoiThucHien, maDoi))
+                return ServiceResultDTO.Fail("Chỉ Chairman mới có quyền xóa đội.");
+
+            DataTable dtNhom = _teamDal.LayDanhSachNhom(maDoi);
+            foreach (DataRow row in dtNhom.Rows)
+            {
+                int maNhom = Convert.ToInt32(row["ma_nhom"]);
+                if (_teamDal.NhomCoDuLieuThamGiaGiai(maNhom))
+                    return ServiceResultDTO.Fail("Đội có nhóm đã phát sinh dữ liệu giải đấu/trận đấu, không thể xóa.");
+            }
+
+            try
+            {
+                bool ok = _teamDal.XoaDoiVinhVien(maDoi, maNguoiThucHien);
+                return ok
+                    ? ServiceResultDTO.Ok("Xóa đội thành công.")
+                    : ServiceResultDTO.Fail("Không thể xóa đội.");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResultDTO.Fail("Không thể xóa đội: " + ex.Message);
+            }
+        }
+
         public ServiceResultDTO LayDoiCuaToi(int maNguoiDung)
         {
             if (maNguoiDung <= 0) return ServiceResultDTO.Fail("Người dùng không hợp lệ.");
@@ -177,12 +290,42 @@ namespace BUS
         }
 
         // Chi tiết đội
-        public ServiceResultDTO LayChiTietDoi(int maDoi)
+        public ServiceResultDTO LayChiTietDoi(int maDoi, int maNguoiDung = 0)
         {
             DataTable dt = _teamDal.LayChiTietDoi(maDoi);
             if (dt.Rows.Count == 0) return ServiceResultDTO.Fail("Đội không tồn tại.");
             var row = dt.Rows[0];
             var squads = DataTableToList(_teamDal.LayDanhSachNhom(maDoi));
+
+            // Determine current user role
+            string vaiTroHienTai = null;
+            if (maNguoiDung > 0)
+            {
+                int maDoiTruong = Convert.ToInt32(row["ma_doi_truong"]);
+                if (maDoiTruong == maNguoiDung)
+                {
+                    vaiTroHienTai = "leader";
+                }
+                else
+                {
+                    // Check if user is member of any squad in this team
+                    DataTable dtAll = _teamDal.LayTatCaDoiCuaToi(maNguoiDung);
+                    foreach (DataRow r in dtAll.Rows)
+                    {
+                        if (Convert.ToInt32(r["ma_doi"]) == maDoi)
+                        {
+                            vaiTroHienTai = r["vai_tro_noi_bo"].ToString();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Count total members
+            int soThanhVien = 0;
+            foreach (var sq in squads)
+                soThanhVien += sq.ContainsKey("so_thanh_vien") && sq["so_thanh_vien"] != null ? Convert.ToInt32(sq["so_thanh_vien"]) : 0;
+
             return ServiceResultDTO.Ok("OK", new
             {
                 ma_doi = Convert.ToInt32(row["ma_doi"]),
@@ -195,6 +338,9 @@ namespace BUS
                 ten_manager = row["ten_manager"].ToString(),
                 dang_tuyen = Convert.ToBoolean(row["dang_tuyen"]),
                 mo_ta = row["mo_ta"].ToString(),
+                ngay_tao = row["ngay_tao"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_tao"]),
+                so_thanh_vien = soThanhVien,
+                vai_tro_hien_tai = vaiTroHienTai,
                 nhom_doi = squads
             });
         }

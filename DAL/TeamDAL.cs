@@ -17,6 +17,64 @@ namespace DAL
             return Convert.ToInt32(result) > 0;
         }
 
+        public bool NhomThuocDoi(int maNhom, int maDoi)
+        {
+            const string query = "SELECT COUNT(1) FROM NHOM_DOI WHERE ma_nhom = @MaNhom AND ma_doi = @MaDoi";
+            return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom },
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
+            })) > 0;
+        }
+
+        public bool NhomChuaChairman(int maNhom)
+        {
+            const string query = @"
+SELECT COUNT(1)
+FROM THANH_VIEN_DOI
+WHERE ma_nhom = @MaNhom
+  AND vai_tro_noi_bo = 'leader'
+  AND trang_thai_hop_dong = 'dang_hieu_luc';";
+            return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom }
+            })) > 0;
+        }
+
+        public bool NhomCoDuLieuThamGiaGiai(int maNhom)
+        {
+            const string query = @"
+SELECT CASE WHEN EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_nhom = @MaNhom)
+   OR EXISTS (SELECT 1 FROM CHI_TIET_TRAN_DAU WHERE ma_nhom = @MaNhom)
+   OR EXISTS (SELECT 1 FROM KHIEU_NAI_KET_QUA WHERE ma_nhom = @MaNhom)
+   OR EXISTS (SELECT 1 FROM BANG_XEP_HANG WHERE ma_nhom = @MaNhom)
+THEN 1 ELSE 0 END;";
+            return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom }
+            })) == 1;
+        }
+
+        public void XoaNhom(int maNhom, SqlConnection conn, SqlTransaction tran)
+        {
+            const string queryXoaLoiMoi = "DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_nhom = @MaNhom";
+            const string queryXoaDonXin = "DELETE FROM XIN_GIA_NHAP WHERE ma_nhom = @MaNhom";
+            const string queryXoaDonUngTuyen = @"DELETE d
+FROM DON_UNG_TUYEN d
+JOIN BAI_DANG_TUYEN_DUNG b ON b.ma_bai_dang = d.ma_bai_dang
+WHERE b.ma_nhom = @MaNhom";
+            const string queryXoaBaiDang = "DELETE FROM BAI_DANG_TUYEN_DUNG WHERE ma_nhom = @MaNhom";
+            const string queryXoaThanhVien = "DELETE FROM THANH_VIEN_DOI WHERE ma_nhom = @MaNhom";
+            const string queryXoaNhom = "DELETE FROM NHOM_DOI WHERE ma_nhom = @MaNhom";
+
+            DataProvider.ExecuteNonQuery(queryXoaLoiMoi, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
+            DataProvider.ExecuteNonQuery(queryXoaDonXin, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
+            DataProvider.ExecuteNonQuery(queryXoaDonUngTuyen, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
+            DataProvider.ExecuteNonQuery(queryXoaBaiDang, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
+            DataProvider.ExecuteNonQuery(queryXoaThanhVien, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
+            DataProvider.ExecuteNonQuery(queryXoaNhom, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
+        }
+
         public int TaoDoi(int maManager, string tenDoi, string logoUrl, string slogan, SqlConnection conn, SqlTransaction tran)
         {
             const string query = @"
@@ -67,6 +125,22 @@ VALUES(@MaNguoiDung, @MaNhom, @VaiTroNoiBo, @PhanHe, @MaViTri, 'da_duyet', 'dang
                 new SqlParameter("@PhanHe", SqlDbType.NVarChar){ Value = phanHe },
                 new SqlParameter("@MaViTri", SqlDbType.Int){ Value = (object)maViTri ?? DBNull.Value }
             }, conn, tran);
+        }
+
+        public int DemSoNhomCuaDoi(int maDoi)
+        {
+            const string query = "SELECT COUNT(1) FROM NHOM_DOI WHERE ma_doi = @MaDoi";
+            return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[] { new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi } }));
+        }
+
+        public int DemSoNhomTheoGame(int maDoi, int maTroChoi)
+        {
+            const string query = "SELECT COUNT(1) FROM NHOM_DOI WHERE ma_doi = @MaDoi AND ma_tro_choi = @MaTroChoi";
+            return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi },
+                new SqlParameter("@MaTroChoi", SqlDbType.Int) { Value = maTroChoi }
+            }));
         }
 
         public bool NguoiDungDangThuocDoiKhac(int maNguoiDung)
@@ -123,6 +197,61 @@ WHERE n.ma_doi = @MaDoi;";
 
                     const string dissolveTeamQuery = "UPDATE DOI SET trang_thai = 'da_giai_the' WHERE ma_doi = @MaDoi";
                     DataProvider.ExecuteNonQuery(dissolveTeamQuery, new[]
+                    {
+                        new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi }
+                    }, conn, tran);
+
+                    tran.Commit();
+                    return true;
+                }
+                catch
+                {
+                    tran.Rollback();
+                    throw;
+                }
+            }
+        }
+
+        public bool XoaDoiVinhVien(int maDoi, int maManager)
+        {
+            using (SqlConnection conn = DataProvider.CreateConnection())
+            {
+                conn.Open();
+                SqlTransaction tran = conn.BeginTransaction();
+                try
+                {
+                    const string checkManagerQuery = "SELECT COUNT(1) FROM DOI WHERE ma_doi = @MaDoi AND ma_doi_truong = @MaManager";
+                    object check = DataProvider.ExecuteScalar(checkManagerQuery, new[]
+                    {
+                        new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi },
+                        new SqlParameter("@MaManager", SqlDbType.Int){ Value = maManager }
+                    }, conn, tran);
+
+                    if (Convert.ToInt32(check) == 0)
+                    {
+                        tran.Rollback();
+                        return false;
+                    }
+
+                    DataTable dtNhom = LayDanhSachNhom(maDoi);
+                    foreach (DataRow row in dtNhom.Rows)
+                    {
+                        int maNhom = Convert.ToInt32(row["ma_nhom"]);
+                        if (NhomCoDuLieuThamGiaGiai(maNhom))
+                        {
+                            tran.Rollback();
+                            return false;
+                        }
+                    }
+
+                    foreach (DataRow row in dtNhom.Rows)
+                    {
+                        int maNhom = Convert.ToInt32(row["ma_nhom"]);
+                        XoaNhom(maNhom, conn, tran);
+                    }
+
+                    const string deleteTeamQuery = "DELETE FROM DOI WHERE ma_doi = @MaDoi";
+                    DataProvider.ExecuteNonQuery(deleteTeamQuery, new[]
                     {
                         new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi }
                     }, conn, tran);

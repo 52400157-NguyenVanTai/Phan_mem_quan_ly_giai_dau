@@ -62,770 +62,6 @@
       opts.headers["Content-Type"] = "application/json";
       opts.body = JSON.stringify(body);
     }
-<<<<<<< HEAD
-  }
-  // Topbar avatar — if user has real avatar show it
-  const avatarBtn = document.getElementById('avatar-btn');
-  if (avatarBtn) {
-    if (avatarUrl) {
-      avatarBtn.style.backgroundImage = 'url(' + avatarUrl + ')';
-      avatarBtn.style.backgroundSize  = 'cover';
-      avatarBtn.style.backgroundPosition = 'center';
-      avatarBtn.style.backgroundRepeat = 'no-repeat';
-      topbarInitials.style.display = 'none';
-    } else {
-      avatarBtn.style.backgroundImage = '';
-      avatarBtn.style.backgroundSize = '';
-      avatarBtn.style.backgroundPosition = '';
-      avatarBtn.style.backgroundRepeat = '';
-      topbarInitials.style.display = '';
-    }
-  }
-
-  document.getElementById('profile-role-display').textContent = user.VaiTroHeThong || user.vai_tro_he_thong || '';
-  document.getElementById('pf-username').value = un;
-  document.getElementById('pf-email').value = em;
-  document.getElementById('pf-bio').value = user.Bio || user.bio || '';
-
-  // Show admin button if admin
-  const btnAdmin = document.getElementById('btn-admin-module');
-  if (btnAdmin) {
-    const isAdmin = String(user.VaiTroHeThong || user.vai_tro_he_thong || '').toLowerCase() === 'admin';
-    btnAdmin.classList.toggle('d-none', !isAdmin);
-  }
-
-  // Load team name for profile
-  loadMyTeamForProfile();
-}
-
-// ---- LOGOUT ----
-window.doLogout = async function() {
-  await api('/AuthApi/DangXuat', 'POST', {});
-  currentUser = null;
-  document.getElementById('app-shell').classList.remove('active');
-  document.getElementById('landing-page').style.display = '';
-  const avatarBtn = document.getElementById('avatar-btn');
-  const avatarInitials = document.getElementById('avatar-initials');
-  const bigImg = document.getElementById('profile-avatar-img');
-  const bigInitials = document.getElementById('avatar-initials-big');
-  if (avatarBtn) {
-    avatarBtn.style.backgroundImage = '';
-    avatarBtn.style.backgroundSize = '';
-    avatarBtn.style.backgroundPosition = '';
-    avatarBtn.style.backgroundRepeat = '';
-  }
-  if (avatarInitials) {
-    avatarInitials.textContent = '?';
-    avatarInitials.style.display = '';
-  }
-  if (bigImg) {
-    bigImg.src = '';
-    bigImg.style.display = 'none';
-  }
-  if (bigInitials) {
-    bigInitials.textContent = '?';
-    bigInitials.style.display = '';
-  }
-  switchTab('login');
-  closeHamburger();
-};
-
-// ---- RESTORE SESSION ----
-async function restoreSession() {
-  const result = await api('/AuthApi/Me');
-  if (result.Success && result.Data) {
-    enterDashboard(result.Data);
-  }
-}
-
-// ---- SIDEBAR / HAMBURGER ----
-window.toggleSidebar = function() {
-  document.getElementById('sidebar').classList.toggle('open');
-};
-window.toggleHamburger = function() {
-  document.getElementById('hamburger-menu').classList.toggle('open');
-};
-function closeHamburger() {
-  document.getElementById('hamburger-menu').classList.remove('open');
-}
-document.addEventListener('click', function(e) {
-  const wrap = document.querySelector('.hamburger-menu-wrap');
-  if (wrap && !wrap.contains(e.target)) closeHamburger();
-});
-
-// ---- NAVIGATION ----
-window.navigateTo = function(page) {
-  currentPage = page;
-  closeHamburger();
-  // Hide all pages
-  document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
-  // Update sidebar active
-  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
-  const activeBtn = document.querySelector('[data-page="' + page + '"]');
-  if (activeBtn) activeBtn.classList.add('active');
-
-  // Map page id to game page
-  const gameMatch = GAMES.find(g => g.id === page);
-  if (gameMatch) {
-    showGamePage(gameMatch);
-    return;
-  }
-
-  const pageMap = {
-    'home': 'page-home',
-    'follow': 'page-follow',
-    'notifications': 'page-notifications',
-    'my-tournaments': 'page-my-tournaments',
-    'my-teams': 'page-my-teams',
-    'organize': 'page-organize',
-    'create-team': 'page-create-team',
-    'profile': 'page-profile',
-    'player-profile': 'page-player-profile',
-    'manage-tournament': 'page-manage-tournament'
-  };
-  const target = pageMap[page];
-  if (target) {
-    const el = document.getElementById(target);
-    if (el) el.style.display = '';
-    if (page === 'home') loadHomePage();
-    if (page === 'notifications') loadNotifications();
-    if (page === 'player-profile') loadPlayerProfileTabs();
-    if (page === 'my-tournaments') loadMyTournaments();
-    if (page === 'manage-tournament') loadManageTournament();
-    if (page === 'my-teams') loadMyTeams();
-  }
-};
-
-// ---- LOAD GAMES LIST ----
-async function loadGames() {
-  const result = await api('/AdminApi/DanhSachGame');
-  if (!result.Success || !Array.isArray(result.Data)) return;
-  gameList = result.Data;
-
-  // Map tên game -> maGame
-  GAMES.forEach(g => {
-    const found = gameList.find(d => {
-      const name = (d.ten_game || '').toLowerCase();
-      const id = g.id;
-      if (id === 'game-aov') return name.includes('valor') || name.includes('aov') || name.includes('liên quân');
-      if (id === 'game-lol') return name.includes('liên minh') || name.includes('league');
-      if (id === 'game-ff') return name.includes('free fire');
-      if (id === 'game-pubg') return name.includes('pubg');
-      if (id === 'game-val') return name.includes('valorant');
-      if (id === 'game-cs2') return name.includes('cs') || name.includes('counter');
-      return false;
-    });
-    if (found) g.maGame = found.ma_tro_choi;
-  });
-
-  // Populate organize/create-team selects
-  populateGameSelects();
-  loadPlayerProfileTabs();
-}
-
-function populateGameSelects() {
-  ['org-game', 'team-game'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">-- Chọn game --</option>';
-    gameList.forEach(g => {
-      const opt = document.createElement('option');
-      opt.value = g.ma_tro_choi;
-      opt.textContent = g.ten_game;
-      sel.appendChild(opt);
-    });
-  });
-}
-
-// ---- HOME PAGE ----
-function loadHomePage() {
-  loadFeaturedTournaments();
-}
-
-function buildTournamentCard(t, opts) {
-  opts = opts || {};
-  const gameInfo = GAMES.find(g => g.maGame == t.ma_tro_choi) || { emoji: '🎮', color: '#6c63ff', name: '' };
-  const status = t.trang_thai || '';
-  let statusHtml = '';
-  if (status === 'dang_dien_ra') statusHtml = "<span class='tc-status live'>🔴 Live</span>";
-  else if (status === 'mo_dang_ky' || status === 'sap_dien_ra') statusHtml = "<span class='tc-status upcoming'>🔵 Sắp diễn ra</span>";
-  else statusHtml = "<span class='tc-status finished'>✅ Kết thúc</span>";
-
-  const prize    = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + '₫' : 'N/A';
-  const maGiai   = t.ma_giai_dau;
-  const likeAct  = opts.da_like       ? 'tc-btn-like active'   : 'tc-btn-like';
-  const followAct= opts.dang_theo_doi ? 'tc-btn-follow active' : 'tc-btn-follow';
-  const tLike    = opts.tong_like    || 0;
-  const tFollow  = opts.tong_theo_doi || 0;
-
-  return '<div class="tournament-card" id="tc-' + maGiai + '">' +
-    '<div class="tc-banner" style="background:linear-gradient(135deg,#1a1f36,' + gameInfo.color + '33)" onclick="openTournament(' + maGiai + ')" style="cursor:pointer">' +
-    '<span style="font-size:2.5rem">' + gameInfo.emoji + '</span></div>' +
-    '<div class="tc-body">' +
-    '<div class="tc-game-badge">' + (t.ten_game || gameInfo.name) + '</div>' +
-    '<div class="tc-name" onclick="openTournament(' + maGiai + ')" style="cursor:pointer">' + (t.ten_giai_dau || 'Giải đấu') + '</div>' +
-    '<div class="tc-meta">' + statusHtml + '<span>💰 ' + prize + '</span></div>' +
-    '<div class="tc-actions">' +
-      '<button class="' + likeAct + '" onclick="toggleLike(' + maGiai + ',this)" title="Thích">' +
-        '<span class="tc-icon">❤️</span> <span class="tc-like-count" id="like-count-' + maGiai + '">' + tLike + '</span>' +
-      '</button>' +
-      '<button class="' + followAct + '" onclick="toggleFollow(' + maGiai + ',this)" title="Theo dõi">' +
-        '<span class="tc-icon">🔔</span> <span id="follow-label-' + maGiai + '">' + (opts.dang_theo_doi ? 'Đang theo dõi' : 'Theo dõi') + '</span>' +
-        ' <span class="tc-follow-count" id="follow-count-' + maGiai + '">' + tFollow + '</span>' +
-      '</button>' +
-    '</div>' +
-    '</div></div>';
-}
-
-// ---- Toggle Like ----
-window.toggleLike = async function(maGiaiDau, btn) {
-  if (!currentUser) { showToast('Vui lòng đăng nhập để thích giải đấu.'); return; }
-  btn.disabled = true;
-  const res = await fetch('/TuongTacApi/Like?maGiaiDau=' + maGiaiDau, { method: 'POST' });
-  const result = await res.json();
-  btn.disabled = false;
-  if (result.Success && result.Data) {
-    const d = result.Data;
-    btn.classList.toggle('active', d.DaLike);
-    const cnt = document.getElementById('like-count-' + maGiaiDau);
-    if (cnt) cnt.textContent = d.TongLike || 0;
-    // Sync tất cả card cùng giải trên trang
-    document.querySelectorAll('#tc-' + maGiaiDau + ' .tc-btn-like').forEach(b => b.classList.toggle('active', d.DaLike));
-  } else {
-    showToast(result.Message || 'Lỗi.');
-  }
-};
-
-// ---- Toggle Follow ----
-window.toggleFollow = async function(maGiaiDau, btn) {
-  if (!currentUser) { showToast('Vui lòng đăng nhập để theo dõi giải đấu.'); return; }
-  btn.disabled = true;
-  const res = await fetch('/TuongTacApi/Follow?maGiaiDau=' + maGiaiDau, { method: 'POST' });
-  const result = await res.json();
-  btn.disabled = false;
-  if (result.Success && result.Data) {
-    const d = result.Data;
-    btn.classList.toggle('active', d.DangTheoDoi);
-    const lbl = document.getElementById('follow-label-' + maGiaiDau);
-    if (lbl) lbl.textContent = d.DangTheoDoi ? 'Đang theo dõi' : 'Theo dõi';
-    const cnt = document.getElementById('follow-count-' + maGiaiDau);
-    if (cnt) cnt.textContent = d.TongTheoDoi || 0;
-    // Cập nhật sidebar nếu đang theo dõi
-    if (d.DangTheoDoi) showSidebarItem('side-my-follow');
-  } else {
-    showToast(result.Message || 'Lỗi.');
-  }
-};
-
-// ---- Load like/follow state cho các card sau khi render ----
-async function loadInteractionStates(maGiaiDauList) {
-  if (!currentUser || !Array.isArray(maGiaiDauList)) return;
-  maGiaiDauList.forEach(async function(id) {
-    const res = await fetch('/TuongTacApi/TrangThai?maGiaiDau=' + id);
-    const result = await res.json();
-    if (!result.Success || !result.Data) return;
-    const d = result.Data;
-    // Like
-    document.querySelectorAll('#tc-' + id + ' .tc-btn-like').forEach(b => b.classList.toggle('active', !!(d.caNhan && d.caNhan.da_like)));
-    const lc = document.getElementById('like-count-' + id);
-    if (lc) lc.textContent = d.TongLike || 0;
-    // Follow
-    const following = !!(d.caNhan && d.caNhan.dang_theo_doi);
-    document.querySelectorAll('#tc-' + id + ' .tc-btn-follow').forEach(b => b.classList.toggle('active', following));
-    const lbl = document.getElementById('follow-label-' + id);
-    if (lbl) lbl.textContent = following ? 'Đang theo dõi' : 'Theo dõi';
-    const fc = document.getElementById('follow-count-' + id);
-    if (fc) fc.textContent = d.TongTheoDoi || 0;
-  });
-}
-
-// ---- Toast notification ----
-function showToast(msg) {
-  let t = document.getElementById('app-toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'app-toast';
-    t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;color:var(--text-primary);font-size:.88rem;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .3s;';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.opacity = '1';
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
-}
-
-async function loadFeaturedTournaments() {
-  const grid = document.getElementById('featured-grid');
-  const upGrid = document.getElementById('upcoming-grid');
-  if (!grid) return;
-  grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
-
-  const result = await api('/MatchmakingApi/DanhSachGiaiCongKhai');
-  if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><h4>Chưa có giải đấu nào</h4><p>Hãy là người đầu tiên tổ chức giải!</p></div>';
-    if (upGrid) upGrid.innerHTML = '';
-    return;
-  }
-
-  const active   = result.Data.filter(t => t.trang_thai === 'dang_dien_ra');
-  const upcoming = result.Data.filter(t => t.trang_thai === 'mo_dang_ky' || t.trang_thai === 'sap_dien_ra');
-
-  const activeList = active.slice(0, 6);
-  const upList     = upcoming.slice(0, 6);
-
-  grid.innerHTML = activeList.length ? activeList.map(t => buildTournamentCard(t)).join('') :
-    '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">🏆</div><h4>Không có giải đang diễn ra</h4></div>';
-
-  if (upGrid) upGrid.innerHTML = upList.length ? upList.map(t => buildTournamentCard(t)).join('') :
-    '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">📅</div><h4>Không có giải sắp diễn ra</h4></div>';
-
-  // Load trạng thái like/follow sau khi render
-  const allIds = [...activeList, ...upList].map(t => t.ma_giai_dau);
-  loadInteractionStates(allIds);
-}
-
-window.openTournament = function(maGiaiDau) {
-  window.open('/giai/' + maGiaiDau, '_blank');
-};
-
-// ---- GAME PAGE ----
-function showGamePage(game) {
-  document.getElementById('page-game').style.display = '';
-  document.getElementById('game-page-title').textContent = game.emoji + ' ' + game.name;
-  document.getElementById('game-page-sub').textContent = 'Các giải đấu nổi bật · ' + game.name;
-  loadGameTournaments(game);
-}
-
-async function loadGameTournaments(game) {
-  const grid = document.getElementById('game-grid');
-  grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
-  let url = '/MatchmakingApi/DanhSachGiaiCongKhai';
-  if (game.maGame) url += '?maTroChoi=' + game.maGame;
-  const result = await api(url);
-  if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">' + game.emoji + '</div><h4>Chưa có giải đấu ' + game.name + '</h4></div>';
-    return;
-  }
-  const list = result.Data.slice(0, 12);
-  grid.innerHTML = list.map(t => buildTournamentCard(t)).join('');
-  loadInteractionStates(list.map(t => t.ma_giai_dau));
-}
-
-// ---- NOTIFICATIONS ----
-async function loadNotifications() {
-  // Fallback to empty if no endpoint
-  const list = document.getElementById('notif-list');
-  if (!list) return;
-  // You can call an API here if you have one
-  // For now we show empty state
-}
-
-// ---- SEARCH ----
-document.getElementById('global-search').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && this.value.trim()) {
-    alert('Chức năng tìm kiếm đang phát triển: ' + this.value.trim());
-  }
-});
-
-// Expose restoreSession
-window._restoreSession = restoreSession;
-
-// ============================================================
-// PART 2: Profile, Player Profile, Organize, Create Team
-// ============================================================
-
-// ---- SAVE PROFILE ----
-window.saveProfile = async function() {
-  const msg = document.getElementById('pf-msg');
-  const result = await api('/AuthApi/CapNhatThongTin', 'POST', {
-    Bio: document.getElementById('pf-bio').value.trim()
-  });
-  msg.style.color = result.Success ? '#2ed573' : '#ff4757';
-  msg.textContent = result.Success ? '✅ Đã lưu!' : (result.Message || 'Lỗi lưu.');
-};
-
-// ---- CHANGE PASSWORD ----
-window.changePassword = async function() {
-  const msg = document.getElementById('pw-msg');
-  const old = document.getElementById('pw-old').value;
-  const nw = document.getElementById('pw-new').value;
-  const conf = document.getElementById('pw-confirm').value;
-  if (nw !== conf) { msg.style.color='#ff4757'; msg.textContent='Mật khẩu mới không khớp.'; return; }
-  if (nw.length < 8) { msg.style.color='#ff4757'; msg.textContent='Mật khẩu phải ≥ 8 ký tự.'; return; }
-  const result = await api('/AuthApi/DoiMatKhau', 'POST', { MatKhauCu: old, MatKhauMoi: nw });
-  msg.style.color = result.Success ? '#2ed573' : '#ff4757';
-  msg.textContent = result.Success ? '✅ Đổi mật khẩu thành công!' : (result.Message || 'Sai mật khẩu cũ.');
-  if (result.Success) { document.getElementById('pw-old').value=''; document.getElementById('pw-new').value=''; document.getElementById('pw-confirm').value=''; }
-};
-
-// ---- PLAYER PROFILE TABS ----
-const GAME_NAMES = ['Arena of Valor','League of Legends','Free Fire','PUBG','Valorant','CS2'];
-let activeGameTab = null;
-
-function loadPlayerProfileTabs() {
-  const tabs = document.getElementById('game-profile-tabs');
-  if (!tabs) return;
-  tabs.innerHTML = '';
-  const games = gameList.length ? gameList : GAME_NAMES.map((n,i)=>({ma_tro_choi:i+1,ten_game:n}));
-  games.forEach(g => {
-    const btn = document.createElement('button');
-    btn.className = 'game-tab-btn' + (activeGameTab === g.ma_tro_choi ? ' active' : '');
-    btn.textContent = g.ten_game;
-    btn.onclick = () => loadGameProfile(g);
-    tabs.appendChild(btn);
-  });
-}
-
-async function loadGameProfile(game) {
-  activeGameTab = game.ma_tro_choi;
-  document.querySelectorAll('.game-tab-btn').forEach(b => b.classList.toggle('active', b.textContent === game.ten_game));
-  const title = document.getElementById('game-profile-title');
-  const body = document.getElementById('game-profile-body');
-  title.textContent = '🎮 ' + game.ten_game;
-
-  // Load existing profile
-  const result = await api('/ProfileApi/LayHoSo?maTroChoi=' + game.ma_tro_choi);
-  const existing = result.Success && result.Data ? result.Data : null;
-
-  // Load positions
-  const posResult = await api('/ProfileApi/ViTri?maTroChoi=' + game.ma_tro_choi);
-  const positions = posResult.Success && Array.isArray(posResult.Data) ? posResult.Data : [];
-
-  // Nhóm vị trí theo loai_vi_tri
-  const groups = {};
-  positions.forEach(p => {
-    const grp = p.LoaiViTri || 'Khác';
-    if (!groups[grp]) groups[grp] = [];
-    groups[grp].push(p);
-  });
-
-  const loaiLabel = { 'ChuyenMon': '⚔️ Chuyên môn thi đấu', 'BanHuanLuyen': '🎓 Ban huấn luyện' };
-
-  let posOptions = '<option value="">-- Chọn vị trí --</option>';
-  Object.keys(groups).forEach(loai => {
-    const label = loaiLabel[loai] || loai;
-    posOptions += '<optgroup label="' + label + '">';
-    groups[loai].forEach(p => {
-      const sel = existing && existing.ma_vi_tri_so_truong == p.MaViTri ? ' selected' : '';
-      const ky = p.KyHieu ? ' [' + p.KyHieu + ']' : '';
-      posOptions += '<option value="' + p.MaViTri + '"' + sel + '>' + p.TenViTri + ky + '</option>';
-    });
-    posOptions += '</optgroup>';
-  });
-
-  body.innerHTML = '<div class="form-group-dark"><label>ID trong game</label><input class="form-control-dark" id="gp-id" value="' + (existing ? existing.in_game_id || '' : '') + '" placeholder="ID trong game" /></div>' +
-    '<div class="form-group-dark"><label>Tên hiển thị trong game</label><input class="form-control-dark" id="gp-name" value="' + (existing ? existing.in_game_name || '' : '') + '" placeholder="Nickname" /></div>' +
-    '<div class="form-group-dark"><label>Vị trí sở trường</label><select class="select-dark" id="gp-vitri">' + posOptions + '</select></div>' +
-    '<button class="btn-save" onclick="saveGameProfile(' + game.ma_tro_choi + ')">Lưu hồ sơ</button>' +
-    '<span id="gp-msg" style="margin-left:12px;font-size:.85rem"></span>';
-}
-
-window.saveGameProfile = async function(maTroChoi) {
-  const msg = document.getElementById('gp-msg');
-  const result = await api('/ProfileApi/TaoHoSo', 'POST', {
-    MaTroChoi: maTroChoi,
-    InGameId: document.getElementById('gp-id').value.trim(),
-    InGameName: document.getElementById('gp-name').value.trim(),
-    MaViTriSoTruong: Number(document.getElementById('gp-vitri').value) || null
-  });
-  msg.style.color = result.Success ? '#2ed573' : '#ff4757';
-  msg.textContent = result.Success ? '✅ Đã lưu hồ sơ!' : (result.Message || 'Lỗi lưu.');
-};
-
-// ---- ORGANIZE TOURNAMENT ----
-let prizeCount = 0;
-window.addPrizeInput = function() {
-  const list = document.getElementById('org-prizes-list');
-  prizeCount++;
-  const div = document.createElement('div');
-  div.id = 'prize-item-' + prizeCount;
-  div.style.border = '1px solid var(--border)';
-  div.style.padding = '10px';
-  div.style.marginBottom = '10px';
-  div.style.borderRadius = 'var(--radius)';
-  div.innerHTML = `
-    <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
-      <strong>Giải thưởng #${prizeCount}</strong>
-      <button class="btn-outline-glow" style="border-color:#ff4757; color:#ff4757; padding:2px 8px; font-size:0.8rem;" onclick="removePrizeInput(${prizeCount})">Xóa</button>
-    </div>
-    <div class="form-group-dark">
-      <input class="form-control-dark prize-name" placeholder="Tên giải (VD: Top 1, MVP...)" />
-    </div>
-    <div class="form-group-dark">
-      <input class="form-control-dark prize-reward" placeholder="Phần thưởng (VD: 5.000.000 VNĐ, Bằng khen...)" />
-    </div>
-    <div class="form-group-dark" style="margin-bottom:0;">
-      <textarea class="form-control-dark prize-desc" placeholder="Mô tả thêm (tùy chọn)" rows="2"></textarea>
-    </div>
-  `;
-  list.appendChild(div);
-};
-
-window.removePrizeInput = function(id) {
-  const el = document.getElementById('prize-item-' + id);
-  if (el) el.remove();
-};
-
-window.submitOrganize = async function() {
-  const msg = document.getElementById('org-msg');
-  
-  const prizes = [];
-  document.querySelectorAll('#org-prizes-list > div').forEach(el => {
-    const ten = el.querySelector('.prize-name').value.trim();
-    const thuong = el.querySelector('.prize-reward').value.trim();
-    const mota = el.querySelector('.prize-desc').value.trim();
-    if (ten || thuong) {
-      prizes.push({ TenGiai: ten, PhanThuong: thuong, MoTa: mota });
-    }
-  });
-
-  const payload = {
-    TenGiaiDau: document.getElementById('org-ten-giai').value.trim(),
-    MoTa: document.getElementById('org-mo-ta').value.trim(),
-    MaTroChoi: Number(document.getElementById('org-game').value) || null,
-    SoNguoiMoiDoi: Number(document.getElementById('org-so-nguoi').value) || null,
-    TheThuc: document.getElementById('org-the-thuc').value,
-    BannerUrl: document.getElementById('org-banner').value.trim(),
-    TongGiaiThuong: Number(document.getElementById('org-giai-thuong').value) || 0,
-    NgayBatDau: document.getElementById('org-start').value ? new Date(document.getElementById('org-start').value).toISOString() : null,
-    NgayKetThuc: document.getElementById('org-end').value ? new Date(document.getElementById('org-end').value).toISOString() : null,
-    GiaiThuongs: prizes
-  };
-
-  if (!payload.TenGiaiDau) { msg.style.color='#ff4757'; msg.textContent='Nhập tên giải đấu.'; return; }
-  const result = await api('/TournamentBuilderApi/TaoBanNhap', 'POST', payload);
-  msg.style.color = result.Success ? '#2ed573' : '#ff4757';
-  if (result.Success) {
-    msg.textContent = result.Message;
-    document.getElementById('org-ten-giai').value = '';
-    document.getElementById('org-mo-ta').value = '';
-    document.getElementById('org-banner').value = '';
-    document.getElementById('org-prizes-list').innerHTML = '';
-    
-    showSidebarItem('side-my-tournaments');
-    setTimeout(() => navigateTo('my-tournaments'), 1500);
-  } else {
-    msg.textContent = result.Message || 'Tạo giải thất bại.';
-  }
-};
-
-let myTournamentsData = [];
-
-async function loadMyTournaments() {
-  const grid = document.getElementById('my-tournaments-grid');
-  if (!grid) return;
-  grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
-
-  const result = await api('/TournamentBuilderApi/DanhSachCuaToi');
-  if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><h4>Chưa có giải đấu nào</h4><p>Bạn chưa tổ chức giải đấu nào.</p></div>';
-    return;
-  }
-
-  myTournamentsData = result.Data;
-
-  grid.innerHTML = result.Data.map(t => {
-    const gameInfo = GAMES.find(g => g.maGame == t.ma_tro_choi) || { emoji: '🎮', color: '#6c63ff', name: '' };
-    const status = t.trang_thai || '';
-    let statusHtml = '';
-    if (status === 'ban_nhap') statusHtml = "<span class='tc-status' style='color:#a4b0be'>📝 Bản nháp</span>";
-    else if (status === 'cho_phe_duyet') statusHtml = "<span class='tc-status' style='color:#eccc68'>⏳ Chờ duyệt</span>";
-    else if (status === 'dang_dien_ra') statusHtml = "<span class='tc-status live'>🔴 Live</span>";
-    else statusHtml = "<span class='tc-status upcoming'>🔵 Đã duyệt (" + status + ")</span>";
-
-    const prize = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + '₫' : 'N/A';
-    
-    return '<div class="tournament-card">' +
-      '<div class="tc-banner" style="background:linear-gradient(135deg,#1a1f36,' + gameInfo.color + '33); cursor:default">' +
-      '<span style="font-size:2.5rem">' + gameInfo.emoji + '</span></div>' +
-      '<div class="tc-body">' +
-      '<div class="tc-game-badge">' + (t.ten_game || gameInfo.name) + '</div>' +
-      '<div class="tc-name">' + (t.ten_giai_dau || 'Giải đấu') + '</div>' +
-      '<div class="tc-meta">' + statusHtml + '<span>💰 ' + prize + '</span></div>' +
-      '<div style="margin-top:12px; display:flex; gap:8px;">' +
-        '<button class="btn-primary-glow" style="padding:4px 8px; font-size:0.8rem; flex:1" onclick="manageTournament(' + t.ma_giai_dau + ')">Quản lý</button>' +
-        '<button class="btn-outline-glow" style="padding:4px 8px; font-size:0.8rem; flex:1" onclick="openTournament(' + t.ma_giai_dau + ')">Xem public</button>' +
-      '</div>' +
-      '</div></div>';
-  }).join('');
-}
-
-let currentManageId = 0;
-let currentManageStatus = '';
-
-window.manageTournament = function(maGiaiDau) {
-  currentManageId = maGiaiDau;
-  navigateTo('manage-tournament');
-};
-
-async function loadManageTournament() {
-  if (!currentManageId) return;
-  document.getElementById('manage-tour-name').textContent = 'Quản lý Giải đấu #' + currentManageId;
-  document.getElementById('manage-tour-msg').textContent = 'Đang tải dữ liệu...';
-  
-  // 1. Fetch stage list
-  const stagesRes = await api('/TournamentBuilderApi/DanhSachGiaiDoan?maGiaiDau=' + currentManageId);
-  
-  // To get status, we look up myTournamentsData
-  const t = myTournamentsData.find(x => x.ma_giai_dau === currentManageId);
-  document.getElementById('manage-tour-msg').textContent = '';
-  
-  const actionsEl = document.getElementById('manage-tour-actions');
-  actionsEl.innerHTML = '';
-  
-  if (t) {
-    const status = t.trang_thai || '';
-    currentManageStatus = status;
-    
-    let statusText = status;
-    if (status === 'ban_nhap') statusText = 'Bản nháp';
-    if (status === 'cho_phe_duyet') statusText = 'Đang chờ Admin duyệt';
-    if (status === 'sap_dien_ra' || status === 'mo_dang_ky') statusText = 'Sắp diễn ra';
-    
-    document.getElementById('manage-tour-status').innerHTML = 'Trạng thái hiện tại: <strong style="color:var(--primary)">' + statusText + '</strong>';
-    
-    // Action buttons based on status
-    if (status === 'ban_nhap') {
-      actionsEl.innerHTML = '<button class="btn-primary-glow" onclick="submitGuiDuyet()">Gửi yêu cầu xét duyệt</button>' +
-                            '<p style="margin-top:10px; font-size: 0.9em; color:var(--text-muted)">Sau khi thêm xong các giai đoạn, hãy bấm Gửi yêu cầu để admin duyệt giải.</p>';
-    } else if (status === 'mo_dang_ky' || status === 'sap_dien_ra') {
-      actionsEl.innerHTML = '<button class="btn-primary-glow" onclick="submitBatDauGiai()">Bắt đầu giải ngay</button>' +
-                            '<p style="margin-top:10px; font-size: 0.9em; color:var(--text-muted)">Khóa danh sách đăng ký và bắt đầu thi đấu.</p>';
-    } else if (status === 'dang_dien_ra') {
-      actionsEl.innerHTML = '<span style="color:#2ed573">Giải đang diễn ra live!</span>';
-    }
-  }
-  
-  // 2. Render stages
-  const listEl = document.getElementById('manage-stage-list');
-  if (stagesRes.Success && stagesRes.Data && stagesRes.Data.length > 0) {
-    listEl.innerHTML = stagesRes.Data.map(s => {
-      return '<div style="border:1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 5px; display:flex; justify-content:space-between">' +
-        '<div><strong>' + s.TenGiaiDoan + '</strong> <span style="color:var(--text-muted);font-size:0.9em">(' + s.TheThuc + ')</span></div>' +
-        '<button class="btn-outline-glow" style="padding: 2px 8px; border-color: #ff4757; color:#ff4757" onclick="submitXoaGiaiDoan(' + s.MaGiaiDoan + ')">Xóa</button>' +
-        '</div>';
-    }).join('');
-  } else {
-    listEl.innerHTML = '<div class="text-muted">Chưa có giai đoạn thi đấu nào.</div>';
-  }
-}
-
-window.submitAddStage = async function() {
-  const name = document.getElementById('manage-stage-name').value.trim();
-  const format = document.getElementById('manage-stage-format').value;
-  const teams = Number(document.getElementById('manage-stage-teams').value) || 2;
-  const msg = document.getElementById('manage-tour-msg');
-  
-  if (!name) { msg.textContent = 'Vui lòng nhập tên giai đoạn.'; msg.style.color='#ff4757'; return; }
-  
-  const payload = {
-    MaGiaiDau: currentManageId,
-    TenGiaiDoan: name,
-    TheThuc: format,
-    SoDoiDiTiep: teams,
-    DiemNguongMatchPoint: 50 // default if champion_rush
-  };
-  
-  const res = await api('/TournamentBuilderApi/ThemGiaiDoan', 'POST', payload);
-  if (res.Success) {
-    document.getElementById('manage-stage-name').value = '';
-    loadManageTournament();
-  } else {
-    msg.textContent = res.Message;
-    msg.style.color='#ff4757';
-  }
-};
-
-window.submitXoaGiaiDoan = async function(maGiaiDoan) {
-  if (!confirm('Bạn có chắc muốn xóa giai đoạn này?')) return;
-  const res = await api('/TournamentBuilderApi/XoaGiaiDoan', 'POST', { maGiaiDau: currentManageId, maGiaiDoan: maGiaiDoan });
-  if (res.Success) loadManageTournament();
-  else alert(res.Message);
-};
-
-window.submitGuiDuyet = async function() {
-  const msg = document.getElementById('manage-tour-msg');
-  msg.textContent = 'Đang gửi...';
-  msg.style.color = 'var(--text-muted)';
-  
-  const res = await api('/TournamentBuilderApi/GuiXetDuyet', 'POST', { maGiaiDau: currentManageId });
-  if (res.Success) {
-    // Reload my tournaments so the status updates in the array
-    await loadMyTournaments();
-    loadManageTournament();
-  } else {
-    msg.textContent = res.Message;
-    msg.style.color = '#ff4757';
-  }
-};
-
-window.submitBatDauGiai = async function() {
-  const msg = document.getElementById('manage-tour-msg');
-  if (!confirm('Sau khi bắt đầu, bạn không thể thay đổi danh sách đội tham gia. Xác nhận bắt đầu giải?')) return;
-  
-  const res = await api('/TournamentBuilderApi/BatDauGiai', 'POST', { maGiaiDau: currentManageId });
-  if (res.Success) {
-    await loadMyTournaments();
-    loadManageTournament();
-  } else {
-    msg.textContent = res.Message;
-    msg.style.color = '#ff4757';
-  }
-};
-
-// ---- CREATE TEAM ----
-window.submitCreateTeam = async function() {
-  const msg = document.getElementById('team-msg');
-  const payload = {
-    TenDoi: document.getElementById('team-ten').value.trim(),
-    Slogan: document.getElementById('team-slogan').value.trim(),
-    LogoUrl: '',
-    maTroChoiMacDinh: Number(document.getElementById('team-game').value) || 0,
-    tenNhomMacDinh: document.getElementById('team-nhom').value.trim()
-  };
-  if (!payload.TenDoi) { msg.style.color='#ff4757'; msg.textContent='Nhập tên đội.'; return; }
-  if (!payload.maTroChoiMacDinh) { msg.style.color='#ff4757'; msg.textContent='Chọn game cho đội.'; return; }
-  if (!payload.tenNhomMacDinh) { msg.style.color='#ff4757'; msg.textContent='Nhập tên nhóm.'; return; }
-
-  const fd = new URLSearchParams();
-  Object.entries(payload).forEach(([k,v]) => fd.append(k, v));
-  const res = await fetch('/TeamApi/TaoDoi', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: fd.toString() });
-  const result = await res.json();
-  msg.style.color = result.Success ? '#2ed573' : '#ff4757';
-  if (result.Success) {
-    msg.textContent = '✅ Đã tạo đội thành công!';
-    showSidebarItem('side-my-teams');
-  } else {
-    msg.textContent = result.Message || 'Tạo đội thất bại.';
-  }
-};
-
-// ---- SIDEBAR CONDITIONAL ITEMS ----
-function showSidebarItem(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('d-none');
-}
-
-// ---- AVATAR UPLOAD ----
-window.triggerAvatarUpload = function() {
-  const input = document.getElementById('avatar-file-input');
-  if (input) input.click();
-};
-
-(function initAvatarUpload() {
-  const input = document.getElementById('avatar-file-input');
-  if (!input) return;
-  input.addEventListener('change', async function() {
-    if (!this.files || !this.files[0]) return;
-    const file   = this.files[0];
-    const formData = new FormData();
-    formData.append('avatar', file);
-
-    const uploadMsg = document.getElementById('pf-msg');
-    if (uploadMsg) { uploadMsg.style.color = '#aaa'; uploadMsg.textContent = 'Đang tải ảnh...'; }
-
-=======
->>>>>>> b055aa5 (new)
     try {
       const res = await fetch(url, opts);
       return await res.json();
@@ -1002,6 +238,7 @@ window.triggerAvatarUpload = function() {
       if (page === "my-tournaments") loadMyTournaments();
       if (page === "manage-tournament") loadManageTournament();
       if (page === "my-teams") loadMyTeams();
+      if (page === "create-team") initCreateTeamForm();
     }
   };
 
@@ -1040,7 +277,7 @@ window.triggerAvatarUpload = function() {
   }
 
   function populateGameSelects() {
-    ["org-game", "team-game"].forEach((id) => {
+    ["org-game"].forEach((id) => {
       const sel = document.getElementById(id);
       if (!sel) return;
       sel.innerHTML = '<option value="">-- Chọn game --</option>';
@@ -1509,12 +746,60 @@ window.triggerAvatarUpload = function() {
   };
 
   // ---- ORGANIZE TOURNAMENT ----
+  let prizeCount = 0;
+  window.addPrizeInput = function () {
+    const list = document.getElementById("org-prizes-list");
+    prizeCount++;
+    const div = document.createElement("div");
+    div.id = "prize-item-" + prizeCount;
+    div.style.border = "1px solid var(--border)";
+    div.style.padding = "10px";
+    div.style.marginBottom = "10px";
+    div.style.borderRadius = "var(--radius)";
+    div.innerHTML = `
+    <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
+      <strong>Giải thưởng #${prizeCount}</strong>
+      <button class="btn-outline-glow" style="border-color:#ff4757; color:#ff4757; padding:2px 8px; font-size:0.8rem;" onclick="removePrizeInput(${prizeCount})">Xóa</button>
+    </div>
+    <div class="form-group-dark">
+      <input class="form-control-dark prize-name" placeholder="Tên giải (VD: Top 1, MVP...)" />
+    </div>
+    <div class="form-group-dark">
+      <input class="form-control-dark prize-reward" placeholder="Phần thưởng (VD: 5.000.000 VNĐ, Bằng khen...)" />
+    </div>
+    <div class="form-group-dark" style="margin-bottom:0;">
+      <textarea class="form-control-dark prize-desc" placeholder="Mô tả thêm (tùy chọn)" rows="2"></textarea>
+    </div>
+  `;
+    list.appendChild(div);
+  };
+
+  window.removePrizeInput = function (id) {
+    const el = document.getElementById("prize-item-" + id);
+    if (el) el.remove();
+  };
+
   window.submitOrganize = async function () {
     const msg = document.getElementById("org-msg");
+
+    const prizes = [];
+    document.querySelectorAll("#org-prizes-list > div").forEach((el) => {
+      const ten = el.querySelector(".prize-name").value.trim();
+      const thuong = el.querySelector(".prize-reward").value.trim();
+      const mota = el.querySelector(".prize-desc").value.trim();
+      if (ten || thuong) {
+        prizes.push({ TenGiai: ten, PhanThuong: thuong, MoTa: mota });
+      }
+    });
+
     const payload = {
       TenGiaiDau: document.getElementById("org-ten-giai").value.trim(),
+      MoTa: document.getElementById("org-mo-ta").value.trim(),
       MaTroChoi: Number(document.getElementById("org-game").value) || null,
-      TheThuc: document.getElementById("org-the-thuc").value || "hon_hop",
+      SoNguoiMoiDoi:
+        Number(document.getElementById("org-so-nguoi").value) || null,
+      TheThuc: document.getElementById("org-the-thuc").value,
+      BannerUrl: document.getElementById("org-banner").value.trim(),
       TongGiaiThuong:
         Number(document.getElementById("org-giai-thuong").value) || 0,
       NgayBatDau: document.getElementById("org-start").value
@@ -1523,7 +808,9 @@ window.triggerAvatarUpload = function() {
       NgayKetThuc: document.getElementById("org-end").value
         ? new Date(document.getElementById("org-end").value).toISOString()
         : null,
+      GiaiThuongs: prizes,
     };
+
     if (!payload.TenGiaiDau) {
       msg.style.color = "#ff4757";
       msg.textContent = "Nhập tên giải đấu.";
@@ -1536,11 +823,14 @@ window.triggerAvatarUpload = function() {
     );
     msg.style.color = result.Success ? "#2ed573" : "#ff4757";
     if (result.Success) {
-      msg.textContent =
-        "✅ Đã tạo! Mã giải: #" +
-        (result.Data && result.Data.MaGiaiDau ? result.Data.MaGiaiDau : "");
+      msg.textContent = result.Message;
+      document.getElementById("org-ten-giai").value = "";
+      document.getElementById("org-mo-ta").value = "";
+      document.getElementById("org-banner").value = "";
+      document.getElementById("org-prizes-list").innerHTML = "";
+
       showSidebarItem("side-my-tournaments");
-      setTimeout(() => navigateTo("my-tournaments"), 1000);
+      setTimeout(() => navigateTo("my-tournaments"), 1500);
     } else {
       msg.textContent = result.Message || "Tạo giải thất bại.";
     }
@@ -1791,30 +1081,102 @@ window.triggerAvatarUpload = function() {
   };
 
   // ---- CREATE TEAM ----
+  let teamSquadRowId = 0;
+
+  function initCreateTeamForm() {
+    const container = document.getElementById("team-squads-container");
+    if (container) {
+      container.innerHTML = "";
+      teamSquadRowId = 0;
+      addSquadRow(); // Add first row by default
+    }
+  }
+
+  window.addSquadRow = function () {
+    const container = document.getElementById("team-squads-container");
+    if (!container) return;
+    const id = ++teamSquadRowId;
+    const row = document.createElement("div");
+    row.className = "team-squad-row";
+    row.id = "team-squad-row-" + id;
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "1fr 1fr 40px";
+    row.style.gap = "8px";
+    row.style.marginBottom = "8px";
+    row.innerHTML =
+      '<select class="select-dark team-squad-game" id="team-squad-game-' +
+      id +
+      '"><option value="">-- Chọn game --</option></select>' +
+      '<input class="form-control-dark team-squad-name" id="team-squad-name-' +
+      id +
+      '" placeholder="VD: Team Alpha LoL" />' +
+      '<button class="btn-outline-glow" style="padding:4px 8px;font-size:.75rem" onclick="removeSquadRow(' +
+      id +
+      ')">✕</button>';
+    container.appendChild(row);
+    const sel = row.querySelector(".team-squad-game");
+    gameList.forEach((g) => {
+      const opt = document.createElement("option");
+      opt.value = g.ma_tro_choi;
+      opt.textContent = g.ten_game;
+      sel.appendChild(opt);
+    });
+  };
+
+  window.removeSquadRow = function (id) {
+    const row = document.getElementById("team-squad-row-" + id);
+    if (row) row.remove();
+  };
+
   window.submitCreateTeam = async function () {
     const msg = document.getElementById("team-msg");
-    const payload = {
-      TenDoi: document.getElementById("team-ten").value.trim(),
-      Slogan: document.getElementById("team-slogan").value.trim(),
-      LogoUrl: "",
-      maTroChoiMacDinh: Number(document.getElementById("team-game").value) || 0,
-      tenNhomMacDinh: document.getElementById("team-nhom").value.trim(),
-    };
-    if (!payload.TenDoi) {
+
+    const ownTeam = await api("/TeamApi/DoiCuaToi");
+    if (ownTeam.Success && ownTeam.Data) {
+      msg.style.color = "#ff4757";
+      msg.textContent =
+        "Bạn đã có đội rồi, không thể tạo thêm đội mới. Hãy xóa đội hiện tại nếu muốn tạo lại.";
+      return;
+    }
+
+    const tenDoi = document.getElementById("team-ten").value.trim();
+    const slogan = document.getElementById("team-slogan").value.trim();
+    if (!tenDoi) {
       msg.style.color = "#ff4757";
       msg.textContent = "Nhập tên đội.";
       return;
     }
-    if (!payload.maTroChoiMacDinh) {
+
+    const squadRows = document.querySelectorAll(".team-squad-row");
+    if (squadRows.length === 0) {
       msg.style.color = "#ff4757";
-      msg.textContent = "Chọn game cho đội.";
+      msg.textContent = "Phải có ít nhất 1 nhóm thi đấu.";
       return;
     }
-    if (!payload.tenNhomMacDinh) {
+
+    const squads = [];
+    let hasError = false;
+    squadRows.forEach((row) => {
+      const gameSel = row.querySelector(".team-squad-game");
+      const nameInput = row.querySelector(".team-squad-name");
+      const maTroChoi = Number(gameSel.value) || 0;
+      const tenNhom = (nameInput.value || "").trim();
+      if (!maTroChoi || !tenNhom) hasError = true;
+      squads.push({ maTroChoi, tenNhom });
+    });
+
+    if (hasError) {
       msg.style.color = "#ff4757";
-      msg.textContent = "Nhập tên nhóm.";
+      msg.textContent = "Vui lòng chọn game và nhập tên cho tất cả các nhóm.";
       return;
     }
+
+    const payload = {
+      TenDoi: tenDoi,
+      Slogan: slogan,
+      LogoUrl: "",
+      Squads: JSON.stringify(squads),
+    };
 
     const fd = new URLSearchParams();
     Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
@@ -1826,8 +1188,9 @@ window.triggerAvatarUpload = function() {
     const result = await res.json();
     msg.style.color = result.Success ? "#2ed573" : "#ff4757";
     if (result.Success) {
-      msg.textContent = "✅ Đã tạo đội thành công!";
+      msg.textContent = "✅ Đã tạo đội và các nhóm thành công!";
       showSidebarItem("side-my-teams");
+      navigateTo("my-teams");
     } else {
       msg.textContent = result.Message || "Tạo đội thất bại.";
     }
@@ -1969,51 +1332,490 @@ window.triggerAvatarUpload = function() {
     }).join("");
   }
 
-  // ---- MY TEAMS ----
-  async function loadMyTeams() {
-    const list = document.getElementById("my-teams-list");
-    if (!list || !currentUser) return;
-    list.innerHTML =
-      '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
+  // ---- CONFIRMATION MODAL ----
+  let confirmCallback = null;
 
-    const result = await api("/TeamApi/DoiCuaToi");
-    if (!result.Success || !result.Data) {
-      list.innerHTML =
-        '<div class="empty-state"><div class="empty-state-icon">👥</div><h4>Chưa thuộc đội nào</h4><p>Hãy tạo hoặc tham gia một đội!</p></div>';
+  window.showConfirmModal = function (title, message, onConfirm) {
+    var modal = document.getElementById("confirm-modal");
+    var titleEl = document.getElementById("modal-title");
+    var msgEl = document.getElementById("modal-message");
+    var confirmBtn = document.getElementById("modal-confirm-btn");
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    confirmCallback = onConfirm;
+
+    // Remove old event listener
+    var newBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+
+    newBtn.addEventListener("click", function () {
+      if (confirmCallback) confirmCallback();
+      closeConfirmModal();
+    });
+
+    if (modal) modal.style.display = "flex";
+  };
+
+  window.closeConfirmModal = function () {
+    var modal = document.getElementById("confirm-modal");
+    if (modal) modal.style.display = "none";
+    confirmCallback = null;
+  };
+
+  // ---- MY TEAMS WORKSPACE ----
+  let mtTeamData = null;
+  let mtSelectedSquad = null;
+  let mtCurrentTab = "roster";
+
+  async function loadMyTeams() {
+    if (!currentUser) return;
+    const emptyEl = document.getElementById("mt-empty");
+    const headerEl = document.getElementById("mt-header");
+    const filterEl = document.getElementById("mt-squad-filter");
+    const layoutEl = document.querySelector(".mt-layout");
+    const bcEl = document.getElementById("mt-breadcrumb");
+
+    // First get user's team
+    const r1 = await api("/TeamApi/DoiCuaToi");
+    if (!r1.Success || !r1.Data) {
+      if (headerEl) headerEl.style.display = "none";
+      if (filterEl) filterEl.style.display = "none";
+      if (layoutEl) layoutEl.style.display = "none";
+      if (bcEl) bcEl.style.display = "none";
+      if (emptyEl) emptyEl.style.display = "block";
       return;
     }
 
+    // Show workspace
+    if (headerEl) headerEl.style.display = "";
+    if (filterEl) filterEl.style.display = "";
+    if (layoutEl) layoutEl.style.display = "";
+    if (bcEl) bcEl.style.display = "";
+    if (emptyEl) emptyEl.style.display = "none";
+
     showSidebarItem("side-my-teams");
-    const d = result.Data;
-    const roleMap = {
-      leader: "👑 Leader",
-      captain: "⚔️ Captain",
-      member: "👤 Thành viên",
-    };
-    list.innerHTML =
-      '<div class="profile-card" style="display:flex;align-items:center;gap:20px">' +
-      '<div style="font-size:3rem">👥</div>' +
-      "<div>" +
-      '<div style="font-size:1.2rem;font-weight:700;color:var(--text-primary)">' +
-      d.ten_doi +
-      "</div>" +
-      '<div style="color:var(--text-muted);font-size:.85rem;margin-top:4px">' +
-      (d.slogan || "") +
-      "</div>" +
-      '<div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">' +
-      '<span style="background:var(--bg-sidebar);border-radius:6px;padding:4px 10px;font-size:.8rem">🎮 ' +
-      d.ten_game +
-      "</span>" +
-      '<span style="background:var(--bg-sidebar);border-radius:6px;padding:4px 10px;font-size:.8rem">' +
-      (roleMap[d.vai_tro] || d.vai_tro) +
-      "</span>" +
-      '<span style="background:var(--bg-sidebar);border-radius:6px;padding:4px 10px;font-size:.8rem">📌 ' +
-      d.ten_nhom +
-      "</span>" +
-      "</div>" +
-      "</div>" +
-      "</div>";
+    const maDoi = r1.Data.ma_doi;
+
+    // Get full team detail
+    const r2 = await api("/TeamApi/ChiTietDoi?maDoi=" + maDoi);
+    if (!r2.Success || !r2.Data) return;
+    mtTeamData = r2.Data;
+    const team = mtTeamData;
+    const squads = Array.isArray(team.nhom_doi) ? team.nhom_doi : [];
+    const isLeader = team.vai_tro_hien_tai === "leader";
+    const isCaptain = team.vai_tro_hien_tai === "captain";
+    const canManage = isLeader || isCaptain;
+
+    // --- Header ---
+    var bcSpan = document.getElementById("mt-team-name-bc");
+    if (bcSpan) bcSpan.textContent = team.ten_doi || "Đội";
+    var nameEl = document.getElementById("mt-team-name");
+    if (nameEl) nameEl.textContent = team.ten_doi || "Đội";
+    var sloganEl = document.getElementById("mt-slogan");
+    if (sloganEl) sloganEl.textContent = team.slogan || "";
+    var logoEl = document.getElementById("mt-logo");
+    if (logoEl)
+      logoEl.innerHTML = team.logo_url
+        ? '<img src="' + team.logo_url + '" alt="">'
+        : (team.ten_doi || "?").charAt(0).toUpperCase();
+
+    // Game badge (from first squad)
+    var gameBadge = document.getElementById("mt-game-badge");
+    if (gameBadge && squads.length)
+      gameBadge.textContent = "⚔ " + (squads[0].ten_game || "");
+    var tagEl = document.getElementById("mt-tag");
+    if (tagEl)
+      tagEl.textContent =
+        "[" + (team.ten_doi || "").substring(0, 3).toUpperCase() + "]";
+
+    // Meta badges
+    var metaEl = document.getElementById("mt-meta-badges");
+    if (metaEl) {
+      var founder = team.ten_manager || "";
+      var created = team.ngay_tao
+        ? new Date(team.ngay_tao).toLocaleDateString("vi-VN")
+        : "";
+      metaEl.innerHTML =
+        (founder
+          ? '<span class="mt-meta-badge">👑 Người thành lập: <b>' +
+            founder +
+            "</b></span>"
+          : "") +
+        (created
+          ? '<span class="mt-meta-badge">📅 Thành lập: <b>' +
+            created +
+            "</b></span>"
+          : "") +
+        '<span class="mt-meta-badge">👥 Thành viên: <b>' +
+        (team.so_thanh_vien || 0) +
+        "</b></span>";
+    }
+
+    // --- Squad Filter ---
+    if (filterEl) {
+      var allBtnHtml =
+        '<button class="mt-squad-btn active" data-ma-nhom="all" onclick="selectMyTeamSquad(0, this)">📋 Tất cả thành viên</button>';
+      var squadBtnsHtml = squads
+        .map(function (sq) {
+          return (
+            '<button class="mt-squad-btn" data-ma-nhom="' +
+            sq.ma_nhom +
+            '" onclick="selectMyTeamSquad(' +
+            sq.ma_nhom +
+            ', this)">' +
+            (sq.ten_game || "") +
+            " - " +
+            (sq.ten_nhom || "Nhóm") +
+            "</button>"
+          );
+        })
+        .join("");
+      filterEl.innerHTML = allBtnHtml + squadBtnsHtml;
+
+      // Default to "All" selection
+      mtSelectedSquad = { ma_nhom: 0, is_all: true };
+      loadMyTeamTabContent();
+    }
+
+    // --- Sidebar ---
+    renderMyTeamSidebar(team, squads, canManage);
+
+    // --- Add Squad game dropdown ---
+    var addSqGame = document.getElementById("mt-add-squad-game");
+    if (addSqGame) {
+      addSqGame.innerHTML = '<option value="">-- Chọn game --</option>';
+      gameList.forEach(function (g) {
+        addSqGame.innerHTML +=
+          '<option value="' + g.ma_tro_choi + '">' + g.ten_game + "</option>";
+      });
+    }
+
+    // Show/hide management controls
+    var addSquadBtn = document.getElementById("mt-btn-add-squad");
+    if (addSquadBtn) addSquadBtn.style.display = isLeader ? "" : "none";
+    var delSquadBtn = document.getElementById("mt-btn-delete-squad");
+    if (delSquadBtn) delSquadBtn.style.display = isLeader ? "" : "none";
+    var delTeamBtn = document.getElementById("mt-btn-delete-team");
+    if (delTeamBtn) delTeamBtn.style.display = isLeader ? "" : "none";
   }
+
+  window.selectMyTeamSquad = function (maNhom, btnEl) {
+    document.querySelectorAll(".mt-squad-btn").forEach(function (b) {
+      b.classList.remove("active");
+    });
+    if (btnEl) btnEl.classList.add("active");
+    var squads =
+      mtTeamData && Array.isArray(mtTeamData.nhom_doi)
+        ? mtTeamData.nhom_doi
+        : [];
+    if (maNhom === 0) {
+      mtSelectedSquad = { ma_nhom: 0, is_all: true };
+    } else {
+      mtSelectedSquad =
+        squads.find(function (s) {
+          return s.ma_nhom === maNhom;
+        }) || null;
+    }
+    loadMyTeamTabContent();
+  };
+
+  window.switchMyTeamTab = function (tab, btnEl) {
+    mtCurrentTab = tab;
+    document.querySelectorAll(".mt-tab").forEach(function (b) {
+      b.classList.remove("active");
+    });
+    if (btnEl) btnEl.classList.add("active");
+    loadMyTeamTabContent();
+  };
+
+  async function loadMyTeamTabContent() {
+    var content = document.getElementById("mt-tab-content");
+    var inviteSection = document.getElementById("mt-invite-section");
+    if (!content || !mtSelectedSquad) return;
+
+    if (mtCurrentTab === "roster") {
+      await loadMyTeamRoster(content);
+      // Show invite for leaders/captains
+      var canManage =
+        mtTeamData &&
+        (mtTeamData.vai_tro_hien_tai === "leader" ||
+          mtTeamData.vai_tro_hien_tai === "captain");
+      if (inviteSection)
+        inviteSection.style.display = canManage ? "block" : "none";
+    } else {
+      if (inviteSection) inviteSection.style.display = "none";
+      if (mtCurrentTab === "history") loadMyTeamHistory(content);
+      else if (mtCurrentTab === "tournaments") loadMyTeamTournaments(content);
+      else if (mtCurrentTab === "stats") loadMyTeamStats(content);
+    }
+  }
+
+  async function loadMyTeamRoster(container) {
+    container.innerHTML =
+      '<div style="color:var(--text-muted);padding:16px">Đang tải roster...</div>';
+
+    var allMembers = [];
+
+    if (mtSelectedSquad.is_all) {
+      // Fetch members from all squads
+      var squads =
+        mtTeamData && Array.isArray(mtTeamData.nhom_doi)
+          ? mtTeamData.nhom_doi
+          : [];
+      for (var i = 0; i < squads.length; i++) {
+        var r = await api("/TeamApi/ThanhVienNhom?maNhom=" + squads[i].ma_nhom);
+        if (r.Success && Array.isArray(r.Data)) {
+          r.Data.forEach(function (m) {
+            m.ten_nhom = squads[i].ten_nhom;
+            m.ten_game = squads[i].ten_game;
+          });
+          allMembers = allMembers.concat(r.Data);
+        }
+      }
+    } else {
+      var result = await api(
+        "/TeamApi/ThanhVienNhom?maNhom=" + mtSelectedSquad.ma_nhom,
+      );
+      if (result.Success && Array.isArray(result.Data)) {
+        allMembers = result.Data;
+      }
+    }
+
+    if (allMembers.length === 0) {
+      container.innerHTML =
+        '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">👥</div><h4>Chưa có thành viên</h4></div>';
+      return;
+    }
+
+    var html = '<div class="mt-roster-grid">';
+    allMembers.forEach(function (m) {
+      var initials = (m.in_game_name || m.ten_dang_nhap || "?")
+        .charAt(0)
+        .toUpperCase();
+      var role = m.vai_tro_noi_bo || "member";
+      var roleCls =
+        role === "captain"
+          ? "captain"
+          : role === "leader"
+            ? "leader"
+            : role === "coach"
+              ? "coach"
+              : "member";
+      var roleLabel =
+        role === "captain"
+          ? "CAPTAIN"
+          : role === "leader"
+            ? "LEADER"
+            : role === "coach"
+              ? "COACH"
+              : "MEMBER";
+      var posLabel = m.ten_vi_tri || m.ky_hieu_vi_tri || "";
+      var joinDate = m.ngay_tham_gia
+        ? new Date(m.ngay_tham_gia).toLocaleDateString("vi-VN")
+        : "";
+      var displayName = m.in_game_name || m.ten_dang_nhap || "Người chơi";
+      var squadInfo = mtSelectedSquad.is_all
+        ? '<div class="mt-member-squad">' +
+          (m.ten_game || "") +
+          " - " +
+          (m.ten_nhom || "Nhóm") +
+          "</div>"
+        : "";
+
+      html +=
+        '<div class="mt-member-card">' +
+        '<div class="mt-member-avatar">' +
+        (m.avatar_url ? '<img src="' + m.avatar_url + '" alt="">' : initials) +
+        "</div>" +
+        '<div class="mt-member-info">' +
+        '<div class="mt-member-name">' +
+        displayName +
+        "</div>" +
+        '<div class="mt-member-badges">' +
+        '<span class="mt-badge-role ' +
+        roleCls +
+        '">' +
+        roleLabel +
+        "</span>" +
+        (posLabel ? '<span class="mt-badge-pos">' + posLabel + "</span>" : "") +
+        "</div>" +
+        squadInfo +
+        (joinDate
+          ? '<div class="mt-member-date">Tham gia: ' + joinDate + "</div>"
+          : "") +
+        "</div></div>";
+    });
+    html += "</div>";
+    container.innerHTML = html;
+  }
+
+  function loadMyTeamHistory(container) {
+    container.innerHTML =
+      '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">⚡</div>' +
+      "<h4>Lịch sử thi đấu</h4><p>Chưa có dữ liệu trận đấu cho nhóm này.</p></div>";
+  }
+
+  function loadMyTeamTournaments(container) {
+    container.innerHTML =
+      '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">🏆</div>' +
+      "<h4>Giải đấu</h4><p>Nhóm chưa tham gia giải đấu nào.</p></div>";
+  }
+
+  function loadMyTeamStats(container) {
+    container.innerHTML =
+      '<div class="empty-state" style="padding:40px"><div class="empty-state-icon">📊</div>' +
+      "<h4>Thống kê</h4><p>Chưa có dữ liệu thống kê cho nhóm này.</p></div>";
+  }
+
+  function renderMyTeamSidebar(team, squads, canManage) {
+    var infoEl = document.getElementById("mt-sidebar-info");
+    if (!infoEl) return;
+    var gameNames = squads
+      .map(function (s) {
+        return s.ten_game;
+      })
+      .filter(function (v, i, a) {
+        return a.indexOf(v) === i;
+      })
+      .join(", ");
+    var created = team.ngay_tao
+      ? new Date(team.ngay_tao).toLocaleDateString("vi-VN")
+      : "-";
+    infoEl.innerHTML =
+      '<div class="mt-sidebar-info-row"><span class="label">ELO Rating</span><span class="value">-</span></div>' +
+      '<div class="mt-sidebar-info-row"><span class="label">Thành viên</span><span class="value">' +
+      (team.so_thanh_vien || 0) +
+      "</span></div>" +
+      '<div class="mt-sidebar-info-row"><span class="label">Game</span><span class="value">' +
+      (gameNames || "-") +
+      "</span></div>" +
+      '<div class="mt-sidebar-info-row"><span class="label">Nhóm</span><span class="value">' +
+      squads.length +
+      " / 12</span></div>" +
+      '<div class="mt-sidebar-info-row"><span class="label">Ngày thành lập</span><span class="value">' +
+      created +
+      "</span></div>" +
+      '<div class="mt-sidebar-info-row"><span class="label">Trạng thái</span><span class="value">' +
+      (team.dang_tuyen ? "🟢 Đang tuyển" : "🔴 Không tuyển") +
+      "</span></div>";
+  }
+
+  window.toggleMyTeamAddSquad = function () {
+    var form = document.getElementById("mt-add-squad-form");
+    if (form)
+      form.style.display = form.style.display === "none" ? "block" : "none";
+  };
+
+  window.submitMyTeamAddSquad = async function () {
+    var msg = document.getElementById("mt-add-squad-msg");
+    var gameVal = document.getElementById("mt-add-squad-game").value;
+    var nameVal = (
+      document.getElementById("mt-add-squad-name").value || ""
+    ).trim();
+    if (!gameVal) {
+      if (msg) {
+        msg.style.color = "#ff4757";
+        msg.textContent = "Vui lòng chọn game.";
+      }
+      return;
+    }
+    if (!nameVal) {
+      if (msg) {
+        msg.style.color = "#ff4757";
+        msg.textContent = "Vui lòng nhập tên nhóm.";
+      }
+      return;
+    }
+    var result = await api("/TeamApi/TaoNhom", "POST", {
+      maDoi: mtTeamData.ma_doi,
+      maTroChoi: Number(gameVal),
+      tenNhom: nameVal,
+      maCaptain: 0,
+    });
+    if (msg) {
+      msg.style.color = result.Success ? "#2ed573" : "#ff4757";
+      msg.textContent = result.Success
+        ? "Tạo nhóm thành công!"
+        : result.Message || "Tạo nhóm thất bại.";
+    }
+    if (result.Success) loadMyTeams();
+  };
+
+  window.deleteSelectedMyTeamSquad = async function () {
+    if (!mtTeamData || !mtSelectedSquad) return;
+
+    showConfirmModal(
+      "Xác nhận xóa nhóm",
+      'Bạn có chắc chắn muốn xóa nhóm "' +
+        (mtSelectedSquad.ten_nhom || "") +
+        '"? Hành động này không thể hoàn tác.',
+      async function () {
+        var result = await api("/TeamApi/XoaNhom", "POST", {
+          maDoi: mtTeamData.ma_doi,
+          maNhom: mtSelectedSquad.ma_nhom,
+        });
+
+        if (!result.Success) {
+          showToast(result.Message || "Xóa nhóm thất bại.");
+          return;
+        }
+
+        loadMyTeams();
+      },
+    );
+  };
+
+  window.deleteMyTeam = async function () {
+    if (!mtTeamData) return;
+
+    showConfirmModal(
+      "Xác nhận xóa đội",
+      'Bạn có chắc chắn muốn xóa đội "' +
+        (mtTeamData.ten_doi || "") +
+        '"? Tất cả nhóm trong đội sẽ bị xóa.',
+      async function () {
+        var result = await api("/TeamApi/XoaDoi", "POST", {
+          maDoi: mtTeamData.ma_doi,
+        });
+        if (!result.Success) {
+          showToast(result.Message || "Xóa đội thất bại.");
+          return;
+        }
+
+        showToast("Đã xóa đội thành công.");
+        mtTeamData = null;
+        mtSelectedSquad = null;
+        navigateTo("create-team");
+      },
+    );
+  };
+
+  window.submitInviteMember = async function () {
+    var msg = document.getElementById("mt-invite-msg");
+    var input = document.getElementById("mt-invite-input");
+    var val = (input ? input.value : "").trim();
+    if (!val) {
+      if (msg) {
+        msg.style.color = "#ff4757";
+        msg.textContent = "Vui lòng nhập tên hoặc email.";
+      }
+      return;
+    }
+    if (!mtTeamData || !mtSelectedSquad) return;
+    var result = await api("/TeamApi/GuiLoiMoiGiaNhap", "POST", {
+      maDoi: mtTeamData.ma_doi,
+      maNhom: mtSelectedSquad.ma_nhom,
+      tenNguoiNhan: val,
+    });
+    if (msg) {
+      msg.style.color = result.Success ? "#2ed573" : "#ff4757";
+      msg.textContent = result.Success
+        ? "Đã gửi lời mời thành công!"
+        : result.Message || "Gửi lời mời thất bại.";
+    }
+    if (result.Success && input) input.value = "";
+  };
 
   // ---- LOAD TEAM FOR PROFILE PAGE ----
   async function loadMyTeamForProfile() {
@@ -3001,7 +2803,10 @@ window.triggerAvatarUpload = function() {
           !team.dang_tuyen +
           ')">' +
           (team.dang_tuyen ? "🔴 Tắt tuyển dụng" : "🟢 Bật tuyển dụng") +
-          "</button>"
+          "</button>" +
+          '<button class="btn-primary-glow" style="padding:6px 14px;font-size:.82rem;margin-left:8px" onclick="toggleAddSquadForm(' +
+          maDoi +
+          ')">➕ Thêm nhóm</button>'
         : "") +
       (!team.vai_tro_hien_tai && team.dang_tuyen
         ? '<button class="btn-primary-glow" style="padding:6px 14px;font-size:.82rem" onclick="requestJoinTeam(' +
@@ -3011,6 +2816,39 @@ window.triggerAvatarUpload = function() {
       "</div>" +
       "</div>" +
       "</div>";
+
+    // Render add-squad form (hidden by default, only for leader)
+    const oldForm = document.getElementById("add-squad-form");
+    if (oldForm) oldForm.remove();
+    let addSquadHtml = "";
+    if (isLeader) {
+      let gameOpts = '<option value="">-- Chọn game --</option>';
+      gameList.forEach(function (g) {
+        gameOpts +=
+          '<option value="' + g.ma_tro_choi + '">' + g.ten_game + "</option>";
+      });
+      addSquadHtml =
+        '<div id="add-squad-form" style="display:none;margin-top:12px" class="profile-card">' +
+        "<h5>Thêm nhóm thi đấu mới</h5>" +
+        '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">' +
+        '<div class="form-group-dark" style="margin-bottom:0">' +
+        "<label>Game</label>" +
+        '<select class="select-dark" id="add-squad-game">' +
+        gameOpts +
+        "</select>" +
+        "</div>" +
+        '<div class="form-group-dark" style="margin-bottom:0">' +
+        "<label>Tên nhóm</label>" +
+        '<input class="form-control-dark" id="add-squad-name" placeholder="VD: Team Alpha LoL" />' +
+        "</div>" +
+        '<button class="btn-save" style="height:38px" onclick="submitAddSquad(' +
+        maDoi +
+        ')">Tạo nhóm</button>' +
+        "</div>" +
+        '<span id="add-squad-msg" style="display:block;margin-top:8px;font-size:.85rem"></span>' +
+        "</div>";
+    }
+    header.insertAdjacentHTML("afterend", addSquadHtml);
 
     // Render squad tabs
     const squads = Array.isArray(team.nhom_list) ? team.nhom_list : [];
@@ -3226,6 +3064,49 @@ window.triggerAvatarUpload = function() {
         : result.Message || "Lỗi.",
     );
     if (result.Success) loadTeamDetail(maDoi);
+  };
+
+  window.toggleAddSquadForm = function (maDoi) {
+    const form = document.getElementById("add-squad-form");
+    if (!form) return;
+    form.style.display = form.style.display === "none" ? "block" : "none";
+  };
+
+  window.submitAddSquad = async function (maDoi) {
+    const msg = document.getElementById("add-squad-msg");
+    const gameVal = document.getElementById("add-squad-game").value;
+    const nameVal = (
+      document.getElementById("add-squad-name").value || ""
+    ).trim();
+    if (!gameVal) {
+      if (msg) {
+        msg.style.color = "#ff4757";
+        msg.textContent = "Vui lòng chọn game.";
+      }
+      return;
+    }
+    if (!nameVal) {
+      if (msg) {
+        msg.style.color = "#ff4757";
+        msg.textContent = "Vui lòng nhập tên nhóm.";
+      }
+      return;
+    }
+    const result = await api("/TeamApi/TaoNhom", "POST", {
+      maDoi: maDoi,
+      maTroChoi: Number(gameVal),
+      tenNhom: nameVal,
+      maCaptain: 0,
+    });
+    if (msg) {
+      msg.style.color = result.Success ? "#2ed573" : "#ff4757";
+      msg.textContent = result.Success
+        ? "Tạo nhóm thành công!"
+        : result.Message || "Tạo nhóm thất bại.";
+    }
+    if (result.Success) {
+      loadTeamDetail(maDoi);
+    }
   };
 
   // ---- GLOBAL SEARCH ----
