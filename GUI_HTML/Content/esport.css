@@ -389,3 +389,35 @@ button { cursor: pointer; }
   100% { transform: rotate(0); }
 }
 .tc-icon { display: inline-block; }
+
+/* ============ AVATAR UPLOAD OVERLAY ============ */
+.avatar-camera-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.55);
+  color: #fff; font-size: 1rem;
+  text-align: center;
+  padding: 4px 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 0 0 50% 50%;
+}
+#profile-avatar-big:hover .avatar-camera-overlay { opacity: 1; }
+
+/* ============ POSITION SELECT OPTGROUP ============ */
+.select-dark optgroup {
+  background: var(--bg-sidebar);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.select-dark optgroup option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 400;
+  font-size: 0.88rem;
+  text-transform: none;
+  letter-spacing: 0;
+}

@@ -138,5 +138,21 @@ namespace GUI_HTML.Controllers
             int maNguoi = (int)Session["CurrentUserId"];
             return Json(_bus.ChuyenSangDangDienRa(maNguoi, maGiaiDau), JsonRequestBehavior.AllowGet);
         }
+
+        [HttpGet]
+        [RequireLogin]
+        public JsonResult GiaiCuaToi()
+        {
+            int maNguoiDung = (int)Session["CurrentUserId"];
+            return Json(_bus.LayGiaiCuaToi(maNguoiDung), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public JsonResult DanhSachDangKyDoi(int maGiaiDau)
+        {
+            int maNguoiDung = (int)Session["CurrentUserId"];
+            return Json(_bus.LayDanhSachDangKyDoi(maNguoiDung, maGiaiDau), JsonRequestBehavior.AllowGet);
+        }
     }
 }

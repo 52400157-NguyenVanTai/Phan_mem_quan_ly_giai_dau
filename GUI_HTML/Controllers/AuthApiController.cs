@@ -8,6 +8,7 @@ namespace GUI_HTML.Controllers
     public class AuthApiController : Controller
     {
         private readonly IdentityBUS _identityBus = new IdentityBUS();
+        private readonly IdentityDAL _identityDal = new IdentityDAL();
 
         [HttpPost]
         public JsonResult DangKy(DangKyNguoiDungDTO dto)
@@ -22,19 +23,8 @@ namespace GUI_HTML.Controllers
             ServiceResultDTO result = _identityBus.DangNhap(dto);
             if (result.Success)
             {
-                var identityDal = new IdentityDAL();
-                var user = identityDal.LayTheoDinhDanh(dto.DinhDanh);
-                Session["CurrentUser"] = new
-                {
-                    user.MaNguoiDung,
-                    user.TenDangNhap,
-                    user.Email,
-                    user.VaiTroHeThong,
-                    user.AvatarUrl,
-                    user.Bio
-                };
-                Session["CurrentUserId"] = user.MaNguoiDung;
-                Session["SystemRole"] = user.VaiTroHeThong;
+                var user = _identityDal.LayTheoDinhDanh(dto.DinhDanh);
+                UpdateCurrentUserSession(user);
             }
             return Json(result, JsonRequestBehavior.AllowGet);
         }
@@ -69,6 +59,10 @@ namespace GUI_HTML.Controllers
 
             dto.MaNguoiDung = (int)Session["CurrentUserId"];
             ServiceResultDTO result = _identityBus.CapNhatThongTin(dto);
+            if (result.Success)
+            {
+                UpdateCurrentUserSession(_identityDal.LayTheoId(dto.MaNguoiDung));
+            }
             return Json(result, JsonRequestBehavior.AllowGet);
         }
 
@@ -80,6 +74,26 @@ namespace GUI_HTML.Controllers
                 return Json(ServiceResultDTO.Fail("Chưa đăng nhập."), JsonRequestBehavior.AllowGet);
             }
             return Json(ServiceResultDTO.Ok("OK", Session["CurrentUser"]), JsonRequestBehavior.AllowGet);
+        }
+
+        private void UpdateCurrentUserSession(NguoiDungDTO user)
+        {
+            if (user == null)
+            {
+                return;
+            }
+
+            Session["CurrentUser"] = new
+            {
+                user.MaNguoiDung,
+                user.TenDangNhap,
+                user.Email,
+                user.VaiTroHeThong,
+                user.AvatarUrl,
+                user.Bio
+            };
+            Session["CurrentUserId"] = user.MaNguoiDung;
+            Session["SystemRole"] = user.VaiTroHeThong;
         }
     }
 }

@@ -436,5 +436,71 @@ ORDER BY ISNULL(hat_giong, 999999), ma_nhom;";
             }
             return list;
         }
+
+        public DataTable LayGiaiCuaToi(int maNguoiDung)
+        {
+            const string query = @"
+SELECT DISTINCT
+       gd.ma_giai_dau,
+       gd.ten_giai_dau,
+       gd.trang_thai,
+       gd.tong_giai_thuong,
+       gd.ngay_bat_dau,
+       gd.ngay_ket_thuc,
+       tc.ten_game,
+       gd.ma_tro_choi,
+       CASE WHEN gd.ma_nguoi_tao = @MaNguoiDung THEN 1 ELSE 0 END AS is_owner
+FROM GIAI_DAU gd
+LEFT JOIN TRO_CHOI tc ON gd.ma_tro_choi = tc.ma_tro_choi
+LEFT JOIN THAM_GIA_GIAI tg ON tg.ma_giai_dau = gd.ma_giai_dau
+LEFT JOIN NHOM_DOI nd ON nd.ma_nhom = tg.ma_nhom
+LEFT JOIN THANH_VIEN_DOI tv ON tv.ma_nhom = nd.ma_nhom
+WHERE gd.is_deleted = 0
+  AND
+  (
+      gd.ma_nguoi_tao = @MaNguoiDung
+      OR
+      (
+          tv.ma_nguoi_dung = @MaNguoiDung
+          AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+          AND tg.trang_thai_duyet IN ('cho_duyet', 'da_duyet')
+      )
+  )
+ORDER BY gd.ma_giai_dau DESC;";
+
+            return DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung }
+            });
+        }
+
+        public DataTable LayDanhSachDangKyDoi(int maGiaiDau)
+        {
+            const string query = @"
+SELECT tg.ma_nhom,
+       tg.trang_thai_duyet,
+       tg.hat_giong,
+       nd.ten_nhom,
+       d.ma_doi,
+       d.ten_doi,
+       d.slogan,
+       tc.ten_game
+FROM THAM_GIA_GIAI tg
+JOIN NHOM_DOI nd ON nd.ma_nhom = tg.ma_nhom
+JOIN DOI d ON d.ma_doi = nd.ma_doi
+LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = nd.ma_tro_choi
+WHERE tg.ma_giai_dau = @MaGiaiDau
+ORDER BY CASE tg.trang_thai_duyet
+            WHEN 'cho_duyet' THEN 0
+            WHEN 'da_duyet' THEN 1
+            ELSE 2
+         END,
+         nd.ten_nhom ASC;";
+
+            return DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaGiaiDau", SqlDbType.Int){ Value = maGiaiDau }
+            });
+        }
     }
 }

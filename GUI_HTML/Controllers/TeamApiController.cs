@@ -41,5 +41,13 @@ namespace GUI_HTML.Controllers
             int maNguoiThucHien = (int)Session["CurrentUserId"];
             return Json(_teamBus.GiaiTanDoi(maNguoiThucHien, maDoi), JsonRequestBehavior.AllowGet);
         }
+
+        [HttpGet]
+        [RequireLogin]
+        public JsonResult DoiCuaToi()
+        {
+            int maNguoiDung = (int)Session["CurrentUserId"];
+            return Json(_teamBus.LayDoiCuaToi(maNguoiDung), JsonRequestBehavior.AllowGet);
+        }
     }
 }

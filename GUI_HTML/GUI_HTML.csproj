@@ -133,6 +133,7 @@
     <Compile Include="Controllers\TournamentApiController.cs" />
     <Compile Include="Controllers\TournamentPublicController.cs" />
     <Compile Include="Controllers\TuongTacApiController.cs" />
+    <Compile Include="Controllers\UploadApiController.cs" />
     <Compile Include="Filters\RequireLoginAttribute.cs" />
     <Compile Include="Filters\RequireRefereeMatchAccessAttribute.cs" />
     <Compile Include="Filters\RequireSystemRoleAttribute.cs" />
@@ -166,6 +167,7 @@
     <Content Include="Scripts\bootstrap.bundle.min.js" />
     <Content Include="Scripts\bootstrap.esm.js" />
     <Content Include="Scripts\bootstrap.esm.min.js" />
+    <Content Include="Scripts\app.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />

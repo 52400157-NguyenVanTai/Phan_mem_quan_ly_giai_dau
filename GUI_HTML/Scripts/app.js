@@ -153,17 +153,50 @@ function enterDashboard(user) {
 function updateAvatar(user) {
   if (!user) return;
   const initials = (user.TenDangNhap || user.ten_dang_nhap || '?').charAt(0).toUpperCase();
-  document.getElementById('avatar-initials').textContent = initials;
+  const topbarInitials = document.getElementById('avatar-initials');
+  topbarInitials.textContent = initials;
   // Profile page
   const un = user.TenDangNhap || user.ten_dang_nhap || '';
   const em = user.Email || user.email || '';
   document.getElementById('profile-username-display').textContent = un;
   document.getElementById('profile-email-display').textContent = em;
-  document.getElementById('profile-avatar-big').textContent = initials;
+
+  // Avatar big (click-to-upload)
+  const bigInitials = document.getElementById('avatar-initials-big');
+  const bigImg      = document.getElementById('profile-avatar-img');
+  const avatarUrl   = user.AvatarUrl || user.avatar_url || '';
+  if (bigInitials) bigInitials.textContent = initials;
+  if (bigImg) {
+    if (avatarUrl) {
+      bigImg.src             = avatarUrl;
+      bigImg.style.display   = 'block';
+      if (bigInitials) bigInitials.style.display = 'none';
+    } else {
+      bigImg.style.display   = 'none';
+      if (bigInitials) bigInitials.style.display = '';
+    }
+  }
+  // Topbar avatar — if user has real avatar show it
+  const avatarBtn = document.getElementById('avatar-btn');
+  if (avatarBtn) {
+    if (avatarUrl) {
+      avatarBtn.style.backgroundImage = 'url(' + avatarUrl + ')';
+      avatarBtn.style.backgroundSize  = 'cover';
+      avatarBtn.style.backgroundPosition = 'center';
+      avatarBtn.style.backgroundRepeat = 'no-repeat';
+      topbarInitials.style.display = 'none';
+    } else {
+      avatarBtn.style.backgroundImage = '';
+      avatarBtn.style.backgroundSize = '';
+      avatarBtn.style.backgroundPosition = '';
+      avatarBtn.style.backgroundRepeat = '';
+      topbarInitials.style.display = '';
+    }
+  }
+
   document.getElementById('profile-role-display').textContent = user.VaiTroHeThong || user.vai_tro_he_thong || '';
   document.getElementById('pf-username').value = un;
   document.getElementById('pf-email').value = em;
-  document.getElementById('pf-avatar-url').value = user.AvatarUrl || user.avatar_url || '';
   document.getElementById('pf-bio').value = user.Bio || user.bio || '';
 
   // Show admin button if admin
@@ -172,6 +205,9 @@ function updateAvatar(user) {
     const isAdmin = String(user.VaiTroHeThong || user.vai_tro_he_thong || '').toLowerCase() === 'admin';
     btnAdmin.classList.toggle('d-none', !isAdmin);
   }
+
+  // Load team name for profile
+  loadMyTeamForProfile();
 }
 
 // ---- LOGOUT ----
@@ -180,6 +216,28 @@ window.doLogout = async function() {
   currentUser = null;
   document.getElementById('app-shell').classList.remove('active');
   document.getElementById('landing-page').style.display = '';
+  const avatarBtn = document.getElementById('avatar-btn');
+  const avatarInitials = document.getElementById('avatar-initials');
+  const bigImg = document.getElementById('profile-avatar-img');
+  const bigInitials = document.getElementById('avatar-initials-big');
+  if (avatarBtn) {
+    avatarBtn.style.backgroundImage = '';
+    avatarBtn.style.backgroundSize = '';
+    avatarBtn.style.backgroundPosition = '';
+    avatarBtn.style.backgroundRepeat = '';
+  }
+  if (avatarInitials) {
+    avatarInitials.textContent = '?';
+    avatarInitials.style.display = '';
+  }
+  if (bigImg) {
+    bigImg.src = '';
+    bigImg.style.display = 'none';
+  }
+  if (bigInitials) {
+    bigInitials.textContent = '?';
+    bigInitials.style.display = '';
+  }
   switchTab('login');
   closeHamburger();
 };
@@ -243,6 +301,8 @@ window.navigateTo = function(page) {
     if (page === 'home') loadHomePage();
     if (page === 'notifications') loadNotifications();
     if (page === 'player-profile') loadPlayerProfileTabs();
+    if (page === 'my-tournaments') loadMyTournaments();
+    if (page === 'my-teams') loadMyTeams();
   }
 };
 
@@ -488,7 +548,6 @@ window._restoreSession = restoreSession;
 window.saveProfile = async function() {
   const msg = document.getElementById('pf-msg');
   const result = await api('/AuthApi/CapNhatThongTin', 'POST', {
-    AvatarUrl: document.getElementById('pf-avatar-url').value.trim(),
     Bio: document.getElementById('pf-bio').value.trim()
   });
   msg.style.color = result.Success ? '#2ed573' : '#ff4757';
@@ -541,11 +600,32 @@ async function loadGameProfile(game) {
   // Load positions
   const posResult = await api('/ProfileApi/ViTri?maTroChoi=' + game.ma_tro_choi);
   const positions = posResult.Success && Array.isArray(posResult.Data) ? posResult.Data : [];
-  const posOptions = positions.map(p => '<option value="' + p.MaViTri + '"' + (existing && existing.ma_vi_tri_so_truong == p.MaViTri ? ' selected' : '') + '>' + p.TenViTri + '</option>').join('');
+
+  // Nhóm vị trí theo loai_vi_tri
+  const groups = {};
+  positions.forEach(p => {
+    const grp = p.LoaiViTri || 'Khác';
+    if (!groups[grp]) groups[grp] = [];
+    groups[grp].push(p);
+  });
+
+  const loaiLabel = { 'ChuyenMon': '⚔️ Chuyên môn thi đấu', 'BanHuanLuyen': '🎓 Ban huấn luyện' };
+
+  let posOptions = '<option value="">-- Chọn vị trí --</option>';
+  Object.keys(groups).forEach(loai => {
+    const label = loaiLabel[loai] || loai;
+    posOptions += '<optgroup label="' + label + '">';
+    groups[loai].forEach(p => {
+      const sel = existing && existing.ma_vi_tri_so_truong == p.MaViTri ? ' selected' : '';
+      const ky = p.KyHieu ? ' [' + p.KyHieu + ']' : '';
+      posOptions += '<option value="' + p.MaViTri + '"' + sel + '>' + p.TenViTri + ky + '</option>';
+    });
+    posOptions += '</optgroup>';
+  });
 
   body.innerHTML = '<div class="form-group-dark"><label>ID trong game</label><input class="form-control-dark" id="gp-id" value="' + (existing ? existing.in_game_id || '' : '') + '" placeholder="ID trong game" /></div>' +
     '<div class="form-group-dark"><label>Tên hiển thị trong game</label><input class="form-control-dark" id="gp-name" value="' + (existing ? existing.in_game_name || '' : '') + '" placeholder="Nickname" /></div>' +
-    '<div class="form-group-dark"><label>Vị trí sở trường</label><select class="select-dark" id="gp-vitri"><option value="">-- Chọn vị trí --</option>' + posOptions + '</select></div>' +
+    '<div class="form-group-dark"><label>Vị trí sở trường</label><select class="select-dark" id="gp-vitri">' + posOptions + '</select></div>' +
     '<button class="btn-save" onclick="saveGameProfile(' + game.ma_tro_choi + ')">Lưu hồ sơ</button>' +
     '<span id="gp-msg" style="margin-left:12px;font-size:.85rem"></span>';
 }
@@ -615,6 +695,556 @@ function showSidebarItem(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove('d-none');
 }
+
+// ---- AVATAR UPLOAD ----
+window.triggerAvatarUpload = function() {
+  const input = document.getElementById('avatar-file-input');
+  if (input) input.click();
+};
+
+(function initAvatarUpload() {
+  const input = document.getElementById('avatar-file-input');
+  if (!input) return;
+  input.addEventListener('change', async function() {
+    if (!this.files || !this.files[0]) return;
+    const file   = this.files[0];
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const uploadMsg = document.getElementById('pf-msg');
+    if (uploadMsg) { uploadMsg.style.color = '#aaa'; uploadMsg.textContent = 'Đang tải ảnh...'; }
+
+    try {
+      const res    = await fetch('/UploadApi/UploadAvatar', { method: 'POST', body: formData });
+      const result = await res.json();
+      if (result.Success && result.Data) {
+        const url = result.Data.AvatarUrl;
+        // Cập nhật avatar hiển thị
+        const bigImg      = document.getElementById('profile-avatar-img');
+        const bigInitials = document.getElementById('avatar-initials-big');
+        if (bigImg) { bigImg.src = url; bigImg.style.display = 'block'; }
+        if (bigInitials) bigInitials.style.display = 'none';
+        // Cập nhật topbar avatar
+        const avatarBtn = document.getElementById('avatar-btn');
+        if (avatarBtn) {
+          avatarBtn.style.backgroundImage = 'url(' + url + ')';
+          avatarBtn.style.backgroundSize  = 'cover';
+          document.getElementById('avatar-initials').style.display = 'none';
+        }
+        if (currentUser) currentUser.AvatarUrl = url;
+        if (uploadMsg) { uploadMsg.style.color = '#2ed573'; uploadMsg.textContent = '✅ Đã cập nhật ảnh đại diện!'; }
+      } else {
+        if (uploadMsg) { uploadMsg.style.color = '#ff4757'; uploadMsg.textContent = result.Message || 'Upload thất bại.'; }
+      }
+    } catch(e) {
+      if (uploadMsg) { uploadMsg.style.color = '#ff4757'; uploadMsg.textContent = 'Lỗi kết nối.'; }
+    }
+    this.value = ''; // reset input
+  });
+})();
+
+// ---- MY TOURNAMENTS ----
+async function loadMyTournaments() {
+  const grid = document.getElementById('my-tournaments-grid');
+  if (!grid || !currentUser) return;
+  grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
+
+  const result = await api('/TournamentBuilderApi/GiaiCuaToi');
+  if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><h4>Chưa có giải đấu nào</h4><p>Hãy tổ chức giải đầu tiên của bạn!</p></div>';
+    return;
+  }
+
+  showSidebarItem('side-my-tournaments');
+  grid.innerHTML = result.Data.map(function(t) {
+    const statusMap = {
+      'ban_nhap':      { label: 'Bản nháp',      cls: 'tc-status' },
+      'cho_phe_duyet': { label: 'Chờ duyệt',    cls: 'tc-status' },
+      'mo_dang_ky':    { label: 'Mở đăng ký',    cls: 'tc-status upcoming' },
+      'sap_dien_ra':   { label: 'Sắp diễn ra',   cls: 'tc-status upcoming' },
+      'dang_dien_ra':  { label: '🔴 Live',          cls: 'tc-status live' },
+      'ket_thuc':      { label: '✅ Kết thúc',      cls: 'tc-status finished' },
+      'khoa':          { label: '🔒 Khóa',           cls: 'tc-status' }
+    };
+    const s = statusMap[t.trang_thai] || { label: t.trang_thai, cls: 'tc-status' };
+    const prize = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + '₫' : 'N/A';
+    return '<div class="tournament-card" id="tc-' + t.ma_giai_dau + '">' +
+      '<div class="tc-banner" onclick="openTournament(' + t.ma_giai_dau + ')" style="cursor:pointer;background:linear-gradient(135deg,#1a1f36,#6c63ff33)">' +
+        '<span style="font-size:2.5rem">🏆</span></div>' +
+      '<div class="tc-body">' +
+        '<div class="tc-game-badge">' + (t.ten_game || 'Giải hỗn hợp') + '</div>' +
+        '<div class="tc-name" onclick="openTournament(' + t.ma_giai_dau + ')" style="cursor:pointer">' + t.ten_giai_dau + '</div>' +
+        '<div class="tc-meta"><span class="' + s.cls + '">' + s.label + '</span><span>💰 ' + prize + '</span></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+// ---- MY TEAMS ----
+async function loadMyTeams() {
+  const list = document.getElementById('my-teams-list');
+  if (!list || !currentUser) return;
+  list.innerHTML = '<div style="color:var(--text-muted);padding:20px">Đang tải...</div>';
+
+  const result = await api('/TeamApi/DoiCuaToi');
+  if (!result.Success || !result.Data) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><h4>Chưa thuộc đội nào</h4><p>Hãy tạo hoặc tham gia một đội!</p></div>';
+    return;
+  }
+
+  showSidebarItem('side-my-teams');
+  const d = result.Data;
+  const roleMap = { 'leader': '👑 Leader', 'captain': '⚔️ Captain', 'member': '👤 Thành viên' };
+  list.innerHTML =
+    '<div class="profile-card" style="display:flex;align-items:center;gap:20px">' +
+      '<div style="font-size:3rem">👥</div>' +
+      '<div>' +
+        '<div style="font-size:1.2rem;font-weight:700;color:var(--text-primary)">' + d.ten_doi + '</div>' +
+        '<div style="color:var(--text-muted);font-size:.85rem;margin-top:4px">' + (d.slogan || '') + '</div>' +
+        '<div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">' +
+          '<span style="background:var(--bg-sidebar);border-radius:6px;padding:4px 10px;font-size:.8rem">🎮 ' + d.ten_game + '</span>' +
+          '<span style="background:var(--bg-sidebar);border-radius:6px;padding:4px 10px;font-size:.8rem">' + (roleMap[d.vai_tro] || d.vai_tro) + '</span>' +
+          '<span style="background:var(--bg-sidebar);border-radius:6px;padding:4px 10px;font-size:.8rem">📌 ' + d.ten_nhom + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ---- LOAD TEAM FOR PROFILE PAGE ----
+async function loadMyTeamForProfile() {
+  const pfTeam = document.getElementById('pf-team');
+  if (!pfTeam) return;
+  const result = await api('/TeamApi/DoiCuaToi');
+  if (result.Success && result.Data) {
+    pfTeam.value = result.Data.ten_doi;
+  } else {
+    pfTeam.value = '';
+    pfTeam.placeholder = 'Chưa tham gia đội nào';
+  }
+}
+
+function getProfileValue(source, upperKey, lowerKey) {
+  if (!source) return '';
+  if (source[upperKey] !== undefined && source[upperKey] !== null) return source[upperKey];
+  if (source[lowerKey] !== undefined && source[lowerKey] !== null) return source[lowerKey];
+  return '';
+}
+
+updateAvatar = function(user) {
+  if (!user) return;
+
+  const initials = (getProfileValue(user, 'TenDangNhap', 'ten_dang_nhap') || '?').charAt(0).toUpperCase();
+  const topbarInitials = document.getElementById('avatar-initials');
+  const profileUserName = document.getElementById('profile-username-display');
+  const profileEmail = document.getElementById('profile-email-display');
+  const bigInitials = document.getElementById('avatar-initials-big');
+  const bigImg = document.getElementById('profile-avatar-img');
+  const avatarBtn = document.getElementById('avatar-btn');
+  const avatarUrl = getProfileValue(user, 'AvatarUrl', 'avatar_url');
+
+  if (topbarInitials) {
+    topbarInitials.textContent = initials;
+  }
+  if (profileUserName) {
+    profileUserName.textContent = getProfileValue(user, 'TenDangNhap', 'ten_dang_nhap') || '';
+  }
+  if (profileEmail) {
+    profileEmail.textContent = getProfileValue(user, 'Email', 'email') || '';
+  }
+  if (bigInitials) {
+    bigInitials.textContent = initials;
+  }
+
+  if (bigImg) {
+    if (avatarUrl) {
+      bigImg.src = avatarUrl;
+      bigImg.style.display = 'block';
+      if (bigInitials) bigInitials.style.display = 'none';
+    } else {
+      bigImg.src = '';
+      bigImg.style.display = 'none';
+      if (bigInitials) bigInitials.style.display = '';
+    }
+  }
+
+  if (avatarBtn) {
+    if (avatarUrl) {
+      avatarBtn.style.backgroundImage = 'url(' + avatarUrl + ')';
+      avatarBtn.style.backgroundSize = 'cover';
+      avatarBtn.style.backgroundPosition = 'center';
+      avatarBtn.style.backgroundRepeat = 'no-repeat';
+      if (topbarInitials) topbarInitials.style.display = 'none';
+    } else {
+      avatarBtn.style.backgroundImage = '';
+      avatarBtn.style.backgroundSize = '';
+      avatarBtn.style.backgroundPosition = '';
+      avatarBtn.style.backgroundRepeat = '';
+      if (topbarInitials) topbarInitials.style.display = '';
+    }
+  }
+
+  const roleEl = document.getElementById('profile-role-display');
+  const usernameInput = document.getElementById('pf-username');
+  const emailInput = document.getElementById('pf-email');
+  const bioInput = document.getElementById('pf-bio');
+
+  if (roleEl) roleEl.textContent = getProfileValue(user, 'VaiTroHeThong', 'vai_tro_he_thong') || '';
+  if (usernameInput) usernameInput.value = getProfileValue(user, 'TenDangNhap', 'ten_dang_nhap') || '';
+  if (emailInput) emailInput.value = getProfileValue(user, 'Email', 'email') || '';
+  if (bioInput) bioInput.value = getProfileValue(user, 'Bio', 'bio') || '';
+
+  const btnAdmin = document.getElementById('btn-admin-module');
+  if (btnAdmin) {
+    const isAdmin = String(getProfileValue(user, 'VaiTroHeThong', 'vai_tro_he_thong') || '').toLowerCase() === 'admin';
+    btnAdmin.classList.toggle('d-none', !isAdmin);
+  }
+
+  loadMyTeamForProfile();
+};
+
+loadGameProfile = async function(game) {
+  activeGameTab = game.ma_tro_choi;
+  document.querySelectorAll('.game-tab-btn').forEach(b => b.classList.toggle('active', b.textContent === game.ten_game));
+
+  const title = document.getElementById('game-profile-title');
+  const body = document.getElementById('game-profile-body');
+  if (title) {
+    title.textContent = game.ten_game;
+  }
+  if (!body) return;
+
+  const [profileResult, positionResult] = await Promise.all([
+    api('/ProfileApi/LayHoSo?maTroChoi=' + game.ma_tro_choi),
+    api('/ProfileApi/ViTri?maTroChoi=' + game.ma_tro_choi)
+  ]);
+
+  const existing = profileResult.Success && profileResult.Data ? profileResult.Data : null;
+  const positions = positionResult.Success && Array.isArray(positionResult.Data) ? positionResult.Data : [];
+  const existingPositionId = getProfileValue(existing, 'MaViTriSoTruong', 'ma_vi_tri_so_truong');
+  const existingGameId = getProfileValue(existing, 'InGameId', 'in_game_id');
+  const existingGameName = getProfileValue(existing, 'InGameName', 'in_game_name');
+
+  const groups = {};
+  positions.forEach(p => {
+    const grp = p.LoaiViTri || p.loai_vi_tri || 'Khac';
+    if (!groups[grp]) groups[grp] = [];
+    groups[grp].push(p);
+  });
+
+  const labels = {
+    ChuyenMon: 'Chuyen mon thi dau',
+    BanHuanLuyen: 'Ban huan luyen'
+  };
+
+  let posOptions = '<option value="">-- Chon vi tri --</option>';
+  Object.keys(groups).forEach(groupName => {
+    posOptions += '<optgroup label="' + (labels[groupName] || groupName) + '">';
+    groups[groupName].forEach(p => {
+      const maViTri = p.MaViTri || p.ma_vi_tri;
+      const tenViTri = p.TenViTri || p.ten_vi_tri || '';
+      const kyHieu = p.KyHieu || p.ky_hieu || '';
+      const selected = String(existingPositionId) === String(maViTri) ? ' selected' : '';
+      posOptions += '<option value="' + maViTri + '"' + selected + '>' + tenViTri + (kyHieu ? ' [' + kyHieu + ']' : '') + '</option>';
+    });
+    posOptions += '</optgroup>';
+  });
+
+  if (!positions.length) {
+    posOptions = '<option value="">-- Chua co vi tri --</option>';
+  }
+
+  body.innerHTML =
+    '<div class="form-group-dark"><label>ID trong game</label><input class="form-control-dark" id="gp-id" value="' + existingGameId + '" placeholder="ID trong game" /></div>' +
+    '<div class="form-group-dark"><label>Ten hien thi trong game</label><input class="form-control-dark" id="gp-name" value="' + existingGameName + '" placeholder="Nickname" /></div>' +
+    '<div class="form-group-dark"><label>Vi tri so truong</label><select class="select-dark" id="gp-vitri"' + (positions.length ? '' : ' disabled') + '>' + posOptions + '</select></div>' +
+    '<button class="btn-save" onclick="saveGameProfile(' + game.ma_tro_choi + ')">Luu ho so</button>' +
+    '<span id="gp-msg" style="margin-left:12px;font-size:.85rem"></span>';
+};
+
+window.saveGameProfile = async function(maTroChoi) {
+  const msg = document.getElementById('gp-msg');
+  const maViTri = Number(document.getElementById('gp-vitri').value) || 0;
+
+  if (!maViTri) {
+    if (msg) {
+      msg.style.color = '#ff4757';
+      msg.textContent = 'Vui long chon vi tri so truong.';
+    }
+    return;
+  }
+
+  const result = await api('/ProfileApi/TaoHoSo', 'POST', {
+    MaTroChoi: maTroChoi,
+    InGameId: document.getElementById('gp-id').value.trim(),
+    InGameName: document.getElementById('gp-name').value.trim(),
+    MaViTriSoTruong: maViTri
+  });
+
+  if (msg) {
+    msg.style.color = result.Success ? '#2ed573' : '#ff4757';
+    msg.textContent = result.Success ? 'Da luu ho so thanh cong.' : (result.Message || 'Loi luu ho so.');
+  }
+};
+
+(function setupAvatarUploadOverride() {
+  const oldInput = document.getElementById('avatar-file-input');
+  if (!oldInput) return;
+
+  const newInput = oldInput.cloneNode(true);
+  oldInput.parentNode.replaceChild(newInput, oldInput);
+
+  window.triggerAvatarUpload = function() {
+    newInput.click();
+  };
+
+  newInput.addEventListener('change', async function() {
+    if (!this.files || !this.files.length) return;
+
+    const file = this.files[0];
+    const uploadMsg = document.getElementById('pf-msg');
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    if (uploadMsg) {
+      uploadMsg.style.color = '#aaa';
+      uploadMsg.textContent = 'Dang tai anh...';
+    }
+
+    try {
+      const res = await fetch('/UploadApi/UploadAvatar', { method: 'POST', body: formData });
+      const result = await res.json();
+
+      if (result.Success && result.Data && result.Data.AvatarUrl) {
+        const url = result.Data.AvatarUrl + '?v=' + Date.now();
+        if (currentUser) {
+          currentUser.AvatarUrl = url;
+          currentUser.avatar_url = url;
+        }
+        updateAvatar(currentUser || { AvatarUrl: url });
+        if (uploadMsg) {
+          uploadMsg.style.color = '#2ed573';
+          uploadMsg.textContent = 'Cap nhat anh dai dien thanh cong.';
+        }
+      } else if (uploadMsg) {
+        uploadMsg.style.color = '#ff4757';
+        uploadMsg.textContent = result.Message || 'Upload that bai.';
+      }
+    } catch (e) {
+      if (uploadMsg) {
+        uploadMsg.style.color = '#ff4757';
+        uploadMsg.textContent = 'Khong the tai anh len luc nay.';
+      }
+    }
+
+    this.value = '';
+  });
+})();
+
+function formatTournamentStatus(status) {
+  const map = {
+    ban_nhap: 'Ban nhap',
+    cho_phe_duyet: 'Cho phe duyet',
+    mo_dang_ky: 'Mo dang ky',
+    sap_dien_ra: 'Sap dien ra',
+    dang_dien_ra: 'Dang dien ra',
+    ket_thuc: 'Ket thuc',
+    khoa: 'Khoa'
+  };
+  return map[status] || status || '';
+}
+
+window.navigateTo = function(page) {
+  currentPage = page;
+  closeHamburger();
+  document.querySelectorAll('.page-section').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.querySelector('[data-page="' + page + '"]');
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const gameMatch = GAMES.find(g => g.id === page);
+  if (gameMatch) {
+    showGamePage(gameMatch);
+    return;
+  }
+
+  const pageMap = {
+    home: 'page-home',
+    follow: 'page-follow',
+    notifications: 'page-notifications',
+    'my-tournaments': 'page-my-tournaments',
+    'my-teams': 'page-my-teams',
+    organize: 'page-organize',
+    'create-team': 'page-create-team',
+    profile: 'page-profile',
+    'player-profile': 'page-player-profile',
+    'admin-requests': 'page-admin-requests',
+    'manage-tournament': 'page-manage-tournament'
+  };
+  const target = pageMap[page];
+  if (!target) return;
+
+  const el = document.getElementById(target);
+  if (el) el.style.display = '';
+  if (page === 'home') loadHomePage();
+  if (page === 'notifications') loadNotifications();
+  if (page === 'player-profile') loadPlayerProfileTabs();
+  if (page === 'my-tournaments') loadMyTournaments();
+  if (page === 'my-teams') loadMyTeams();
+  if (page === 'admin-requests') loadAdminRequests();
+};
+
+loadPlayerProfileTabs = function() {
+  const tabs = document.getElementById('game-profile-tabs');
+  if (!tabs) return;
+  tabs.innerHTML = '';
+  const games = gameList.length ? gameList : GAME_NAMES.map((n, i) => ({ ma_tro_choi: i + 1, ten_game: n }));
+  games.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'game-tab-btn' + (activeGameTab === g.ma_tro_choi ? ' active' : '');
+    btn.textContent = g.ten_game;
+    btn.onclick = () => loadGameProfile(g);
+    tabs.appendChild(btn);
+  });
+
+  if (games.length && !activeGameTab) {
+    loadGameProfile(games[0]);
+  }
+};
+
+loadMyTournaments = async function() {
+  const grid = document.getElementById('my-tournaments-grid');
+  if (!grid || !currentUser) return;
+  grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Dang tai...</div>';
+
+  const result = await api('/TournamentBuilderApi/GiaiCuaToi');
+  if (!result.Success || !Array.isArray(result.Data) || result.Data.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">T</div><h4>Chua co giai dau nao</h4><p>Ban chua tao hoac tham gia giai dau nao.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = result.Data.map(function(t) {
+    const gameName = t.ten_game || 'Giai hon hop';
+    const prize = t.tong_giai_thuong ? Number(t.tong_giai_thuong).toLocaleString('vi-VN') + ' VND' : 'N/A';
+    const ownerActions = t.is_owner ? (
+      '<div class="tc-actions" style="margin-top:12px">' +
+        '<button class="btn-outline-glow" onclick="openManageTournament(' + t.ma_giai_dau + ', \'' + String((t.ten_giai_dau || '')).replace(/'/g, "\\'") + '\')">Duyet doi</button>' +
+        (t.trang_thai === 'ban_nhap'
+          ? '<button class="btn-primary-glow" onclick="submitTournamentApproval(' + t.ma_giai_dau + ')">Gui admin</button>'
+          : '') +
+      '</div>'
+    ) : '<div style="margin-top:12px;color:var(--text-muted);font-size:.85rem">Ban dang tham gia giai nay.</div>';
+
+    return '<div class="tournament-card">' +
+      '<div class="tc-banner" onclick="openTournament(' + t.ma_giai_dau + ')" style="cursor:pointer;background:linear-gradient(135deg,#1a1f36,#18a0fb33)"><span style="font-size:2.5rem">T</span></div>' +
+      '<div class="tc-body">' +
+        '<div class="tc-game-badge">' + gameName + '</div>' +
+        '<div class="tc-name" onclick="openTournament(' + t.ma_giai_dau + ')" style="cursor:pointer">' + t.ten_giai_dau + '</div>' +
+        '<div class="tc-meta"><span class="tc-status">' + formatTournamentStatus(t.trang_thai) + '</span><span>' + prize + '</span></div>' +
+        ownerActions +
+      '</div>' +
+    '</div>';
+  }).join('');
+};
+
+window.submitTournamentApproval = async function(maGiaiDau) {
+  const result = await api('/TournamentBuilderApi/GuiXetDuyet?maGiaiDau=' + maGiaiDau, 'POST', {});
+  showToast(result.Success ? 'Da gui yeu cau len admin.' : (result.Message || 'Khong the gui yeu cau.'));
+  if (result.Success) loadMyTournaments();
+};
+
+window.openManageTournament = async function(maGiaiDau, tenGiaiDau) {
+  navigateTo('manage-tournament');
+  const sub = document.getElementById('manage-tournament-sub');
+  const list = document.getElementById('manage-tournament-list');
+  if (sub) sub.textContent = 'Duyet doi tham gia - ' + (tenGiaiDau || ('Giai #' + maGiaiDau));
+  if (!list) return;
+  list.innerHTML = '<div class="profile-card">Dang tai danh sach dang ky...</div>';
+
+  const result = await api('/TournamentBuilderApi/DanhSachDangKyDoi?maGiaiDau=' + maGiaiDau);
+  if (!result.Success || !Array.isArray(result.Data)) {
+    list.innerHTML = '<div class="profile-card">' + (result.Message || 'Khong the tai danh sach dang ky doi.') + '</div>';
+    return;
+  }
+
+  if (!result.Data.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">N</div><h4>Chua co doi dang ky</h4></div>';
+    return;
+  }
+
+  list.innerHTML = result.Data.map(function(item) {
+    const canReview = item.trang_thai_duyet === 'cho_duyet';
+    return '<div class="profile-card" style="margin-bottom:16px">' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">' +
+        '<div>' +
+          '<h5 style="margin-bottom:6px">' + item.ten_doi + ' - ' + item.ten_nhom + '</h5>' +
+          '<div style="color:var(--text-muted);font-size:.9rem">' + (item.ten_game || '') + '</div>' +
+          '<div style="color:var(--text-muted);font-size:.9rem;margin-top:4px">' + (item.slogan || '') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right">' +
+          '<div class="tc-status" style="display:inline-flex">' + item.trang_thai_duyet + '</div>' +
+          (canReview
+            ? '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">' +
+                '<button class="btn-primary-glow" onclick="reviewTeamRegistration(' + maGiaiDau + ',' + item.ma_nhom + ',true)">Duyet</button>' +
+                '<button class="btn-outline-glow" onclick="reviewTeamRegistration(' + maGiaiDau + ',' + item.ma_nhom + ',false)">Tu choi</button>' +
+              '</div>'
+            : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+};
+
+window.reviewTeamRegistration = async function(maGiaiDau, maNhom, chapNhan) {
+  const result = await api('/TournamentBuilderApi/DuyetDangKyDoi', 'POST', {
+    MaGiaiDau: maGiaiDau,
+    MaNhom: maNhom,
+    ChapNhan: !!chapNhan
+  });
+  showToast(result.Success ? (chapNhan ? 'Da duyet doi tham gia.' : 'Da tu choi doi tham gia.') : (result.Message || 'Khong the cap nhat dang ky.'));
+  if (result.Success) openManageTournament(maGiaiDau, '');
+};
+
+async function loadAdminRequests() {
+  const wrap = document.getElementById('admin-request-list');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">!</div><h4>Dang tai yeu cau...</h4></div>';
+
+  const result = await api('/AdminApi/Dashboard');
+  const requests = result.Success && result.Data && result.Data.ActionRequired ? result.Data.ActionRequired.GiaiChoXetDuyet : [];
+  if (!Array.isArray(requests) || !requests.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">OK</div><h4>Khong co yeu cau nao</h4></div>';
+    return;
+  }
+
+  wrap.innerHTML = requests.map(function(item) {
+    const ma = item.ma_giai_dau;
+    const ten = item.ten_giai_dau || ('Giai #' + ma);
+    return '<div class="profile-card" style="margin-bottom:16px">' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+        '<div>' +
+          '<h5 style="margin-bottom:6px">' + ten + '</h5>' +
+          '<div style="color:var(--text-muted);font-size:.9rem">Nguoi tao: ' + (item.ten_nguoi_tao || 'Khong ro') + '</div>' +
+          '<div style="color:var(--text-muted);font-size:.9rem">Game: ' + (item.ten_game || 'Khong ro') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+          '<button class="btn-primary-glow" onclick="approveTournamentRequest(' + ma + ')">Duyet</button>' +
+          '<button class="btn-outline-glow" onclick="rejectTournamentRequest(' + ma + ')">Huy</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+};
+
+window.approveTournamentRequest = async function(maGiaiDau) {
+  const result = await api('/TournamentBuilderApi/PheDuyet?maGiaiDau=' + maGiaiDau, 'POST', {});
+  showToast(result.Success ? 'Admin da phe duyet giai dau.' : (result.Message || 'Khong the phe duyet.'));
+  if (result.Success) loadAdminRequests();
+};
+
+window.rejectTournamentRequest = async function(maGiaiDau) {
+  const result = await api('/TournamentBuilderApi/TuChoi?maGiaiDau=' + maGiaiDau, 'POST', {});
+  showToast(result.Success ? 'Admin da tu choi yeu cau tao giai.' : (result.Message || 'Khong the tu choi.'));
+  if (result.Success) loadAdminRequests();
+};
 
 // ---- INIT ----
 restoreSession();

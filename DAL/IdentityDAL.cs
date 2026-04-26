@@ -108,6 +108,17 @@ WHERE ma_nguoi_dung = @MaNguoiDung";
             return affected > 0;
         }
 
+        public bool CapNhatAvatarUrl(int maNguoiDung, string avatarUrl)
+        {
+            const string query = "UPDATE NGUOI_DUNG SET avatar_url = @AvatarUrl WHERE ma_nguoi_dung = @MaNguoiDung";
+            int affected = DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@AvatarUrl", SqlDbType.NVarChar){ Value = (object)avatarUrl ?? DBNull.Value },
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung }
+            });
+            return affected > 0;
+        }
+
         private static NguoiDungDTO MapNguoiDung(DataRow row)
         {
             return new NguoiDungDTO
