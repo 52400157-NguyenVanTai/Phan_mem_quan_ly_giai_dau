@@ -238,7 +238,7 @@ LEFT JOIN THANH_VIEN_DOI tv ON tv.ma_nhom = n.ma_nhom AND tv.trang_thai_duyet = 
 LEFT JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = tv.ma_nguoi_dung
 LEFT JOIN GIAI_DAU g ON g.ma_giai_dau = @MaGiaiDau
 LEFT JOIN HO_SO_IN_GAME hsg ON hsg.ma_nguoi_dung = nd.ma_nguoi_dung AND hsg.ma_tro_choi = g.ma_tro_choi
-WHERE (tv.phan_he = 'ban_huan_luyen' OR tv.vai_tro_noi_bo IN ('leader', 'captain'))
+WHERE (tv.phan_he = 'ban_huan_luyen' OR tv.vai_tro_noi_bo IN ('ban_dieu_hanh', 'doi_truong'))
 UNION ALL
 SELECT nd.ma_nguoi_dung,
        nd.ten_dang_nhap,

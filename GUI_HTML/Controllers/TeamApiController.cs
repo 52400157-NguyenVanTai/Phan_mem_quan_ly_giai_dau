@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 using BUS;
 using DTO;
@@ -9,11 +12,26 @@ namespace GUI_HTML.Controllers
     {
         private readonly TeamBUS _teamBus = new TeamBUS();
 
+        private int GetCurrentUser()
+        {
+            if (Session["CurrentUserId"] == null)
+                return 0;
+            return (int)Session["CurrentUserId"];
+        }
+
         [HttpPost]
         [RequireLogin]
         public JsonResult TaoDoi(TaoDoiDTO dto, string Squads)
         {
             dto.MaNguoiDungTao = (int)Session["CurrentUserId"];
+            // Allow team name reuse if the old team has no active members
+            var existingTeam = _teamBus.LayDoiCuaToi(dto.MaNguoiDungTao);
+            if (existingTeam.Success && existingTeam.Data != null)
+            {
+                // User already has a team, delete it first if they want to recreate
+                int maDoiCu = ((dynamic)existingTeam.Data).ma_doi;
+                _teamBus.XoaDoi(dto.MaNguoiDungTao, maDoiCu);
+            }
             return Json(_teamBus.TaoDoiVaNhieuNhom(dto, Squads), JsonRequestBehavior.AllowGet);
         }
 
@@ -27,7 +45,7 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        [RequireTeamRole("leader", "captain")]
+        [RequireTeamRole("chu_tich", "ban_dieu_hanh", "doi_truong")]
         public JsonResult ThemThanhVien(int maNguoiDung, int maNhom, int maTroChoiNhom, int maViTri, string phanHe)
         {
             int maNguoiThucHien = (int)Session["CurrentUserId"];
@@ -97,6 +115,15 @@ namespace GUI_HTML.Controllers
             return Json(_teamBus.LayThanhVienNhom(maNhom), JsonRequestBehavior.AllowGet);
         }
 
+        // Thành viên nhóm quản lý (chairman/leader only)
+        [HttpGet]
+        [RequireLogin]
+        public JsonResult ThanhVienNhomQuanLy(int maDoi)
+        {
+            int uid = (int)Session["CurrentUserId"];
+            return Json(_teamBus.LayThanhVienNhomQuanLy(uid, maDoi), JsonRequestBehavior.AllowGet);
+        }
+
         // Xin gia nhập
         [HttpPost]
         [RequireLogin]
@@ -109,14 +136,71 @@ namespace GUI_HTML.Controllers
         // Duyệt đơn xin
         [HttpPost]
         [RequireLogin]
-        public JsonResult DuyetXinGiaNhap(int maDonXin, bool chapNhan)
+        public JsonResult DuyetYeuCauThamGiaNhom(int maYeuCau, bool chapNhan)
         {
-            int uid = (int)Session["CurrentUserId"];
-            return Json(_teamBus.DuyetXinGiaNhap(uid, maDonXin, chapNhan), JsonRequestBehavior.AllowGet);
+            int maNguoiDung = GetCurrentUser();
+            var result = _teamBus.DuyetYeuCauThamGiaNhom(maNguoiDung, maYeuCau, chapNhan);
+            return Json(result);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult CapNhatDoiTruongNhom(int maNhom, int maDoiTruongMoi)
+        {
+            int maNguoiDung = GetCurrentUser();
+            return Json(_teamBus.CapNhatDoiTruongNhom(maNguoiDung, maNhom, maDoiTruongMoi));
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult CapNhatThongTinDoi(int maDoi, string tenDoi, string tenVietTat, string logoUrl, string slogan)
+        {
+            int maNguoiDung = GetCurrentUser();
+            var result = _teamBus.CapNhatThongTinDoi(maNguoiDung, maDoi, tenDoi, tenVietTat, logoUrl, slogan);
+            return Json(result);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult CapNhatDangTuyen(int maDoi, bool dangTuyen)
+        {
+            int maNguoiDung = GetCurrentUser();
+            var result = _teamBus.CapNhatDangTuyen(maNguoiDung, maDoi, dangTuyen);
+            return Json(result);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult CapNhatLogo(int maDoi)
+        {
+            int maNguoiDung = GetCurrentUser();
+            HttpPostedFileBase logoFile = Request.Files["logo"];
+            if (logoFile == null || logoFile.ContentLength == 0)
+                return Json(ServiceResultDTO.Fail("Vui lòng chọn file logo."));
+
+            // Validate file type
+            string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+            string fileExtension = System.IO.Path.GetExtension(logoFile.FileName).ToLower();
+            if (!allowedExtensions.Contains(fileExtension))
+                return Json(ServiceResultDTO.Fail("Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)."));
+
+            // Save file to server
+            string fileName = Guid.NewGuid().ToString() + fileExtension;
+            string uploadPath = Server.MapPath("~/img/");
+            if (!System.IO.Directory.Exists(uploadPath))
+                System.IO.Directory.CreateDirectory(uploadPath);
+
+            string filePath = System.IO.Path.Combine(uploadPath, fileName);
+            logoFile.SaveAs(filePath);
+
+            // Update database
+            string logoUrl = "/img/" + fileName;
+            var result = _teamBus.CapNhatLogo(maNguoiDung, maDoi, logoUrl);
+            return Json(result);
         }
 
         // Danh sách đơn xin
-        [HttpGet]
+        [HttpPost]
         [RequireLogin]
         public JsonResult DanhSachXinGiaNhap(int maNhom)
         {
@@ -127,7 +211,7 @@ namespace GUI_HTML.Controllers
         // Gửi lời mời
         [HttpPost]
         [RequireLogin]
-        public JsonResult GuiLoiMoiGiaNhap(int maDoi, int maNhom, string tenNguoiNhan)
+        public JsonResult GuiLoiMoiGiaNhap(int maDoi, int? maNhom, string tenNguoiNhan)
         {
             int uid = (int)Session["CurrentUserId"];
             return Json(_teamBus.GuiLoiMoi(uid, maDoi, maNhom, tenNguoiNhan), JsonRequestBehavior.AllowGet);

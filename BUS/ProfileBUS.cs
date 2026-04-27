@@ -41,7 +41,7 @@ namespace BUS
 
             if (string.IsNullOrWhiteSpace(dto.InGameId) || string.IsNullOrWhiteSpace(dto.InGameName))
             {
-                return ServiceResultDTO.Fail("In-game ID va In-game Name la bat buoc.");
+                return ServiceResultDTO.Fail("In-game ID và tên không được để trống.");
             }
 
             if (_profileDal.DaTonTaiHoSo(dto.MaNguoiDung, dto.MaTroChoi))
@@ -57,6 +57,16 @@ namespace BUS
 
             int maHoSo = _profileDal.TaoHoSo(dto);
             return ServiceResultDTO.Ok("Tao ho so in-game thanh cong.", _profileDal.LayHoSo(dto.MaNguoiDung, dto.MaTroChoi) ?? (object)new { maHoSo });
+        }
+
+        public ServiceResultDTO LayTatCaHoSoCuaNguoiDung(int maNguoiDung)
+        {
+            if (maNguoiDung <= 0)
+            {
+                return ServiceResultDTO.Fail("Ma nguoi dung khong hop le.");
+            }
+
+            return ServiceResultDTO.Ok("OK", _profileDal.LayTatCaHoSoCuaNguoiDung(maNguoiDung));
         }
     }
 }

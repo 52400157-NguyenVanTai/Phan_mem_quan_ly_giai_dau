@@ -10,7 +10,7 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        [RequireTeamRole("leader", "captain")]
+        [RequireTeamRole("chu_tich", "ban_dieu_hanh", "doi_truong")]
         public JsonResult TaoBaiDang(int maDoi, int maNhom, int maViTri, string noiDung)
         {
             return Json(_bus.TaoBaiDang(maDoi, maNhom, maViTri, noiDung), JsonRequestBehavior.AllowGet);
@@ -26,7 +26,7 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        [RequireTeamRole("leader", "captain")]
+        [RequireTeamRole("chu_tich", "ban_dieu_hanh", "doi_truong")]
         public JsonResult GuiLoiMoi(int maDoi, int maNhom, int maNguoiDuocMoi)
         {
             return Json(_bus.GuiLoiMoi(maDoi, maNhom, maNguoiDuocMoi), JsonRequestBehavior.AllowGet);

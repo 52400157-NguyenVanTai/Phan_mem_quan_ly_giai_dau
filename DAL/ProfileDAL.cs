@@ -134,5 +134,34 @@ WHERE ma_nguoi_dung = @MaNguoiDung
 
             return affected > 0;
         }
+
+        public List<HoSoInGameDTO> LayTatCaHoSoCuaNguoiDung(int maNguoiDung)
+        {
+            const string query = @"
+SELECT ma_ho_so, ma_nguoi_dung, ma_tro_choi, in_game_id, in_game_name, ma_vi_tri_so_truong, ngay_cap_nhat
+FROM HO_SO_IN_GAME
+WHERE ma_nguoi_dung = @MaNguoiDung;";
+
+            DataTable dt = DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung }
+            });
+
+            var list = new List<HoSoInGameDTO>();
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new HoSoInGameDTO
+                {
+                    MaHoSo = Convert.ToInt32(row["ma_ho_so"]),
+                    MaNguoiDung = Convert.ToInt32(row["ma_nguoi_dung"]),
+                    MaTroChoi = Convert.ToInt32(row["ma_tro_choi"]),
+                    InGameId = row["in_game_id"].ToString(),
+                    InGameName = row["in_game_name"].ToString(),
+                    MaViTriSoTruong = Convert.ToInt32(row["ma_vi_tri_so_truong"]),
+                    NgayCapNhat = row["ngay_cap_nhat"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["ngay_cap_nhat"])
+                });
+            }
+            return list;
+        }
     }
 }

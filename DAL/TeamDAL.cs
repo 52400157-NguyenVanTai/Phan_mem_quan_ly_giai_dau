@@ -27,13 +27,13 @@ namespace DAL
             })) > 0;
         }
 
-        public bool NhomChuaChairman(int maNhom)
+        public bool NhomChuaChuTich(int maNhom)
         {
             const string query = @"
 SELECT COUNT(1)
 FROM THANH_VIEN_DOI
 WHERE ma_nhom = @MaNhom
-  AND vai_tro_noi_bo = 'leader'
+  AND vai_tro_noi_bo = 'chu_tich'
   AND trang_thai_hop_dong = 'dang_hieu_luc';";
             return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[]
             {
@@ -75,16 +75,17 @@ WHERE b.ma_nhom = @MaNhom";
             DataProvider.ExecuteNonQuery(queryXoaNhom, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } }, conn, tran);
         }
 
-        public int TaoDoi(int maManager, string tenDoi, string logoUrl, string slogan, SqlConnection conn, SqlTransaction tran)
+        public int TaoDoi(int maManager, string tenDoi, string tenVietTat, string logoUrl, string slogan, SqlConnection conn, SqlTransaction tran)
         {
             const string query = @"
-INSERT INTO DOI(ten_doi, ma_doi_truong, ma_manager, logo_url, slogan, trang_thai)
+INSERT INTO DOI(ten_doi, ten_viet_tat, ma_doi_truong, ma_manager, logo_url, slogan, trang_thai)
 OUTPUT INSERTED.ma_doi
-VALUES(@TenDoi, @MaManager, @MaManager, @LogoUrl, @Slogan, 'dang_hoat_dong');";
+VALUES(@TenDoi, @TenVietTat, @MaManager, @MaManager, @LogoUrl, @Slogan, 'dang_hoat_dong');";
 
             object result = DataProvider.ExecuteScalar(query, new[]
             {
                 new SqlParameter("@TenDoi", SqlDbType.NVarChar){ Value = tenDoi.Trim() },
+                new SqlParameter("@TenVietTat", SqlDbType.NVarChar){ Value = (object)tenVietTat ?? DBNull.Value },
                 new SqlParameter("@MaManager", SqlDbType.Int){ Value = maManager },
                 new SqlParameter("@LogoUrl", SqlDbType.NVarChar){ Value = (object)logoUrl ?? DBNull.Value },
                 new SqlParameter("@Slogan", SqlDbType.NVarChar){ Value = (object)slogan ?? DBNull.Value }
@@ -93,7 +94,29 @@ VALUES(@TenDoi, @MaManager, @MaManager, @LogoUrl, @Slogan, 'dang_hoat_dong');";
             return Convert.ToInt32(result);
         }
 
-        public int TaoNhom(int maDoi, int maTroChoi, string tenNhom, int maCaptain, SqlConnection conn, SqlTransaction tran)
+        public bool CapNhatThongTinDoi(int maDoi, string tenDoi, string tenVietTat, string logoUrl, string slogan)
+        {
+            const string query = @"
+UPDATE DOI
+SET ten_doi = @TenDoi,
+    ten_viet_tat = @TenVietTat,
+    logo_url = @LogoUrl,
+    slogan = @Slogan
+WHERE ma_doi = @MaDoi;";
+
+            DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi },
+                new SqlParameter("@TenDoi", SqlDbType.NVarChar){ Value = tenDoi.Trim() },
+                new SqlParameter("@TenVietTat", SqlDbType.NVarChar){ Value = (object)tenVietTat ?? DBNull.Value },
+                new SqlParameter("@LogoUrl", SqlDbType.NVarChar){ Value = (object)logoUrl ?? DBNull.Value },
+                new SqlParameter("@Slogan", SqlDbType.NVarChar){ Value = (object)slogan ?? DBNull.Value }
+            });
+
+            return true;
+        }
+
+        public int TaoNhom(int maDoi, int maTroChoi, string tenNhom, int? maCaptain, SqlConnection conn, SqlTransaction tran)
         {
             const string query = @"
 INSERT INTO NHOM_DOI(ma_doi, ma_tro_choi, ten_nhom, ma_doi_truong_nhom)
@@ -105,7 +128,7 @@ VALUES(@MaDoi, @MaTroChoi, @TenNhom, @MaDoiTruongNhom);";
                 new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi },
                 new SqlParameter("@MaTroChoi", SqlDbType.Int){ Value = maTroChoi },
                 new SqlParameter("@TenNhom", SqlDbType.NVarChar){ Value = tenNhom.Trim() },
-                new SqlParameter("@MaDoiTruongNhom", SqlDbType.Int){ Value = maCaptain }
+                new SqlParameter("@MaDoiTruongNhom", SqlDbType.Int){ Value = maCaptain ?? (object)DBNull.Value }
             }, conn, tran);
 
             return Convert.ToInt32(result);
@@ -127,6 +150,21 @@ VALUES(@MaNguoiDung, @MaNhom, @VaiTroNoiBo, @PhanHe, @MaViTri, 'da_duyet', 'dang
             }, conn, tran);
         }
 
+        public void ThemThanhVienVaoNhomQuanLy(int maNguoiDung, int maNhom, string vaiTroNoiBo, SqlConnection conn, SqlTransaction tran)
+        {
+            // Add user to management group - they are team member but not in any squad
+            const string query = @"
+INSERT INTO THANH_VIEN_DOI(ma_nguoi_dung, ma_nhom, vai_tro_noi_bo, phan_he, trang_thai_duyet, trang_thai_hop_dong)
+VALUES(@MaNguoiDung, @MaNhom, @VaiTroNoiBo, 'thi_dau', 'da_duyet', 'dang_hieu_luc');";
+
+            DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung },
+                new SqlParameter("@MaNhom", SqlDbType.Int){ Value = maNhom },
+                new SqlParameter("@VaiTroNoiBo", SqlDbType.NVarChar){ Value = vaiTroNoiBo }
+            }, conn, tran);
+        }
+
         public int DemSoNhomCuaDoi(int maDoi)
         {
             const string query = "SELECT COUNT(1) FROM NHOM_DOI WHERE ma_doi = @MaDoi";
@@ -141,6 +179,13 @@ VALUES(@MaNguoiDung, @MaNhom, @VaiTroNoiBo, @PhanHe, @MaViTri, 'da_duyet', 'dang
                 new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi },
                 new SqlParameter("@MaTroChoi", SqlDbType.Int) { Value = maTroChoi }
             }));
+        }
+
+        // Kiểm tra đội đã có nhóm Ban điều hành chưa
+        public bool CoNhomBanDieuHanh(int maDoi)
+        {
+            const string query = "SELECT COUNT(1) FROM NHOM_DOI WHERE ma_doi = @MaDoi AND ma_tro_choi IS NULL";
+            return Convert.ToInt32(DataProvider.ExecuteScalar(query, new[] { new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi } })) > 0;
         }
 
         public bool NguoiDungDangThuocDoiKhac(int maNguoiDung)
@@ -309,7 +354,7 @@ SELECT TOP 1
 FROM THANH_VIEN_DOI tv
 JOIN NHOM_DOI nd ON tv.ma_nhom = nd.ma_nhom
 JOIN DOI d ON nd.ma_doi = d.ma_doi
-JOIN TRO_CHOI tc ON nd.ma_tro_choi = tc.ma_tro_choi
+LEFT JOIN TRO_CHOI tc ON nd.ma_tro_choi = tc.ma_tro_choi
 WHERE tv.ma_nguoi_dung = @MaNguoiDung
   AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
   AND d.trang_thai <> 'da_giai_the'
@@ -333,7 +378,7 @@ SELECT
 FROM THANH_VIEN_DOI tv
 JOIN NHOM_DOI nd ON tv.ma_nhom = nd.ma_nhom
 JOIN DOI d ON nd.ma_doi = d.ma_doi
-JOIN TRO_CHOI tc ON nd.ma_tro_choi = tc.ma_tro_choi
+LEFT JOIN TRO_CHOI tc ON nd.ma_tro_choi = tc.ma_tro_choi
 WHERE tv.ma_nguoi_dung = @MaNguoiDung
   AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
   AND d.trang_thai <> 'da_giai_the'
@@ -350,8 +395,8 @@ SELECT DISTINCT
     ISNULL(d.dang_tuyen, 0) AS dang_tuyen,
     d.ngay_tao,
     (SELECT COUNT(DISTINCT tv.ma_nguoi_dung) FROM THANH_VIEN_DOI tv
-     JOIN NHOM_DOI n2 ON n2.ma_nhom = tv.ma_nhom
-     WHERE n2.ma_doi = d.ma_doi AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS tong_thanh_vien,
+     JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+     WHERE nd.ma_doi = d.ma_doi AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS tong_thanh_vien,
     (SELECT STRING_AGG(tc.ten_game, ', ') FROM NHOM_DOI nd2
      JOIN TRO_CHOI tc ON tc.ma_tro_choi = nd2.ma_tro_choi
      WHERE nd2.ma_doi = d.ma_doi) AS danh_sach_game
@@ -399,7 +444,7 @@ WHERE d.ma_doi = @MaDoi AND d.trang_thai <> 'da_giai_the';";
 SELECT nd.ma_nhom, nd.ten_nhom, nd.ma_tro_choi, tc.ten_game,
        (SELECT COUNT(1) FROM THANH_VIEN_DOI tv WHERE tv.ma_nhom = nd.ma_nhom AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS so_thanh_vien
 FROM NHOM_DOI nd
-JOIN TRO_CHOI tc ON tc.ma_tro_choi = nd.ma_tro_choi
+LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = nd.ma_tro_choi
 WHERE nd.ma_doi = @MaDoi
 ORDER BY nd.ma_nhom;";
             return DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi } });
@@ -421,9 +466,330 @@ LEFT JOIN HO_SO_IN_GAME h ON h.ma_nguoi_dung = tv.ma_nguoi_dung AND h.ma_tro_cho
 WHERE tv.ma_nhom = @MaNhom
   AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
 ORDER BY
-  CASE tv.vai_tro_noi_bo WHEN 'leader' THEN 1 WHEN 'coach' THEN 2 WHEN 'captain' THEN 3 ELSE 4 END,
+  CASE tv.vai_tro_noi_bo WHEN 'ban_dieu_hanh' THEN 1 WHEN 'doi_truong' THEN 2 ELSE 3 END,
   tv.ngay_tham_gia;";
             return DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } });
+        }
+
+        // Thành viên trong nhóm quản lý (chưa phân vào squad cụ thể)
+        // Get members who belong to this team but are in the management group (ma_tro_choi IS NULL)
+        public DataTable LayThanhVienNhomQuanLy(int maDoi)
+        {
+            const string query = @"
+SELECT tv.ma_thanh_vien, tv.ma_nguoi_dung, tv.vai_tro_noi_bo, tv.phan_he, tv.ngay_tham_gia,
+       u.ten_dang_nhap, u.avatar_url,
+       vt.ten_vi_tri, vt.ky_hieu AS ky_hieu_vi_tri
+FROM THANH_VIEN_DOI tv
+JOIN NGUOI_DUNG u ON u.ma_nguoi_dung = tv.ma_nguoi_dung
+LEFT JOIN DANH_MUC_VI_TRI vt ON vt.ma_vi_tri = tv.ma_vi_tri
+JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+WHERE nd.ma_doi = @MaDoi AND nd.ma_tro_choi IS NULL AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+ORDER BY tv.ngay_tham_gia ASC;";
+            return DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi } });
+        }
+
+        // Tạo nhóm quản lý đặc biệt (ma_tro_choi = NULL) cho đội khi tạo đội
+        public int TaoNhomQuanLy(int maDoi, SqlConnection conn, SqlTransaction tran)
+        {
+            const string query = @"
+INSERT INTO NHOM_DOI(ma_doi, ma_tro_choi, ten_nhom, ma_doi_truong_nhom)
+OUTPUT INSERTED.ma_nhom
+VALUES(@MaDoi, NULL, N'Nhóm quản lý', NULL);";
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi }
+            }, conn, tran);
+            return Convert.ToInt32(result);
+        }
+
+        // Tạo yêu cầu tham gia nhóm (squad join request)
+        public int TaoYeuCauThamGiaNhom(int maNguoiDung, int maNhom, int maHoSo)
+        {
+            const string query = @"
+INSERT INTO YEU_CAU_THAM_GIA_NHOM(ma_nguoi_dung, ma_nhom, ma_ho_so, trang_thai)
+OUTPUT INSERTED.ma_yeu_cau
+VALUES(@MaNguoiDung, @MaNhom, @MaHoSo, 'cho_duyet');";
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom },
+                new SqlParameter("@MaHoSo", SqlDbType.Int) { Value = maHoSo }
+            });
+            return Convert.ToInt32(result);
+        }
+
+        // Lấy danh sách yêu cầu tham gia nhóm cho captain duyệt
+        public DataTable LayYeuCauThamGiaNhom(int maNhom)
+        {
+            const string query = @"
+SELECT y.ma_yeu_cau, y.ma_nguoi_dung, y.ma_nhom, y.ma_ho_so, y.trang_thai, y.ngay_tao,
+       u.ten_dang_nhap, u.avatar_url,
+       h.in_game_name, h.in_game_id,
+       vt.ten_vi_tri
+FROM YEU_CAU_THAM_GIA_NHOM y
+JOIN NGUOI_DUNG u ON u.ma_nguoi_dung = y.ma_nguoi_dung
+JOIN HO_SO_IN_GAME h ON h.ma_ho_so = y.ma_ho_so
+LEFT JOIN DANH_MUC_VI_TRI vt ON vt.ma_vi_tri = h.ma_vi_tri_so_truong
+WHERE y.ma_nhom = @MaNhom AND y.trang_thai = 'cho_duyet'
+ORDER BY y.ngay_tao;";
+            return DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } });
+        }
+
+        // Duyệt/Từ chối yêu cầu tham gia nhóm
+        public bool DuyetYeuCauThamGiaNhom(int maYeuCau, string trangThai, int? maNguoiDuyet = null)
+        {
+            const string query = @"
+UPDATE YEU_CAU_THAM_GIA_NHOM 
+SET trang_thai = @TrangThai, ngay_duyet = GETDATE(), ma_nguoi_duyet = @MaNguoiDuyet
+WHERE ma_yeu_cau = @MaYeuCau;";
+            return DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@TrangThai", SqlDbType.NVarChar) { Value = trangThai },
+                new SqlParameter("@MaYeuCau", SqlDbType.Int) { Value = maYeuCau },
+                new SqlParameter("@MaNguoiDuyet", SqlDbType.Int) { Value = (object)maNguoiDuyet ?? DBNull.Value }
+            }) > 0;
+        }
+
+        // Lấy vai trò của người dùng trong đội
+        public string LayVaiTroNguoiDungTrongDoi(int maNguoiDung, int maDoi)
+        {
+            const string query = @"
+SELECT TOP 1 vai_tro_noi_bo
+FROM THANH_VIEN_DOI tv
+JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+WHERE tv.ma_nguoi_dung = @MaNguoiDung AND nd.ma_doi = @MaDoi AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+ORDER BY tv.vai_tro_noi_bo DESC;"; // chu_tich should come first if exists
+
+            var result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
+            });
+            return result != null ? result.ToString() : "";
+        }
+
+        // Lấy danh sách quản lý đội (Chủ tịch và Ban điều hành)
+        public DataTable LayQuanLyDoi(int maDoi)
+        {
+            const string query = @"
+SELECT DISTINCT tv.ma_nguoi_dung
+FROM THANH_VIEN_DOI tv
+JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+WHERE nd.ma_doi = @MaDoi 
+  AND tv.vai_tro_noi_bo IN ('chu_tich', 'ban_dieu_hanh')
+  AND tv.trang_thai_hop_dong = 'dang_hieu_luc';";
+
+            return DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
+            });
+        }
+
+        // Tạo yêu cầu xác nhận lời mời (cho Đội trưởng)
+        public int TaoYeuCauXacNhanLoiMoi(int maNguoiGui, int maDoi, int? maNhom, int maNguoiNhan)
+        {
+            const string query = @"
+INSERT INTO YEU_CAU_XAC_NHAN_LOI_MOI (ma_nguoi_gui, ma_doi, ma_nhom, ma_nguoi_nhan, trang_thai, ngay_tao)
+VALUES (@MaNguoiGui, @MaDoi, @MaNhom, @MaNguoiNhan, 'cho_xac_nhan', GETDATE());
+SELECT SCOPE_IDENTITY();";
+
+            var result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNguoiGui", SqlDbType.Int) { Value = maNguoiGui },
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi },
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom.HasValue ? (object)maNhom.Value : DBNull.Value },
+                new SqlParameter("@MaNguoiNhan", SqlDbType.Int) { Value = maNguoiNhan }
+            });
+            return Convert.ToInt32(result);
+        }
+
+        // Lấy chi tiết yêu cầu xác nhận lời mời
+        public DataRow LayYeuCauXacNhanLoiMoi(int maYeuCau)
+        {
+            const string query = @"
+SELECT ma_yeu_cau, ma_nguoi_gui, ma_doi, ma_nhom, ma_nguoi_nhan, trang_thai, ngay_tao, ngay_xac_nhan, ma_nguoi_xac_nhan
+FROM YEU_CAU_XAC_NHAN_LOI_MOI
+WHERE ma_yeu_cau = @MaYeuCau;";
+
+            DataTable dt = DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaYeuCau", SqlDbType.Int) { Value = maYeuCau } });
+            return dt.Rows.Count == 0 ? null : dt.Rows[0];
+        }
+
+        // Cập nhật trạng thái yêu cầu xác nhận lời mời
+        public bool CapNhatTrangThaiYeuCauXacNhanLoiMoi(int maYeuCau, string trangThai, int? maNguoiXacNhan)
+        {
+            const string query = @"
+UPDATE YEU_CAU_XAC_NHAN_LOI_MOI
+SET trang_thai = @TrangThai, ngay_xac_nhan = GETDATE(), ma_nguoi_xac_nhan = @MaNguoiXacNhan
+WHERE ma_yeu_cau = @MaYeuCau;";
+
+            return DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@TrangThai", SqlDbType.NVarChar) { Value = trangThai },
+                new SqlParameter("@MaYeuCau", SqlDbType.Int) { Value = maYeuCau },
+                new SqlParameter("@MaNguoiXacNhan", SqlDbType.Int) { Value = maNguoiXacNhan.HasValue ? (object)maNguoiXacNhan.Value : DBNull.Value }
+            }) > 0;
+        }
+
+        // Kích thành viên khỏi nhóm
+        public bool KichThanhVienKhoiNhom(int maNguoiDung, int maNhom, int maNguoiThucHien)
+        {
+            const string query = @"
+DELETE FROM THANH_VIEN_DOI
+WHERE ma_nguoi_dung = @MaNguoiDung AND ma_nhom = @MaNhom;";
+
+            return DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom }
+            }) > 0;
+        }
+
+        // Rời nhóm (tự nguyện)
+        public bool RoiNhom(int maNguoiDung, int maNhom)
+        {
+            const string query = @"
+DELETE FROM THANH_VIEN_DOI
+WHERE ma_nguoi_dung = @MaNguoiDung AND ma_nhom = @MaNhom;";
+
+            return DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
+                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom }
+            }) > 0;
+        }
+
+        // Rời đội (xóa tất cả thành viên của user khỏi đội)
+        public bool RoiDoi(int maNguoiDung, int maDoi)
+        {
+            const string query = @"
+DELETE tv FROM THANH_VIEN_DOI tv
+JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+WHERE tv.ma_nguoi_dung = @MaNguoiDung AND nd.ma_doi = @MaDoi;";
+
+            return DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
+            }) > 0;
+        }
+
+        // Đếm số nhóm game của người dùng trong đội
+        public int DemSoNhomGameCuaNguoiDung(int maNguoiDung, int maDoi)
+        {
+            const string query = @"
+SELECT COUNT(DISTINCT nd.ma_nhom)
+FROM THANH_VIEN_DOI tv
+JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+WHERE tv.ma_nguoi_dung = @MaNguoiDung 
+  AND nd.ma_doi = @MaDoi 
+  AND nd.ma_tro_choi IS NOT NULL
+  AND tv.trang_thai_hop_dong = 'dang_hieu_luc';";
+
+            var result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
+            });
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        // Lấy nhóm quản lý của đội (nhóm không có trò chơi)
+        public int LayNhomQuanLy(int maDoi)
+        {
+            const string query = @"
+SELECT ma_nhom
+FROM NHOM_DOI
+WHERE ma_doi = @MaDoi AND ma_tro_choi IS NULL;";
+
+            var result = DataProvider.ExecuteScalar(query, new[] { new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi } });
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        // Lấy thông tin một nhóm
+        public DataRow LayThongTinNhom(int maNhom)
+        {
+            const string query = @"
+SELECT ma_nhom, ma_doi, ma_tro_choi, ten_nhom, ma_doi_truong_nhom
+FROM NHOM_DOI
+WHERE ma_nhom = @MaNhom;";
+            DataTable dt = DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } });
+            return dt.Rows.Count == 0 ? null : dt.Rows[0];
+        }
+
+        // Lấy Đội trưởng của nhóm
+        public DataRow LayDoiTruongNhom(int maNhom)
+        {
+            const string query = @"
+SELECT tv.ma_nguoi_dung, u.ten_dang_nhap
+FROM THANH_VIEN_DOI tv
+JOIN NGUOI_DUNG u ON u.ma_nguoi_dung = tv.ma_nguoi_dung
+WHERE tv.ma_nhom = @MaNhom AND tv.vai_tro_noi_bo = 'doi_truong' AND tv.trang_thai_hop_dong = 'dang_hieu_luc';";
+            DataTable dt = DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom } });
+            return dt.Rows.Count == 0 ? null : dt.Rows[0];
+        }
+
+        // Cập nhật Đội trưởng của nhóm (đảm bảo chỉ có 1 đội trưởng duy nhất)
+        public bool CapNhatDoiTruongNhom(int maNhom, int maDoiTruongMoi)
+        {
+            using (SqlConnection conn = DataProvider.CreateConnection())
+            {
+                conn.Open();
+                SqlTransaction tran = conn.BeginTransaction();
+                try
+                {
+                    // Đổi tất cả thành viên có vai trò doi_truong trong nhóm về thanh_vien
+                    // Điều này đảm bảo nhóm chỉ có tối đa 1 đội trưởng
+                    const string queryRemove = @"
+UPDATE THANH_VIEN_DOI
+SET vai_tro_noi_bo = 'thanh_vien'
+WHERE ma_nhom = @MaNhom AND vai_tro_noi_bo = 'doi_truong';";
+                    DataProvider.ExecuteNonQuery(queryRemove, new[]
+                    {
+                        new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom }
+                    }, conn, tran);
+
+                    // Set new captain
+                    const string querySet = @"
+UPDATE THANH_VIEN_DOI
+SET vai_tro_noi_bo = 'doi_truong'
+WHERE ma_nhom = @MaNhom AND ma_nguoi_dung = @MaDoiTruongMoi;";
+                    DataProvider.ExecuteNonQuery(querySet, new[]
+                    {
+                        new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom },
+                        new SqlParameter("@MaDoiTruongMoi", SqlDbType.Int) { Value = maDoiTruongMoi }
+                    }, conn, tran);
+
+                    // Update NHOM_DOI ma_doi_truong_nhom
+                    const string queryUpdateNhom = @"
+UPDATE NHOM_DOI
+SET ma_doi_truong_nhom = @MaDoiTruongMoi
+WHERE ma_nhom = @MaNhom;";
+                    DataProvider.ExecuteNonQuery(queryUpdateNhom, new[] {
+                        new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom },
+                        new SqlParameter("@MaDoiTruongMoi", SqlDbType.Int) { Value = maDoiTruongMoi }
+                    }, conn, tran);
+
+                    tran.Commit();
+                    return true;
+                }
+                catch
+                {
+                    tran.Rollback();
+                    return false;
+                }
+            }
+        }
+
+        // Lấy thông tin một yêu cầu tham gia nhóm
+        public DataRow LayChiTietYeuCauThamGiaNhom(int maYeuCau)
+        {
+            const string query = @"
+SELECT ma_yeu_cau, ma_nguoi_dung, ma_nhom, ma_ho_so, trang_thai
+FROM YEU_CAU_THAM_GIA_NHOM
+WHERE ma_yeu_cau = @MaYeuCau;";
+            DataTable dt = DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaYeuCau", SqlDbType.Int) { Value = maYeuCau } });
+            return dt.Rows.Count == 0 ? null : dt.Rows[0];
         }
 
         // Xin gia nhập nhóm
@@ -483,34 +849,60 @@ WHERE x.ma_don_xin = @MaDonXin;";
             return dt.Rows.Count == 0 ? null : dt.Rows[0];
         }
 
-        // Kiểm tra quyền quản lý nhóm (bao gồm leader/coach/captain + Chairman check)
+        // Kiểm tra quyền quản lý nhóm (bao gồm Ban điều hành/Đội trưởng + Chủ tịch check)
         public bool CoQuyenQuanLyNhom(int maNguoiDung, int maNhom)
         {
             const string query = @"
 SELECT CASE
   WHEN EXISTS (
     SELECT 1 FROM THANH_VIEN_DOI WHERE ma_nguoi_dung = @MaNguoiDung AND ma_nhom = @MaNhom
-      AND vai_tro_noi_bo IN ('leader','coach','captain') AND trang_thai_hop_dong = 'dang_hieu_luc'
+      AND vai_tro_noi_bo IN ('ban_dieu_hanh','doi_truong') AND trang_thai_hop_dong = 'dang_hieu_luc'
   ) THEN 1
   WHEN EXISTS (
     SELECT 1 FROM THANH_VIEN_DOI tv
     JOIN NHOM_DOI n1 ON n1.ma_nhom = tv.ma_nhom
-    WHERE tv.ma_nguoi_dung = @MaNguoiDung AND tv.vai_tro_noi_bo = 'leader'
+    WHERE tv.ma_nguoi_dung = @MaNguoiDung AND tv.vai_tro_noi_bo = 'chu_tich'
       AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
       AND n1.ma_doi = (SELECT ma_doi FROM NHOM_DOI WHERE ma_nhom = @MaNhom)
   ) THEN 1
   ELSE 0
-END;";
+END";
+
             object result = DataProvider.ExecuteScalar(query, new[]
             {
-                new SqlParameter("@MaNguoiDung", SqlDbType.Int) { Value = maNguoiDung },
-                new SqlParameter("@MaNhom", SqlDbType.Int) { Value = maNhom }
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung },
+                new SqlParameter("@MaNhom", SqlDbType.Int){ Value = maNhom }
             });
             return Convert.ToInt32(result) == 1;
         }
 
-        // Kiểm tra user có phải Chairman (leader) của đội
-        public bool LaChairman(int maNguoiDung, int maDoi)
+        public bool CoQuyenQuanLyDoi(int maNguoiDung, int maDoi)
+        {
+            const string query = @"
+SELECT CASE
+  WHEN EXISTS (
+    SELECT 1 FROM DOI WHERE ma_doi = @MaDoi AND ma_doi_truong = @MaNguoiDung
+  ) THEN 1
+  WHEN EXISTS (
+    SELECT 1 FROM THANH_VIEN_DOI tv
+    JOIN NHOM_DOI n ON n.ma_nhom = tv.ma_nhom
+    WHERE tv.ma_nguoi_dung = @MaNguoiDung AND tv.vai_tro_noi_bo = 'chu_tich'
+      AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+      AND n.ma_doi = @MaDoi
+  ) THEN 1
+  ELSE 0
+END";
+
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung },
+                new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi }
+            });
+            return Convert.ToInt32(result) == 1;
+        }
+
+        // Kiểm tra user có phải Chủ tịch của đội
+        public bool LaChuTich(int maNguoiDung, int maDoi)
         {
             const string query = @"
 SELECT COUNT(1) FROM DOI WHERE ma_doi = @MaDoi AND ma_doi_truong = @MaNguoiDung AND trang_thai <> 'da_giai_the';";
@@ -563,6 +955,28 @@ WHERE ten_dang_nhap = @TuKhoa OR email = @TuKhoa;";
                 new SqlParameter("@DangTuyen", SqlDbType.Bit) { Value = dangTuyen },
                 new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
             }) > 0;
+        }
+
+        // Cập nhật logo đội
+        public bool CapNhatLogo(int maDoi, string logoUrl)
+        {
+            const string query = "UPDATE DOI SET logo_url = @LogoUrl WHERE ma_doi = @MaDoi";
+            return DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@LogoUrl", SqlDbType.NVarChar) { Value = logoUrl ?? (object)DBNull.Value },
+                new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi }
+            }) > 0;
+        }
+
+        // Lấy số lượng thành viên của đội (unique)
+        public DataTable LaySoThanhVienDoi(int maDoi)
+        {
+            const string query = @"
+SELECT COUNT(DISTINCT tv.ma_nguoi_dung) AS so_thanh_vien
+FROM THANH_VIEN_DOI tv
+JOIN NHOM_DOI nd ON nd.ma_nhom = tv.ma_nhom
+WHERE nd.ma_doi = @MaDoi AND tv.trang_thai_hop_dong = 'dang_hieu_luc';";
+            return DataProvider.ExecuteQuery(query, new[] { new SqlParameter("@MaDoi", SqlDbType.Int) { Value = maDoi } });
         }
 
         // Lấy mã nhóm từ thành viên

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Web.Script.Serialization;
 using DAL;
 using DTO;
@@ -53,9 +54,16 @@ namespace BUS
 
                 try
                 {
-                    int maDoi = _teamDal.TaoDoi(doi.MaNguoiDungTao, doi.TenDoi, doi.LogoUrl, doi.Slogan, conn, tran);
+                    int maDoi = _teamDal.TaoDoi(doi.MaNguoiDungTao, doi.TenDoi, doi.TenVietTat, doi.LogoUrl, doi.Slogan, conn, tran);
+
+                    // Create management group for team and get its ma_nhom
+                    int maNhomQuanLy = _teamDal.TaoNhomQuanLy(maDoi, conn, tran);
+
+                    // Add creator to management group as Chủ tịch (nhóm quản lý không có đội trưởng)
+                    _teamDal.ThemThanhVienVaoNhomQuanLy(doi.MaNguoiDungTao, maNhomQuanLy, "chu_tich", conn, tran);
 
                     var squadIds = new List<object>();
+                    var gameCountMap = new Dictionary<int, int>();
                     foreach (var sq in squads)
                     {
                         int maTroChoi = Convert.ToInt32(sq["maTroChoi"]);
@@ -66,9 +74,25 @@ namespace BUS
                             return ServiceResultDTO.Fail("Dữ liệu nhóm không hợp lệ.");
                         }
 
+                        // Kiểm tra giới hạn: mỗi game tối đa 2 nhóm
+                        if (!gameCountMap.ContainsKey(maTroChoi))
+                            gameCountMap[maTroChoi] = 0;
+                        gameCountMap[maTroChoi]++;
+                        if (gameCountMap[maTroChoi] > 2)
+                        {
+                            tran.Rollback();
+                            return ServiceResultDTO.Fail($"Mỗi game chỉ có tối đa 2 nhóm per đội. Game {maTroChoi} đã vượt quá giới hạn.");
+                        }
+
                         int maNhom = _teamDal.TaoNhom(maDoi, maTroChoi, tenNhom, doi.MaNguoiDungTao, conn, tran);
-                        _teamDal.ThemThanhVien(doi.MaNguoiDungTao, maNhom, "leader", "thi_dau", null, conn, tran);
                         squadIds.Add(new { maNhom });
+                    }
+
+                    // Kiểm tra: đội phải có ít nhất 1 nhóm game
+                    if (gameCountMap.Count == 0)
+                    {
+                        tran.Rollback();
+                        return ServiceResultDTO.Fail("Đội phải có ít nhất 1 nhóm game.");
                     }
 
                     tran.Commit();
@@ -86,9 +110,22 @@ namespace BUS
         {
             if (maCaptain <= 0) maCaptain = maNguoiTao;
 
-            if (maNguoiTao <= 0 || maDoi <= 0 || maTroChoi <= 0 || string.IsNullOrWhiteSpace(tenNhom))
+            if (maNguoiTao <= 0 || maDoi <= 0 || string.IsNullOrWhiteSpace(tenNhom))
             {
                 return ServiceResultDTO.Fail("Dữ liệu tạo nhóm không hợp lệ.");
+            }
+
+            // Kiểm tra điều kiện nhóm Ban điều hành: mỗi đội chỉ có đúng 1 nhóm Ban điều hành
+            if (maTroChoi == 0)
+            {
+                if (_teamDal.CoNhomBanDieuHanh(maDoi))
+                    return ServiceResultDTO.Fail("Đội đã có nhóm Ban điều hành. Mỗi đội chỉ có 1 nhóm Ban điều hành.");
+            }
+            // Kiểm tra điều kiện nhóm game: tối đa 2 nhóm per game per đội
+            else
+            {
+                if (_teamDal.DemSoNhomTheoGame(maDoi, maTroChoi) >= 2)
+                    return ServiceResultDTO.Fail("Mỗi game chỉ có tối đa 2 nhóm per đội. Đã đạt giới hạn.");
             }
 
             if (_teamDal.DemSoNhomCuaDoi(maDoi) >= 12)
@@ -96,13 +133,8 @@ namespace BUS
                 return ServiceResultDTO.Fail("Đội đã đạt tối đa 12 nhóm thi đấu.");
             }
 
-            if (_teamDal.DemSoNhomTheoGame(maDoi, maTroChoi) >= 2)
-            {
-                return ServiceResultDTO.Fail("Mỗi tựa game chỉ được tạo tối đa 2 nhóm.");
-            }
-
             // Only block if captain belongs to a DIFFERENT team
-            if (_teamDal.NguoiDungDangThuocDoiKhac(maCaptain) && !_teamDal.LaChairman(maCaptain, maDoi))
+            if (_teamDal.NguoiDungDangThuocDoiKhac(maCaptain) && !_teamDal.LaChuTich(maCaptain, maDoi))
             {
                 // Check if captain is already a member of THIS team
                 DataTable dtCap = _teamDal.LayTatCaDoiCuaToi(maCaptain);
@@ -110,7 +142,7 @@ namespace BUS
                 foreach (DataRow r in dtCap.Rows)
                     if (Convert.ToInt32(r["ma_doi"]) == maDoi) { thuocDoiNay = true; break; }
                 if (!thuocDoiNay)
-                    return ServiceResultDTO.Fail("Captain đang thuộc đội khác, không thể chỉ định.");
+                    return ServiceResultDTO.Fail("Đội trưởng đang thuộc đội khác, không thể chỉ định.");
             }
 
             using (SqlConnection conn = DataProvider.CreateConnection())
@@ -120,8 +152,7 @@ namespace BUS
                 try
                 {
                     int maNhom = _teamDal.TaoNhom(maDoi, maTroChoi, tenNhom, maCaptain, conn, tran);
-                    // Only add as member if not already in this squad (avoid dupe when leader creates)
-                    _teamDal.ThemThanhVien(maCaptain, maNhom, "captain", "thi_dau", null, conn, tran);
+                    // Nhóm được tạo rỗng, không tự động thêm người tạo vào nhóm
                     tran.Commit();
                     return ServiceResultDTO.Ok("Tạo nhóm thành công.", new { maNhom });
                 }
@@ -135,37 +166,96 @@ namespace BUS
 
         public ServiceResultDTO ThemThanhVienVaoNhom(int maNguoiThucHien, int maNguoiDung, int maNhom, int maTroChoiNhom, int maViTri, string phanHe)
         {
-            if (maNguoiDung <= 0 || maNhom <= 0 || maTroChoiNhom <= 0)
-            {
-                return ServiceResultDTO.Fail("Dữ liệu thêm thành viên không hợp lệ.");
-            }
+            if (maNguoiDung <= 0 || maNhom <= 0)
+                return ServiceResultDTO.Fail("Dữ liệu không hợp lệ.");
 
-            bool duocPhep = _teamDal.KiemTraRoleNoiBoTrongNhom(maNguoiThucHien, maNhom, "leader")
-                || _teamDal.KiemTraRoleNoiBoTrongNhom(maNguoiThucHien, maNhom, "captain");
+            // Kiểm tra quyền: chỉ Ban điều hành/Đội trưởng mới được thêm thành viên
+            bool duocPhep = _teamDal.KiemTraRoleNoiBoTrongNhom(maNguoiThucHien, maNhom, "ban_dieu_hanh")
+                || _teamDal.KiemTraRoleNoiBoTrongNhom(maNguoiThucHien, maNhom, "doi_truong");
             if (!duocPhep)
+                return ServiceResultDTO.Fail("Chỉ Ban điều hành hoặc Đội trưởng mới có quyền thêm thành viên vào nhóm.");
+
+            // Lấy thông tin nhóm
+            var nhomInfo = _teamDal.LayThongTinNhom(maNhom);
+            if (nhomInfo == null)
+                return ServiceResultDTO.Fail("Nhóm không tồn tại.");
+
+            int maDoi = Convert.ToInt32(nhomInfo["ma_doi"]);
+            int maTroChoi = nhomInfo["ma_tro_choi"] != DBNull.Value ? Convert.ToInt32(nhomInfo["ma_tro_choi"]) : 0;
+            bool isNhomGame = maTroChoi > 0;
+            bool isNhomBanDieuHanh = !isNhomGame;
+
+            // Kiểm tra người dùng có trong đội chưa
+            if (_teamDal.NguoiDungDangThuocDoiKhac(maNguoiDung))
+                return ServiceResultDTO.Fail("Người dùng đang thuộc đội khác.");
+
+            // Lấy vai trò của người dùng trong đội
+            var vaiTro = _teamDal.LayVaiTroNguoiDungTrongDoi(maNguoiDung, maDoi);
+
+            // Nếu chưa trong đội, thêm vào đội trước
+            if (vaiTro == null || vaiTro == "")
             {
-                return ServiceResultDTO.Fail("Bạn không có quyền thêm thành viên trong nhóm này.");
+                // Lấy nhóm quản lý của đội
+                int maNhomQuanLy = _teamDal.LayNhomQuanLy(maDoi);
+                if (maNhomQuanLy <= 0)
+                    return ServiceResultDTO.Fail("Không tìm thấy nhóm quản lý của đội.");
+
+                using (SqlConnection conn = DataProvider.CreateConnection())
+                {
+                    conn.Open();
+                    using (SqlTransaction tran = conn.BeginTransaction())
+                    {
+                        try
+                        {
+                            _teamDal.ThemThanhVien(maNguoiDung, maNhomQuanLy, "thanh_vien", "ban_huan_luyen", null, conn, tran);
+                            tran.Commit();
+                        }
+                        catch
+                        {
+                            tran.Rollback();
+                            return ServiceResultDTO.Fail("Không thể thêm người dùng vào đội.");
+                        }
+                    }
+                }
+                vaiTro = "thanh_vien";
             }
 
-            if (!_teamDal.NguoiChoiCoHoSoDungGame(maNguoiDung, maTroChoiNhom))
+            // Kiểm tra hạn chế tham gia nhóm game
+            if (isNhomGame)
             {
-                return ServiceResultDTO.Fail("Tuyển thủ không có hồ sơ in-game tương ứng với game của nhóm.");
+                // Chủ tịch và Ban điều hành có thể tham gia 2 nhóm (ban điều hành + 1 nhóm game)
+                // Thành viên chỉ được tham gia 1 nhóm game
+                if (vaiTro != "chu_tich" && vaiTro != "ban_dieu_hanh")
+                {
+                    // Kiểm tra thành viên đã tham gia nhóm game nào chưa
+                    if (_teamDal.DemSoNhomGameCuaNguoiDung(maNguoiDung, maDoi) >= 1)
+                        return ServiceResultDTO.Fail("Thành viên chỉ được tham gia 1 nhóm game. Vui lòng rời nhóm hiện tại trước.");
+                }
+                else
+                {
+                    // Chủ tịch/Ban điều hành: kiểm tra đã tham gia 1 nhóm game chưa
+                    if (_teamDal.DemSoNhomGameCuaNguoiDung(maNguoiDung, maDoi) >= 1)
+                        return ServiceResultDTO.Fail("Chủ tịch/Ban điều hành chỉ được tham gia 1 nhóm game bên cạnh nhóm Ban điều hành.");
+                }
             }
 
+            // Thêm vào nhóm cụ thể
             using (SqlConnection conn = DataProvider.CreateConnection())
             {
                 conn.Open();
-                SqlTransaction tran = conn.BeginTransaction();
-                try
+                using (SqlTransaction tran = conn.BeginTransaction())
                 {
-                    _teamDal.ThemThanhVien(maNguoiDung, maNhom, "member", phanHe == "ban_huan_luyen" ? "ban_huan_luyen" : "thi_dau", maViTri > 0 ? (int?)maViTri : null, conn, tran);
-                    tran.Commit();
-                    return ServiceResultDTO.Ok("Thêm thành viên vào nhóm thành công.");
-                }
-                catch (Exception ex)
-                {
-                    tran.Rollback();
-                    return ServiceResultDTO.Fail("Không thể thêm thành viên: " + ex.Message);
+                    try
+                    {
+                        _teamDal.ThemThanhVien(maNguoiDung, maNhom, "thanh_vien", phanHe == "ban_huan_luyen" ? "ban_huan_luyen" : "thi_dau", maViTri > 0 ? (int?)maViTri : null, conn, tran);
+                        tran.Commit();
+                        return ServiceResultDTO.Ok("Đã thêm thành viên vào nhóm.");
+                    }
+                    catch (Exception ex)
+                    {
+                        tran.Rollback();
+                        return ServiceResultDTO.Fail("Không thể thêm thành viên vào nhóm: " + ex.Message);
+                    }
                 }
             }
         }
@@ -188,8 +278,8 @@ namespace BUS
             if (maNguoiThucHien <= 0 || maDoi <= 0 || maNhom <= 0)
                 return ServiceResultDTO.Fail("Dữ liệu xóa nhóm không hợp lệ.");
 
-            if (!_teamDal.LaChairman(maNguoiThucHien, maDoi))
-                return ServiceResultDTO.Fail("Chỉ Chairman mới có quyền xóa nhóm.");
+            if (!_teamDal.LaChuTich(maNguoiThucHien, maDoi))
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có quyền xóa nhóm.");
 
             if (!_teamDal.NhomThuocDoi(maNhom, maDoi))
                 return ServiceResultDTO.Fail("Nhóm không thuộc đội này.");
@@ -197,8 +287,8 @@ namespace BUS
             if (_teamDal.DemSoNhomCuaDoi(maDoi) <= 1)
                 return ServiceResultDTO.Fail("Đội phải còn ít nhất 1 nhóm. Nếu muốn xóa toàn bộ, hãy dùng xóa đội.");
 
-            if (_teamDal.NhomChuaChairman(maNhom))
-                return ServiceResultDTO.Fail("Không thể xóa nhóm đang chứa Chairman. Hãy chuyển Chairman sang nhóm khác trước.");
+            if (_teamDal.NhomChuaChuTich(maNhom))
+                return ServiceResultDTO.Fail("Không thể xóa nhóm đang chứa Chủ tịch. Hãy chuyển Chủ tịch sang nhóm khác trước.");
 
             if (_teamDal.NhomCoDuLieuThamGiaGiai(maNhom))
                 return ServiceResultDTO.Fail("Nhóm đã phát sinh dữ liệu giải đấu/trận đấu, không thể xóa.");
@@ -226,8 +316,8 @@ namespace BUS
             if (maNguoiThucHien <= 0 || maDoi <= 0)
                 return ServiceResultDTO.Fail("Dữ liệu xóa đội không hợp lệ.");
 
-            if (!_teamDal.LaChairman(maNguoiThucHien, maDoi))
-                return ServiceResultDTO.Fail("Chỉ Chairman mới có quyền xóa đội.");
+            if (!_teamDal.LaChuTich(maNguoiThucHien, maDoi))
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có quyền xóa đội.");
 
             DataTable dtNhom = _teamDal.LayDanhSachNhom(maDoi);
             foreach (DataRow row in dtNhom.Rows)
@@ -304,7 +394,7 @@ namespace BUS
                 int maDoiTruong = Convert.ToInt32(row["ma_doi_truong"]);
                 if (maDoiTruong == maNguoiDung)
                 {
-                    vaiTroHienTai = "leader";
+                    vaiTroHienTai = "chu_tich";  // User is the team owner/chủ tịch
                 }
                 else
                 {
@@ -321,10 +411,9 @@ namespace BUS
                 }
             }
 
-            // Count total members
-            int soThanhVien = 0;
-            foreach (var sq in squads)
-                soThanhVien += sq.ContainsKey("so_thanh_vien") && sq["so_thanh_vien"] != null ? Convert.ToInt32(sq["so_thanh_vien"]) : 0;
+            // Count total members directly from THANH_VIEN_DOI to avoid duplicates
+            DataTable dtMembers = _teamDal.LaySoThanhVienDoi(maDoi);
+            int soThanhVien = dtMembers.Rows.Count > 0 ? Convert.ToInt32(dtMembers.Rows[0]["so_thanh_vien"]) : 0;
 
             return ServiceResultDTO.Ok("OK", new
             {
@@ -405,6 +494,172 @@ namespace BUS
         }
 
         // Danh sách đơn xin
+        public ServiceResultDTO LayThanhVienNhomQuanLy(int maNguoiDung, int maDoi)
+        {
+            if (!_teamDal.CoQuyenQuanLyDoi(maNguoiDung, maDoi))
+                return ServiceResultDTO.Fail("Bạn không có quyền xem danh sách thành viên.");
+            DataTable dt = _teamDal.LayThanhVienNhomQuanLy(maDoi);
+            return ServiceResultDTO.Ok("OK", DataTableToList(dt));
+        }
+
+        public ServiceResultDTO GuiYeuCauThamGiaNhom(int maNguoiDung, int maNhom, int maHoSo)
+        {
+            // Check if user has game profile for the squad's game
+            var squadInfo = _teamDal.LayThongTinNhom(maNhom);
+            if (squadInfo == null)
+                return ServiceResultDTO.Fail("Nhóm không tồn tại.");
+            
+            int maTroChoi = Convert.ToInt32(squadInfo["ma_tro_choi"]);
+            if (!_teamDal.NguoiChoiCoHoSoDungGame(maNguoiDung, maTroChoi))
+                return ServiceResultDTO.Fail("Bạn chưa có hồ sơ thi đấu cho game này. Vui lòng tạo hồ sơ trước.");
+
+            // Check if user is already in the team
+            if (_teamDal.NguoiDungDangThuocDoiKhac(maNguoiDung))
+                return ServiceResultDTO.Fail("Bạn đang thuộc đội khác.");
+
+            try
+            {
+                int maYeuCau = _teamDal.TaoYeuCauThamGiaNhom(maNguoiDung, maNhom, maHoSo);
+                // Notify squad Đội trưởng
+                var captain = _teamDal.LayDoiTruongNhom(maNhom);
+                if (captain != null)
+                {
+                    int maCaptain = Convert.ToInt32(captain["ma_nguoi_dung"]);
+                    _teamDal.TaoThongBao(maCaptain, "Yêu cầu tham gia nhóm",
+                        "Có thành viên muốn tham gia nhóm của bạn. Kiểm tra để duyệt.", "doi", "yeu_cau_tham_gia", maYeuCau);
+                }
+                return ServiceResultDTO.Ok("Đã gửi yêu cầu tham gia nhóm.", new { maYeuCau });
+            }
+            catch (Exception ex)
+            {
+                return ServiceResultDTO.Fail("Không thể gửi yêu cầu: " + ex.Message);
+            }
+        }
+
+        public ServiceResultDTO LayYeuCauThamGiaNhom(int maNguoiDung, int maNhom)
+        {
+            if (!_teamDal.CoQuyenQuanLyNhom(maNguoiDung, maNhom))
+                return ServiceResultDTO.Fail("Bạn không có quyền xem yêu cầu tham gia.");
+            DataTable dt = _teamDal.LayYeuCauThamGiaNhom(maNhom);
+            return ServiceResultDTO.Ok("OK", DataTableToList(dt));
+        }
+
+        public ServiceResultDTO CapNhatDoiTruongNhom(int maNguoiDung, int maNhom, int maDoiTruongMoi)
+        {
+            // Check if user is Chủ tịch of the team by checking their role in the squad
+            var squadMembers = _teamDal.LayThanhVienNhom(maNhom);
+            var chuTichMember = squadMembers.AsEnumerable()
+                .FirstOrDefault(row => row["ma_nguoi_dung"].ToString() == maNguoiDung.ToString());
+
+            if (chuTichMember == null || chuTichMember["vai_tro_noi_bo"].ToString() != "chu_tich")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có thể thay đổi Đội trưởng.");
+
+            // Check if new captain is a member of the squad
+            var isMember = squadMembers.AsEnumerable()
+                .Any(row => row["ma_nguoi_dung"].ToString() == maDoiTruongMoi.ToString());
+
+            if (!isMember)
+                return ServiceResultDTO.Fail("Người được chọn không phải thành viên của nhóm.");
+
+            bool success = _teamDal.CapNhatDoiTruongNhom(maNhom, maDoiTruongMoi);
+            if (success)
+                return ServiceResultDTO.Ok("Đã cập nhật Đội trưởng thành công.");
+            else
+                return ServiceResultDTO.Fail("Cập nhật Đội trưởng thất bại.");
+        }
+
+        public ServiceResultDTO CapNhatThongTinDoi(int maNguoiDung, int maDoi, string tenDoi, string tenVietTat, string logoUrl, string slogan)
+        {
+            // Check if user is Chủ tịch of the team
+            DataTable team = _teamDal.LayChiTietDoi(maDoi);
+            if (team == null || team.Rows.Count == 0)
+                return ServiceResultDTO.Fail("Đội không tồn tại.");
+
+            var vaiTro = team.Rows[0]["vai_tro_hien_tai"]?.ToString();
+            if (vaiTro != "chu_tich")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có thể thay đổi thông tin đội.");
+
+            bool success = _teamDal.CapNhatThongTinDoi(maDoi, tenDoi, tenVietTat, logoUrl, slogan);
+            if (success)
+                return ServiceResultDTO.Ok("Đã cập nhật thông tin đội thành công.");
+            else
+                return ServiceResultDTO.Fail("Cập nhật thông tin đội thất bại.");
+        }
+
+        public ServiceResultDTO CapNhatDangTuyen(int maNguoiDung, int maDoi, bool dangTuyen)
+        {
+            // Check if user is Chủ tịch or Ban điều hành of the team
+            DataTable team = _teamDal.LayChiTietDoi(maDoi);
+            if (team == null || team.Rows.Count == 0)
+                return ServiceResultDTO.Fail("Đội không tồn tại.");
+
+            // Get user's team info to check role
+            var userTeam = LayDoiCuaToi(maNguoiDung);
+            if (!userTeam.Success || userTeam.Data == null)
+                return ServiceResultDTO.Fail("Bạn không thuộc đội này.");
+
+            var userTeamData = (dynamic)userTeam.Data;
+            if (userTeamData.ma_doi != maDoi)
+                return ServiceResultDTO.Fail("Bạn không thuộc đội này.");
+
+            var vaiTro = userTeamData.vai_tro?.ToString();
+            if (vaiTro != "chu_tich" && vaiTro != "ban_dieu_hanh")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch hoặc Ban điều hành mới có thể thay đổi trạng thái tuyển dụng.");
+
+            bool success = _teamDal.CapNhatDangTuyen(maDoi, dangTuyen);
+            if (success)
+                return ServiceResultDTO.Ok(dangTuyen ? "Đã bật tuyển dụng." : "Đã tắt tuyển dụng.");
+            else
+                return ServiceResultDTO.Fail("Cập nhật trạng thái tuyển dụng thất bại.");
+        }
+
+        public ServiceResultDTO CapNhatLogo(int maNguoiDung, int maDoi, string logoUrl)
+        {
+            // Check if user is Chủ tịch of the team
+            var userTeam = LayDoiCuaToi(maNguoiDung);
+            if (!userTeam.Success || userTeam.Data == null)
+                return ServiceResultDTO.Fail("Bạn không thuộc đội này.");
+
+            var userTeamData = (dynamic)userTeam.Data;
+            if (userTeamData.ma_doi != maDoi)
+                return ServiceResultDTO.Fail("Bạn không thuộc đội này.");
+
+            var vaiTro = userTeamData.vai_tro?.ToString();
+            if (vaiTro != "chu_tich")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có thể thay đổi logo đội.");
+
+            bool success = _teamDal.CapNhatLogo(maDoi, logoUrl);
+            if (success)
+                return ServiceResultDTO.Ok("Đã cập nhật logo đội thành công.");
+            else
+                return ServiceResultDTO.Fail("Cập nhật logo đội thất bại.");
+        }
+
+        public ServiceResultDTO DuyetYeuCauThamGiaNhom(int maNguoiDung, int maYeuCau, bool chapNhan)
+        {
+            var yeuCau = _teamDal.LayYeuCauThamGiaNhom(maYeuCau);
+            if (yeuCau == null || yeuCau.Rows.Count == 0)
+                return ServiceResultDTO.Fail("Không tìm thấy yêu cầu.");
+
+            int maNhom = Convert.ToInt32(yeuCau.Rows[0]["ma_nhom"]);
+            if (!_teamDal.CoQuyenQuanLyNhom(maNguoiDung, maNhom))
+                return ServiceResultDTO.Fail("Bạn không có quyền duyệt yêu cầu này.");
+
+            string trangThai = chapNhan ? "chap_nhan" : "tu_choi";
+            _teamDal.DuyetYeuCauThamGiaNhom(maYeuCau, trangThai, maNguoiDung);
+
+            if (chapNhan)
+            {
+                int maNguoiXin = Convert.ToInt32(yeuCau.Rows[0]["ma_nguoi_dung"]);
+                int maHoSo = yeuCau.Rows[0]["ma_ho_so"] != DBNull.Value ? Convert.ToInt32(yeuCau.Rows[0]["ma_ho_so"]) : 0;
+                if (maHoSo > 0)
+                    _recruitDal.TiepNhanUngVienVaoNhom(maNhom, maNguoiXin);
+                _teamDal.TaoThongBao(maNguoiXin, "Chúc mừng!", "Yêu cầu tham gia nhóm của bạn đã được duyệt.", "doi", "yeu_cau_tham_gia", maYeuCau);
+            }
+
+            return ServiceResultDTO.Ok("Đã xử lý yêu cầu thành công.");
+        }
+
         public ServiceResultDTO LayDanhSachXinGiaNhap(int maNguoiDung, int maNhom)
         {
             if (!_teamDal.CoQuyenQuanLyNhom(maNguoiDung, maNhom))
@@ -413,11 +668,184 @@ namespace BUS
             return ServiceResultDTO.Ok("OK", DataTableToList(dt));
         }
 
-        // Gửi lời mời gia nhập
-        public ServiceResultDTO GuiLoiMoi(int maNguoiGui, int maDoi, int maNhom, string tenNguoiNhan)
+        // Kích thành viên khỏi nhóm
+        public ServiceResultDTO KichThanhVienKhoiNhom(int maNguoiThucHien, int maNguoiBiKich, int maNhom)
         {
-            if (!_teamDal.CoQuyenQuanLyNhom(maNguoiGui, maNhom))
+            // Lấy thông tin nhóm
+            var nhomInfo = _teamDal.LayThongTinNhom(maNhom);
+            if (nhomInfo == null)
+                return ServiceResultDTO.Fail("Nhóm không tồn tại.");
+            
+            int maDoi = Convert.ToInt32(nhomInfo["ma_doi"]);
+            
+            // Kiểm tra quyền của người thực hiện
+            var vaiTroThucHien = _teamDal.LayVaiTroNguoiDungTrongDoi(maNguoiThucHien, maDoi);
+            if (vaiTroThucHien != "chu_tich" && vaiTroThucHien != "ban_dieu_hanh")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch hoặc Ban điều hành mới có quyền kích thành viên.");
+            
+            // Lấy vai trò của người bị kích
+            var vaiTroBiKich = _teamDal.LayVaiTroNguoiDungTrongDoi(maNguoiBiKich, maDoi);
+            
+            // Chủ tịch không thể bị kích
+            if (vaiTroBiKich == "chu_tich")
+                return ServiceResultDTO.Fail("Không thể kích Chủ tịch.");
+            
+            // Ban điều hành không thể kích lẫn nhau, chỉ có chủ tịch mới được kích ban điều hành
+            if (vaiTroBiKich == "ban_dieu_hanh" && vaiTroThucHien != "chu_tich")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có quyền kích Ban điều hành.");
+            
+            // Kiểm tra người bị kích có trong nhóm không
+            var thanhVienNhom = _teamDal.LayThanhVienNhom(maNhom);
+            var thanhVien = thanhVienNhom.AsEnumerable()
+                .FirstOrDefault(row => Convert.ToInt32(row["ma_nguoi_dung"]) == maNguoiBiKich);
+            
+            if (thanhVien == null)
+                return ServiceResultDTO.Fail("Thành viên không thuộc nhóm này.");
+            
+            // Thực hiện kích
+            bool success = _teamDal.KichThanhVienKhoiNhom(maNguoiBiKich, maNhom, maNguoiThucHien);
+            if (!success)
+                return ServiceResultDTO.Fail("Kích thành viên thất bại.");
+            
+            // Thông báo cho người bị kích
+            _teamDal.TaoThongBao(maNguoiBiKich, "Bạn đã bị kích khỏi nhóm",
+                "Bạn đã bị kích khỏi nhóm bởi quản lý đội.", "doi", "kich", maNhom);
+            
+            return ServiceResultDTO.Ok("Đã kích thành viên khỏi nhóm.");
+        }
+
+        // Rời nhóm (tự nguyện)
+        public ServiceResultDTO RoiNhom(int maNguoiDung, int maNhom)
+        {
+            // Kiểm tra người dùng có trong nhóm không
+            var thanhVienNhom = _teamDal.LayThanhVienNhom(maNhom);
+            var thanhVien = thanhVienNhom.AsEnumerable()
+                .FirstOrDefault(row => Convert.ToInt32(row["ma_nguoi_dung"]) == maNguoiDung);
+            
+            if (thanhVien == null)
+                return ServiceResultDTO.Fail("Bạn không thuộc nhóm này.");
+            
+            // Chủ tịch không thể rời nhóm ban điều hành
+            var vaiTro = thanhVien["vai_tro_noi_bo"].ToString();
+            var nhomInfo = _teamDal.LayThongTinNhom(maNhom);
+            bool isNhomBanDieuHanh = nhomInfo["ma_tro_choi"] == DBNull.Value;
+            
+            if (vaiTro == "chu_tich" && isNhomBanDieuHanh)
+                return ServiceResultDTO.Fail("Chủ tịch không thể rời nhóm Ban điều hành.");
+            
+            // Thực hiện rời nhóm
+            bool success = _teamDal.RoiNhom(maNguoiDung, maNhom);
+            if (!success)
+                return ServiceResultDTO.Fail("Rời nhóm thất bại.");
+            
+            return ServiceResultDTO.Ok("Đã rời nhóm thành công.");
+        }
+
+        // Rời đội (tự nguyện)
+        public ServiceResultDTO RoiDoi(int maNguoiDung, int maDoi)
+        {
+            // Kiểm tra người dùng có trong đội không
+            var vaiTro = _teamDal.LayVaiTroNguoiDungTrongDoi(maNguoiDung, maDoi);
+            if (vaiTro == null || vaiTro == "")
+                return ServiceResultDTO.Fail("Bạn không thuộc đội này.");
+            
+            // Chủ tịch không thể rời đội
+            if (vaiTro == "chu_tich")
+                return ServiceResultDTO.Fail("Chủ tịch không thể rời đội. Vui lòng giải tán đội hoặc chuyển quyền Chủ tịch.");
+            
+            // Thực hiện rời đội
+            bool success = _teamDal.RoiDoi(maNguoiDung, maDoi);
+            if (!success)
+                return ServiceResultDTO.Fail("Rời đội thất bại.");
+            
+            return ServiceResultDTO.Ok("Đã rời đội thành công.");
+        }
+
+        // Xác nhận/Từ chối lời mời từ Đội trưởng (cho Chủ tịch/Ban điều hành)
+        public ServiceResultDTO XacNhanLoiMoi(int maNguoiXacNhan, int maYeuCau, bool chapNhan)
+        {
+            var yeuCau = _teamDal.LayYeuCauXacNhanLoiMoi(maYeuCau);
+            if (yeuCau == null)
+                return ServiceResultDTO.Fail("Không tìm thấy yêu cầu.");
+
+            int maDoi = Convert.ToInt32(yeuCau["ma_doi"]);
+            
+            // Kiểm tra quyền: chỉ Chủ tịch hoặc Ban điều hành mới được xác nhận
+            var vaiTro = _teamDal.LayVaiTroNguoiDungTrongDoi(maNguoiXacNhan, maDoi);
+            if (vaiTro != "chu_tich" && vaiTro != "ban_dieu_hanh")
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch hoặc Ban điều hành mới có quyền xác nhận.");
+
+            int maNguoiNhan = Convert.ToInt32(yeuCau["ma_nguoi_nhan"]);
+            int? maNhom = yeuCau["ma_nhom"] != DBNull.Value ? (int?)Convert.ToInt32(yeuCau["ma_nhom"]) : null;
+
+            if (!chapNhan)
+            {
+                // Từ chối yêu cầu
+                _teamDal.CapNhatTrangThaiYeuCauXacNhanLoiMoi(maYeuCau, "tu_choi", maNguoiXacNhan);
+                
+                // Thông báo cho Đội trưởng
+                int maNguoiGui = Convert.ToInt32(yeuCau["ma_nguoi_gui"]);
+                _teamDal.TaoThongBao(maNguoiGui, "Lời mời bị từ chối",
+                    "Yêu cầu mời thành viên của bạn đã bị từ chối.", "doi", "yeu_cau_loi_moi", maYeuCau);
+                
+                return ServiceResultDTO.Ok("Đã từ chối yêu cầu.");
+            }
+
+            // Chấp nhận - gửi lời mời thực sự
+            try
+            {
+                int maNguoiGui = Convert.ToInt32(yeuCau["ma_nguoi_gui"]);
+                int maLoiMoi = _recruitDal.TaoLoiMoi(maDoi, maNhom, maNguoiNhan, maNguoiGui);
+                
+                // Cập nhật trạng thái yêu cầu
+                _teamDal.CapNhatTrangThaiYeuCauXacNhanLoiMoi(maYeuCau, "da_xac_nhan", maNguoiXacNhan);
+                
+                string message = maNhom.HasValue && maNhom.Value > 0
+                    ? "Bạn được mời gia nhập một nhóm thi đấu."
+                    : "Bạn được mời gia nhập đội (chưa phân vào nhóm).";
+                _teamDal.TaoThongBao(maNguoiNhan, "Bạn nhận được lời mời gia nhập đội",
+                    message + " Kiểm tra mục Thông báo để phản hồi.", "doi", "loi_moi", maLoiMoi);
+                
+                return ServiceResultDTO.Ok("Đã xác nhận và gửi lời mời.", new { maLoiMoi });
+            }
+            catch (Exception ex)
+            {
+                return ServiceResultDTO.Fail("Không thể gửi lời mời: " + ex.Message);
+            }
+        }
+
+        // Gửi lời mời gia nhập
+        public ServiceResultDTO GuiLoiMoi(int maNguoiGui, int maDoi, int? maNhom, string tenNguoiNhan)
+        {
+            // Kiểm tra quyền theo role mới
+            // Chủ tịch/Ban điều hành: mời trực tiếp, phân nhóm luôn
+            // Đội trưởng: gửi yêu cầu lên Chủ tịch/Ban điều hành để xác nhận trước
+            var vaiTro = _teamDal.LayVaiTroNguoiDungTrongDoi(maNguoiGui, maDoi);
+            if (vaiTro == null || vaiTro == "")
+                return ServiceResultDTO.Fail("Bạn không thuộc đội này.");
+
+            bool isDoiTruong = vaiTro == "doi_truong";
+            bool isChuTichOrBanDieuHanh = vaiTro == "chu_tich" || vaiTro == "ban_dieu_hanh";
+
+            if (!isChuTichOrBanDieuHanh && !isDoiTruong)
                 return ServiceResultDTO.Fail("Bạn không có quyền gửi lời mời.");
+
+            // Kiểm tra quyền quản lý nhóm (nếu mời vào nhóm cụ thể)
+            if (maNhom.HasValue && maNhom.Value > 0)
+            {
+                // Ban điều hành không thể mời vào nhóm ban điều hành
+                var nhomInfo = _teamDal.LayThongTinNhom(maNhom.Value);
+                if (nhomInfo == null)
+                    return ServiceResultDTO.Fail("Nhóm không tồn tại.");
+                
+                bool isNhomBanDieuHanh = nhomInfo["ma_tro_choi"] == DBNull.Value;
+                if (vaiTro == "ban_dieu_hanh" && isNhomBanDieuHanh)
+                    return ServiceResultDTO.Fail("Ban điều hành không thể mời vào nhóm Ban điều hành.");
+
+                if (!_teamDal.CoQuyenQuanLyNhom(maNguoiGui, maNhom.Value))
+                    return ServiceResultDTO.Fail("Bạn không có quyền gửi lời mời vào nhóm này.");
+            }
+
             var user = _teamDal.TimNguoiDung(tenNguoiNhan);
             if (user == null) return ServiceResultDTO.Fail("Không tìm thấy người dùng.");
             int maNguoiNhan = Convert.ToInt32(user["ma_nguoi_dung"]);
@@ -425,11 +853,32 @@ namespace BUS
             if (_teamDal.NguoiDungDangThuocDoiKhac(maNguoiNhan))
                 return ServiceResultDTO.Fail("Người này đã thuộc đội khác.");
 
+            // Nếu là Đội trưởng, cần gửi yêu cầu lên Chủ tịch/Ban điều hành để xác nhận
+            if (isDoiTruong)
+            {
+                // Tạo yêu cầu xác nhận lời mời
+                int maYeuCau = _teamDal.TaoYeuCauXacNhanLoiMoi(maNguoiGui, maDoi, maNhom, maNguoiNhan);
+                
+                // Thông báo cho Chủ tịch/Ban điều hành
+                DataTable quanLyNhom = _teamDal.LayQuanLyDoi(maDoi);
+                foreach (DataRow row in quanLyNhom.Rows)
+                {
+                    int maQuanLy = Convert.ToInt32(row["ma_nguoi_dung"]);
+                    _teamDal.TaoThongBao(maQuanLy, "Yêu cầu xác nhận lời mời",
+                        $"Đội trưởng muốn mời {tenNguoiNhan} vào đội. Vui lòng xác nhận.", "doi", "yeu_cau_loi_moi", maYeuCau);
+                }
+                
+                return ServiceResultDTO.Ok("Đã gửi yêu cầu lên Chủ tịch/Ban điều hành để xác nhận.");
+            }
+
             try
             {
-                int maLoiMoi = _recruitDal.TaoLoiMoi(maDoi, maNhom, maNguoiNhan);
+                int maLoiMoi = _recruitDal.TaoLoiMoi(maDoi, maNhom.HasValue ? maNhom.Value : (int?)null, maNguoiNhan, maNguoiGui);
+                string message = maNhom.HasValue && maNhom.Value > 0
+                    ? "Bạn được mời gia nhập một nhóm thi đấu."
+                    : "Bạn được mời gia nhập đội (chưa phân vào nhóm).";
                 _teamDal.TaoThongBao(maNguoiNhan, "Bạn nhận được lời mời gia nhập đội",
-                    "Bạn được mời gia nhập nhóm thi đấu. Kiểm tra mục Thông báo để phản hồi.", "doi", "loi_moi", maLoiMoi);
+                    message + " Kiểm tra mục Thông báo để phản hồi.", "doi", "loi_moi", maLoiMoi);
                 return ServiceResultDTO.Ok("Đã gửi lời mời.", new { maLoiMoi });
             }
             catch (Exception ex)
@@ -441,9 +890,9 @@ namespace BUS
         // RBAC: Cập nhật vai trò thành viên
         public ServiceResultDTO CapNhatVaiTro(int maNguoiThucHien, int maThanhVien, string vaiTroMoi)
         {
-            string[] vaiTroHopLe = { "coach", "captain", "member" };
+            string[] vaiTroHopLe = { "ban_dieu_hanh", "doi_truong", "thanh_vien" };
             if (Array.IndexOf(vaiTroHopLe, vaiTroMoi) < 0)
-                return ServiceResultDTO.Fail("Vai trò không hợp lệ. Chỉ cho phép: coach, captain, member.");
+                return ServiceResultDTO.Fail("Vai trò không hợp lệ. Chỉ cho phép: Ban điều hành, Đội trưởng, Thành viên.");
 
             var tv = _teamDal.LayThanhVien(maThanhVien);
             if (tv == null) return ServiceResultDTO.Fail("Thành viên không tồn tại.");
@@ -451,12 +900,12 @@ namespace BUS
             int maNguoiDuocDoi = Convert.ToInt32(tv["ma_nguoi_dung"]);
             string vaiTroCu = tv["vai_tro_noi_bo"].ToString();
 
-            if (vaiTroCu == "leader")
-                return ServiceResultDTO.Fail("Không thể thay đổi vai trò của Chairman.");
+            if (vaiTroCu == "chu_tich")
+                return ServiceResultDTO.Fail("Không thể thay đổi vai trò của Chủ tịch.");
             if (maNguoiThucHien == maNguoiDuocDoi)
                 return ServiceResultDTO.Fail("Không thể tự thay đổi vai trò của mình.");
-            if (!_teamDal.LaChairman(maNguoiThucHien, maDoi))
-                return ServiceResultDTO.Fail("Chỉ Chairman mới có quyền phân vai trò.");
+            if (!_teamDal.LaChuTich(maNguoiThucHien, maDoi))
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có quyền phân vai trò.");
 
             _teamDal.CapNhatVaiTro(maThanhVien, vaiTroMoi);
             _teamDal.TaoThongBao(maNguoiDuocDoi, "Vai trò thay đổi",
@@ -467,8 +916,8 @@ namespace BUS
         // Toggle tuyển dụng
         public ServiceResultDTO ToggleDangTuyen(int maNguoiDung, int maDoi, bool dangTuyen)
         {
-            if (!_teamDal.LaChairman(maNguoiDung, maDoi))
-                return ServiceResultDTO.Fail("Chỉ Chairman mới có quyền.");
+            if (!_teamDal.LaChuTich(maNguoiDung, maDoi))
+                return ServiceResultDTO.Fail("Chỉ Chủ tịch mới có quyền.");
             _teamDal.CapNhatDangTuyen(maDoi, dangTuyen);
             return ServiceResultDTO.Ok(dangTuyen ? "Đã bật tuyển dụng." : "Đã tắt tuyển dụng.");
         }

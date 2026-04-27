@@ -41,18 +41,19 @@ VALUES(@MaBaiDang, @MaUngVien, 'cho_duyet');";
             return Convert.ToInt32(result);
         }
 
-        public int TaoLoiMoi(int maDoi, int maNhom, int maNguoiDuocMoi)
+        public int TaoLoiMoi(int maDoi, int? maNhom, int maNguoiDuocMoi, int? maNguoiGui = null)
         {
             const string query = @"
-INSERT INTO LOI_MOI_GIA_NHAP(ma_doi, ma_nhom, ma_nguoi_duoc_moi, trang_thai)
+INSERT INTO LOI_MOI_GIA_NHAP(ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, trang_thai)
 OUTPUT INSERTED.ma_loi_moi
-VALUES(@MaDoi, @MaNhom, @MaNguoiDuocMoi, 'cho_phan_hoi');";
+VALUES(@MaDoi, @MaNhom, @MaNguoiDuocMoi, @MaNguoiGui, 'cho_phan_hoi');";
 
             object result = DataProvider.ExecuteScalar(query, new[]
             {
                 new SqlParameter("@MaDoi", SqlDbType.Int){ Value = maDoi },
-                new SqlParameter("@MaNhom", SqlDbType.Int){ Value = maNhom },
-                new SqlParameter("@MaNguoiDuocMoi", SqlDbType.Int){ Value = maNguoiDuocMoi }
+                new SqlParameter("@MaNhom", SqlDbType.Int){ Value = (object)maNhom ?? DBNull.Value },
+                new SqlParameter("@MaNguoiDuocMoi", SqlDbType.Int){ Value = maNguoiDuocMoi },
+                new SqlParameter("@MaNguoiGui", SqlDbType.Int){ Value = (object)maNguoiGui ?? DBNull.Value }
             });
 
             return Convert.ToInt32(result);
@@ -135,7 +136,7 @@ SELECT COUNT(1)
 FROM THANH_VIEN_DOI
 WHERE ma_nguoi_dung = @MaNguoiDung
   AND ma_nhom = @MaNhom
-  AND vai_tro_noi_bo IN ('leader', 'captain')
+  AND vai_tro_noi_bo IN ('ban_dieu_hanh', 'doi_truong')
   AND trang_thai_hop_dong = 'dang_hieu_luc';";
 
             object result = DataProvider.ExecuteScalar(query, new[]

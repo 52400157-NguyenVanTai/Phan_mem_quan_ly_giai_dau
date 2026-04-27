@@ -48,7 +48,7 @@ namespace BUS
                 return ServiceResultDTO.Fail("Người được mời đang thuộc đội khác.");
             }
 
-            int maLoiMoi = _recruitmentDal.TaoLoiMoi(maDoi, maNhom, maNguoiDuocMoi);
+            int maLoiMoi = _recruitmentDal.TaoLoiMoi(maDoi, maNhom, maNguoiDuocMoi, null);
             return ServiceResultDTO.Ok("Gửi lời mời thành công.", new { maLoiMoi });
         }
 

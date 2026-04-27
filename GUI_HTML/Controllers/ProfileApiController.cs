@@ -29,6 +29,14 @@ namespace GUI_HTML.Controllers
             return Json(_profileBus.LayHoSo(maNguoiDung, maTroChoi), JsonRequestBehavior.AllowGet);
         }
 
+        [HttpGet]
+        [RequireLogin]
+        public JsonResult LayTatCaHoSo()
+        {
+            int maNguoiDung = (int)Session["CurrentUserId"];
+            return Json(_profileBus.LayTatCaHoSoCuaNguoiDung(maNguoiDung), JsonRequestBehavior.AllowGet);
+        }
+
         [HttpPost]
         [RequireLogin]
         public JsonResult TaoHoSo(HoSoInGameDTO dto)

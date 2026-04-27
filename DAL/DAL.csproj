@@ -46,7 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdminDAL.cs" />
-    <Compile Include="Class1.cs" />
     <Compile Include="DataProvider.cs" />
     <Compile Include="GameDAL.cs" />
     <Compile Include="IdentityDAL.cs" />

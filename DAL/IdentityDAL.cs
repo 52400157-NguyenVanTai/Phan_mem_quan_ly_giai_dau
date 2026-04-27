@@ -95,13 +95,15 @@ WHERE ma_nguoi_dung = @MaNguoiDung;";
             const string query = @"
 UPDATE NGUOI_DUNG
 SET avatar_url = @AvatarUrl,
-    bio = @Bio
+    bio = @Bio,
+    email = @Email
 WHERE ma_nguoi_dung = @MaNguoiDung";
 
             int affected = DataProvider.ExecuteNonQuery(query, new[]
             {
                 new SqlParameter("@AvatarUrl", SqlDbType.NVarChar){ Value = (object)dto.AvatarUrl ?? DBNull.Value },
                 new SqlParameter("@Bio", SqlDbType.NVarChar){ Value = (object)dto.Bio ?? DBNull.Value },
+                new SqlParameter("@Email", SqlDbType.NVarChar){ Value = (object)dto.Email ?? DBNull.Value },
                 new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = dto.MaNguoiDung }
             });
 

@@ -47,6 +47,7 @@ namespace DTO
         public int MaNguoiDung { get; set; }
         public string AvatarUrl { get; set; }
         public string Bio { get; set; }
+        public string Email { get; set; }
     }
 
     public class HoSoInGameDTO
@@ -80,6 +81,7 @@ namespace DTO
     {
         public int MaNguoiDungTao { get; set; }
         public string TenDoi { get; set; }
+        public string TenVietTat { get; set; }
         public string LogoUrl { get; set; }
         public string Slogan { get; set; }
     }
@@ -163,23 +165,31 @@ namespace DTO
         public int MaNguoiTao { get; set; }
         public string TenGiaiDau { get; set; }
         public int? MaTroChoi { get; set; }
-        public string TheThuc { get; set; }
         public string BannerUrl { get; set; }
         public decimal TongGiaiThuong { get; set; }
         public string MoTa { get; set; }
-        public int? SoNguoiMoiDoi { get; set; }
-        public DateTime? ThoiGianMoDangKy { get; set; }
-        public DateTime? ThoiGianDongDangKy { get; set; }
-        public DateTime NgayBatDau { get; set; }
-        public DateTime NgayKetThuc { get; set; }
-        public string TrangThaiKhoiTao { get; set; }
+        public int SoDoiToiThieu { get; set; }
+        public int? SoDoiToiDa { get; set; }
+        public DateTime? NgayBatDau { get; set; }
+        public DateTime? NgayKetThuc { get; set; }
         public List<TaoGiaiThuongDTO> GiaiThuongs { get; set; }
+        public List<TaoGiaiDoanDTO> GiaiDoan { get; set; }
+    }
+
+    public class TaoGiaiDoanDTO
+    {
+        public int ThuTu { get; set; }
+        public string TheThuc { get; set; }
+        public int? SoDoiDiTiep { get; set; }
+        public DateTime? NgayBatDau { get; set; }
+        public DateTime? NgayKetThuc { get; set; }
     }
 
     public class TaoGiaiThuongDTO
     {
         public string TenGiai { get; set; }
-        public string PhanThuong { get; set; }
+        public decimal GiaTri { get; set; }
+        public int SoLuong { get; set; }
         public string MoTa { get; set; }
     }
 
@@ -189,6 +199,27 @@ namespace DTO
         public int MaNguoiThucHien { get; set; }
         public string TrangThaiMoi { get; set; }
         public string LyDo { get; set; }
+    }
+
+    public class TamHoanGiaiDauDTO
+    {
+        public int MaGiaiDau { get; set; }
+        public int MaAdmin { get; set; }
+        public string LyDo { get; set; }
+    }
+
+    public class MoiTrongTaiDTO
+    {
+        public int MaGiaiDau { get; set; }
+        public int MaNguoiDung { get; set; }
+        public int MaNguoiMoi { get; set; }
+    }
+
+    public class MoiBanToChucDTO
+    {
+        public int MaGiaiDau { get; set; }
+        public int MaNguoiDung { get; set; }
+        public int MaNguoiMoi { get; set; }
     }
 
     public class GiaiDauDTO
@@ -209,15 +240,6 @@ namespace DTO
         public DateTime? ThoiGianKhoa { get; set; }
         public int? MaNguoiKhoa { get; set; }
         public string LyDoKhoa { get; set; }
-    }
-
-    public class TaoGiaiDoanDTO
-    {
-        public int MaGiaiDau { get; set; }
-        public string TenGiaiDoan { get; set; }
-        public string TheThuc { get; set; }
-        public int SoDoiDiTiep { get; set; }
-        public int? DiemNguongMatchPoint { get; set; }
     }
 
     public class GiaiDoanDTO

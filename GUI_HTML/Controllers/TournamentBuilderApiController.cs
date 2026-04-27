@@ -45,6 +45,15 @@ namespace GUI_HTML.Controllers
         [HttpPost]
         [RequireLogin]
         [RequireSystemRole("admin")]
+        public JsonResult BulkPheDuyet()
+        {
+            int maAdmin = (int)Session["CurrentUserId"];
+            return Json(_bus.BulkPheDuyet(maAdmin), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [RequireSystemRole("admin")]
         public JsonResult TuChoi(int maGiaiDau)
         {
             int maAdmin = (int)Session["CurrentUserId"];
@@ -161,6 +170,93 @@ namespace GUI_HTML.Controllers
         {
             int maNguoiDung = (int)Session["CurrentUserId"];
             return Json(_bus.LayDanhSachDangKyDoi(maNguoiDung, maGiaiDau), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult CapNhatGiaiDau(int maGiaiDau, TaoGiaiDauDTO dto)
+        {
+            int maNguoi = (int)Session["CurrentUserId"];
+            return Json(_bus.CapNhatGiaiDau(maNguoi, dto, maGiaiDau), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [RequireSystemRole("admin")]
+        public JsonResult TamHoanGiaiDau(TamHoanGiaiDauDTO dto)
+        {
+            dto.MaAdmin = (int)Session["CurrentUserId"];
+            return Json(_bus.TamHoanGiaiDau(dto), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [RequireSystemRole("admin")]
+        public JsonResult KhoiPhucTuTamHoan(int maGiaiDau)
+        {
+            int maAdmin = (int)Session["CurrentUserId"];
+            return Json(_bus.KhoiPhucTuTamHoan(maAdmin, maGiaiDau), JsonRequestBehavior.AllowGet);
+        }
+
+        // Scheduled job endpoints (should be secured with API key in production)
+        [HttpPost]
+        public JsonResult KiemTraVaChuyenTrangThaiChuanBiDienRa()
+        {
+            return Json(_bus.KiemTraVaChuyenTrangThaiChuanBiDienRa(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public JsonResult KiemTraVaChuyenTrangThaiTongKet()
+        {
+            return Json(_bus.KiemTraVaChuyenTrangThaiTongKet(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public JsonResult KiemTraVaChuyenTrangThaiKetThuc()
+        {
+            return Json(_bus.KiemTraVaChuyenTrangThaiKetThuc(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public JsonResult TuDongHuyYeuCauQuaHan()
+        {
+            return Json(_bus.TuDongHuyYeuCauQuaHan(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public JsonResult TuDongKhoiPhucKhiKhongDuDoi()
+        {
+            return Json(_bus.TuDongKhoiPhucKhiKhongDuDoi(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public JsonResult TuDongDongDangKyKhiDuDoi()
+        {
+            return Json(_bus.TuDongDongDangKyKhiDuDoi(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult MoiTrongTai(MoiTrongTaiDTO dto)
+        {
+            int maNguoi = (int)Session["CurrentUserId"];
+            return Json(_bus.MoiTrongTai(maNguoi, dto), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult MoiBanToChuc(MoiBanToChucDTO dto)
+        {
+            int maNguoi = (int)Session["CurrentUserId"];
+            return Json(_bus.MoiBanToChuc(maNguoi, dto), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult CapNhatDangMoDangKy(int maGiaiDau, bool dangMo)
+        {
+            int maNguoi = (int)Session["CurrentUserId"];
+            return Json(_bus.CapNhatDangMoDangKy(maNguoi, maGiaiDau, dangMo), JsonRequestBehavior.AllowGet);
         }
     }
 }
