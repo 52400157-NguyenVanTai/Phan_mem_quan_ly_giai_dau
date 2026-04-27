@@ -65,6 +65,7 @@
     <Compile Include="MatchmakingBUS.cs" />
     <Compile Include="NguoiDungBUS.cs" />
     <Compile Include="ProfileBUS.cs" />
+    <Compile Include="PublicHomepageBUS.cs" />
     <Compile Include="RefereeBUS.cs" />
     <Compile Include="RecruitmentBUS.cs" />
     <Compile Include="TeamBUS.cs" />

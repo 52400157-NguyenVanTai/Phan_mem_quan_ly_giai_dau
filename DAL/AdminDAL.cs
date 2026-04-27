@@ -44,7 +44,7 @@ SELECT TOP 20
 FROM GIAI_DAU g
 LEFT JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = g.ma_nguoi_tao
 LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = g.ma_tro_choi
-WHERE g.trang_thai = 'cho_phe_duyet'
+WHERE g.trang_thai = 'cho_xet_duyet'
   AND ISNULL(g.is_deleted, 0) = 0
 ORDER BY g.ma_giai_dau DESC;";
             return ToList(DataProvider.ExecuteQuery(query));
@@ -135,7 +135,7 @@ JOIN GIAI_DAU g ON g.ma_giai_dau = tgg.ma_giai_dau
 JOIN NHOM_DOI n ON n.ma_nhom = tgg.ma_nhom
 JOIN QUAN_TRI_GIAI_DAU qt ON qt.ma_giai_dau = g.ma_giai_dau AND qt.vai_tro_giai = 'ban_to_chuc'
 WHERE dh.ma_nguoi_dung = @MaNguoiDung
-  AND g.trang_thai IN ('mo_dang_ky', 'sap_dien_ra', 'dang_dien_ra')
+  AND g.trang_thai IN ('chuan_bi_dien_ra', 'dang_dien_ra')
   AND ISNULL(g.is_deleted, 0) = 0;";
             return ToList(DataProvider.ExecuteQuery(query, new[]
             {
@@ -156,7 +156,7 @@ JOIN THAM_GIA_GIAI tgg ON tgg.ma_tham_gia = dh.ma_tham_gia
 JOIN GIAI_DAU g ON g.ma_giai_dau = tgg.ma_giai_dau
 JOIN NHOM_DOI nd ON nd.ma_nhom = tgg.ma_nhom
 WHERE nd.ma_doi = @MaDoi
-  AND g.trang_thai IN ('mo_dang_ky', 'sap_dien_ra', 'dang_dien_ra')
+  AND g.trang_thai IN ('chuan_bi_dien_ra', 'dang_dien_ra')
   AND ISNULL(g.is_deleted, 0) = 0;";
             DataTable dt = DataProvider.ExecuteQuery(query, new[]
             {
@@ -198,7 +198,7 @@ FROM DOI_HINH_THI_DAU dh
 JOIN THAM_GIA_GIAI tgg ON tgg.ma_tham_gia = dh.ma_tham_gia
 JOIN GIAI_DAU g ON g.ma_giai_dau = tgg.ma_giai_dau
 WHERE dh.ma_nguoi_dung = @MaNguoiDung
-  AND g.trang_thai IN ('mo_dang_ky', 'sap_dien_ra', 'dang_dien_ra')
+  AND g.trang_thai IN ('chuan_bi_dien_ra', 'dang_dien_ra')
   AND ISNULL(g.is_deleted, 0) = 0;",
                 new[]
                 {

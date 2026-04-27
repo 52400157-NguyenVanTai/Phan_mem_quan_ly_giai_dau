@@ -36,6 +36,16 @@ namespace BUS
             }
 
             bool ok = _dal.GanTrongTai(maTran, maTrongTai);
+            if (ok)
+            {
+                _dal.TaoThongBao(
+                    maTrongTai,
+                    "Bạn được phân công trọng tài trận đấu",
+                    string.Format("Bạn vừa được phân công phụ trách trận #{0}. Vui lòng vào tab Trọng tài để theo dõi và nhập kết quả đúng hạn.", maTran),
+                    "trong_tai",
+                    "tran_dau",
+                    maTran);
+            }
             return ok
                 ? ServiceResultDTO.Ok("Phân công trọng tài thành công.", new { maTran, maTrongTai })
                 : ServiceResultDTO.Fail("Không thể phân công trọng tài cho trận đấu này.");
@@ -76,7 +86,8 @@ namespace BUS
             {
                 Tran = tran.Raw,
                 Roster = roster,
-                CoTheSua = _dal.CoTheSuaTrong12h(maTran)
+                CoTheSua = _dal.CoTheSuaTrong12h(maTran),
+                TrangThaiNhapKetQua = LayTrangThaiNhapKetQua(_dal.LayThongTinTran(maTran))
             });
         }
 
@@ -99,6 +110,7 @@ namespace BUS
             }
 
             _dal.LuuKetQuaTran(dto.MaTran, dto.ChiSoNguoiChoi, maTrongTai, null, laSua: false, boQuaKhoa12h: false);
+            GuiThongBaoKetQuaDaNhap(dto.MaTran, maTrongTai, laChinhSua: false);
             ThuTuDongSinhVongTiepTheo(dto.MaTran);
             return ServiceResultDTO.Ok("Lưu kết quả trận đấu thành công.");
         }
@@ -118,30 +130,102 @@ namespace BUS
 
             if (!_dal.CoTheSuaTrong12h(dto.MaTran))
             {
-                return ServiceResultDTO.Fail("Kết quả đã bị khóa: chỉ được sửa tối đa 1 lần trong vòng 12 giờ kể từ lần nhập đầu.");
+                return ServiceResultDTO.Fail("Kết quả đang bị khóa. Hãy gửi yêu cầu mở quyền sửa để admin xét duyệt.");
             }
 
             _dal.LuuKetQuaTran(dto.MaTran, dto.ChiSoNguoiChoi, maTrongTai, dto.LyDo.Trim(), laSua: true, boQuaKhoa12h: false);
+            GuiThongBaoKetQuaDaNhap(dto.MaTran, maTrongTai, laChinhSua: true);
             ThuTuDongSinhVongTiepTheo(dto.MaTran);
             return ServiceResultDTO.Ok("Sửa kết quả thành công và đã ghi nhật ký audit.");
         }
 
         public ServiceResultDTO AdminSuaKetQua(int maAdmin, RefereeSubmitResultDTO dto)
         {
-            if (dto == null || dto.MaTran <= 0)
+            return ServiceResultDTO.Fail("Admin không được nhập hoặc sửa kết quả trực tiếp. Vui lòng xử lý yêu cầu mở quyền sửa để trọng tài cập nhật.");
+        }
+
+        public ServiceResultDTO TaoYeuCauMoKhoaKetQua(int maTrongTai, YeuCauMoKhoaKetQuaDTO dto)
+        {
+            if (dto == null || dto.MaTran <= 0 || string.IsNullOrWhiteSpace(dto.LyDo))
             {
-                return ServiceResultDTO.Fail("Dữ liệu sửa kết quả không hợp lệ.");
+                return ServiceResultDTO.Fail("Thiếu dữ liệu yêu cầu mở khóa kết quả.");
             }
 
-            ServiceResultDTO validate = KiemTraDuLieuNhap(maAdmin, dto, batBuocLyDo: true, laSua: true);
-            if (!validate.Success)
+            if (!_dal.KiemTraTrongTaiPhuTrach(dto.MaTran, maTrongTai))
             {
-                return validate;
+                return ServiceResultDTO.Fail("Chỉ trọng tài được phân công mới có thể yêu cầu mở quyền sửa trận này.");
             }
 
-            _dal.LuuKetQuaTran(dto.MaTran, dto.ChiSoNguoiChoi, maAdmin, dto.LyDo.Trim(), laSua: true, boQuaKhoa12h: true);
-            ThuTuDongSinhVongTiepTheo(dto.MaTran);
-            return ServiceResultDTO.Ok("Admin đã sửa kết quả thành công và ghi audit log.");
+            if (!_dal.DaNhapDiemLanDau(dto.MaTran))
+            {
+                return ServiceResultDTO.Fail("Trận chưa có kết quả đầu tiên nên không cần mở quyền sửa.");
+            }
+
+            if (_dal.DaCoYeuCauMoKhoaChoXuLy(dto.MaTran))
+            {
+                return ServiceResultDTO.Fail("Trận này đã có yêu cầu mở quyền sửa đang chờ admin xử lý.");
+            }
+
+            int maYeuCau = _dal.TaoYeuCauMoKhoa(dto.MaTran, maTrongTai, dto.LyDo.Trim());
+            foreach (int maAdmin in _dal.LayDanhSachAdminHeThong())
+            {
+                _dal.TaoThongBao(
+                    maAdmin,
+                    "Có yêu cầu mở quyền sửa kết quả",
+                    string.Format("Trọng tài #{0} vừa gửi yêu cầu mở quyền sửa cho trận #{1}. Vui lòng vào mục quản trị kết quả để phê duyệt.", maTrongTai, dto.MaTran),
+                    "trong_tai",
+                    "tran_dau",
+                    dto.MaTran);
+            }
+
+            return ServiceResultDTO.Ok("Đã gửi yêu cầu mở quyền sửa kết quả tới admin.", new { maYeuCau });
+        }
+
+        public ServiceResultDTO DanhSachYeuCauMoKhoa(int maAdmin, string trangThai)
+        {
+            if (!LaAdmin(maAdmin))
+            {
+                return ServiceResultDTO.Fail("Chỉ admin mới được xem yêu cầu mở quyền sửa kết quả.");
+            }
+
+            return ServiceResultDTO.Ok("Lấy danh sách yêu cầu mở quyền sửa thành công.", _dal.LayDanhSachYeuCauMoKhoa(trangThai));
+        }
+
+        public ServiceResultDTO XuLyYeuCauMoKhoa(int maAdmin, XuLyYeuCauMoKhoaKetQuaDTO dto)
+        {
+            if (!LaAdmin(maAdmin))
+            {
+                return ServiceResultDTO.Fail("Chỉ admin mới được xử lý yêu cầu mở quyền sửa kết quả.");
+            }
+
+            if (dto == null || dto.MaYeuCau <= 0)
+            {
+                return ServiceResultDTO.Fail("Dữ liệu xử lý yêu cầu mở quyền sửa không hợp lệ.");
+            }
+
+            int soGio = dto.SoGioMoKhoa.HasValue ? Math.Max(1, dto.SoGioMoKhoa.Value) : 2;
+            int maTran;
+            int maTrongTai;
+            bool ok = _dal.XuLyYeuCauMoKhoa(dto.MaYeuCau, maAdmin, dto.ChapNhan, soGio, dto.PhanHoiAdmin, out maTran, out maTrongTai);
+            if (!ok)
+            {
+                return ServiceResultDTO.Fail("Không thể xử lý yêu cầu mở quyền sửa (có thể đã được xử lý trước đó).");
+            }
+
+            if (maTrongTai > 0)
+            {
+                _dal.TaoThongBao(
+                    maTrongTai,
+                    dto.ChapNhan ? "Yêu cầu mở quyền sửa đã được duyệt" : "Yêu cầu mở quyền sửa bị từ chối",
+                    dto.ChapNhan
+                        ? string.Format("Admin đã duyệt yêu cầu mở quyền sửa cho trận #{0}. Bạn có {1} giờ để chỉnh sửa kết quả.", maTran, soGio)
+                        : string.Format("Yêu cầu mở quyền sửa cho trận #{0} đã bị từ chối. Phản hồi: {1}", maTran, string.IsNullOrWhiteSpace(dto.PhanHoiAdmin) ? "Không có" : dto.PhanHoiAdmin.Trim()),
+                    "trong_tai",
+                    "tran_dau",
+                    maTran);
+            }
+
+            return ServiceResultDTO.Ok("Xử lý yêu cầu mở quyền sửa kết quả thành công.");
         }
 
         public ServiceResultDTO TaoKhieuNai(int maNguoiGui, TaoKhieuNaiKetQuaDTO dto)
@@ -280,6 +364,43 @@ namespace BUS
         {
             NguoiDungDTO user = _identityDal.LayTheoId(maNguoiDung);
             return user != null && string.Equals(user.VaiTroHeThong, "admin", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void GuiThongBaoKetQuaDaNhap(int maTran, int maTrongTai, bool laChinhSua)
+        {
+            foreach (int maAdmin in _dal.LayDanhSachAdminHeThong())
+            {
+                _dal.TaoThongBao(
+                    maAdmin,
+                    laChinhSua ? "Kết quả trận đã được chỉnh sửa" : "Kết quả trận đã được nhập",
+                    string.Format("Trọng tài #{0} đã {1} kết quả trận #{2}.", maTrongTai, laChinhSua ? "chỉnh sửa" : "nhập", maTran),
+                    "trong_tai",
+                    "tran_dau",
+                    maTran);
+            }
+        }
+
+        private static string LayTrangThaiNhapKetQua(System.Data.DataRow row)
+        {
+            if (row == null)
+            {
+                return "chua_nhap";
+            }
+
+            bool daNhap = row["thoi_gian_nhap_diem"] != DBNull.Value;
+            bool daSua = row["so_lan_sua"] != DBNull.Value && Convert.ToInt32(row["so_lan_sua"]) > 0;
+            bool choDuyet = row.Table.Columns.Contains("co_yeu_cau_mo_khoa_cho_duyet")
+                && row["co_yeu_cau_mo_khoa_cho_duyet"] != DBNull.Value
+                && Convert.ToBoolean(row["co_yeu_cau_mo_khoa_cho_duyet"]);
+            bool duocMoSua = row.Table.Columns.Contains("cho_phep_sua_den")
+                && row["cho_phep_sua_den"] != DBNull.Value
+                && Convert.ToDateTime(row["cho_phep_sua_den"]) >= DateTime.Now;
+
+            if (!daNhap) return "chua_nhap";
+            if (choDuyet) return "cho_mo_quyen_sua";
+            if (duocMoSua) return "duoc_mo_sua";
+            if (daSua) return "da_chinh_sua";
+            return "da_nhap_khoa";
         }
 
         private void ThuTuDongSinhVongTiepTheo(int maTran)

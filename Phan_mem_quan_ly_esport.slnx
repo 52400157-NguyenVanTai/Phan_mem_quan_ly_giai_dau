@@ -1,9 +1,4 @@
 <Solution>
-  <Folder Name="/dulieumau/">
-    <File Path="database.sql" />
-    <File Path="database1.sql" />
-    <File Path="dulieu.sql" />
-  </Folder>
   <Project Path="BUS/BUS.csproj" Id="9c14b24c-9918-4670-b808-475f4783bbb6" />
   <Project Path="DAL/DAL.csproj" Id="79fbf31a-7a35-43a1-b9ce-02402f8711e4" />
   <Project Path="DTO/DTO.csproj" Id="e7a98b0e-fab5-4fad-857e-9647ec0cb34d" />

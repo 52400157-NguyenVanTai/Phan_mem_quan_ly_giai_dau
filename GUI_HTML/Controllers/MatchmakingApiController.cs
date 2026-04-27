@@ -13,7 +13,8 @@ namespace GUI_HTML.Controllers
         [RequireLogin]
         public JsonResult TaoLich(TaoLichGiaiDoanDTO dto)
         {
-            return Json(_bus.TaoLichThiDau(dto), JsonRequestBehavior.AllowGet);
+            int maNguoiDung = (int)Session["CurrentUserId"];
+            return Json(_bus.TaoLichThiDau(maNguoiDung, dto), JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]

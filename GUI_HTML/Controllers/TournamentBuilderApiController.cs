@@ -27,10 +27,10 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        public JsonResult GuiXetDuyet(int maGiaiDau)
+        public JsonResult GuiXetDuyet(MaGiaiDauDTO dto)
         {
             int maNguoiGui = (int)Session["CurrentUserId"];
-            return Json(_bus.GuiXetDuyet(maNguoiGui, maGiaiDau), JsonRequestBehavior.AllowGet);
+            return Json(_bus.GuiXetDuyet(maNguoiGui, dto.MaGiaiDau), JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]
@@ -54,10 +54,24 @@ namespace GUI_HTML.Controllers
         [HttpPost]
         [RequireLogin]
         [RequireSystemRole("admin")]
-        public JsonResult TuChoi(int maGiaiDau)
+        public JsonResult TuChoi(TuChoiYeuCauGiaiDTO dto)
         {
             int maAdmin = (int)Session["CurrentUserId"];
-            return Json(_bus.TuChoiVaXoaCung(maAdmin, maGiaiDau), JsonRequestBehavior.AllowGet);
+            if (dto == null)
+            {
+                return Json(ServiceResultDTO.Fail("Dữ liệu từ chối không hợp lệ."), JsonRequestBehavior.AllowGet);
+            }
+
+            return Json(_bus.TuChoiYeuCau(maAdmin, dto.MaGiaiDau, dto.LyDo), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        [RequireSystemRole("admin")]
+        public JsonResult DanhSachChoXetDuyet()
+        {
+            int maAdmin = (int)Session["CurrentUserId"];
+            return Json(_bus.LayDanhSachChoXetDuyet(maAdmin), JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]
@@ -111,10 +125,10 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        public JsonResult XoaGiaiDoan(int maGiaiDau, int maGiaiDoan)
+        public JsonResult XoaGiaiDoan(XoaGiaiDoanDTO dto)
         {
             int maNguoi = (int)Session["CurrentUserId"];
-            return Json(_bus.XoaGiaiDoan(maNguoi, maGiaiDau, maGiaiDoan), JsonRequestBehavior.AllowGet);
+            return Json(_bus.XoaGiaiDoan(maNguoi, dto.MaGiaiDau, dto.MaGiaiDoan), JsonRequestBehavior.AllowGet);
         }
 
         [HttpGet]
@@ -150,10 +164,10 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        public JsonResult BatDauGiai(int maGiaiDau)
+        public JsonResult BatDauGiai(MaGiaiDauDTO dto)
         {
             int maNguoi = (int)Session["CurrentUserId"];
-            return Json(_bus.ChuyenSangDangDienRa(maNguoi, maGiaiDau), JsonRequestBehavior.AllowGet);
+            return Json(_bus.ChuyenSangDangDienRa(maNguoi, dto.MaGiaiDau), JsonRequestBehavior.AllowGet);
         }
 
         [HttpGet]
@@ -253,10 +267,10 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
-        public JsonResult CapNhatDangMoDangKy(int maGiaiDau, bool dangMo)
+        public JsonResult CapNhatDangMoDangKy(CapNhatDangMoDangKyDTO dto)
         {
             int maNguoi = (int)Session["CurrentUserId"];
-            return Json(_bus.CapNhatDangMoDangKy(maNguoi, maGiaiDau, dangMo), JsonRequestBehavior.AllowGet);
+            return Json(_bus.CapNhatDangMoDangKy(maNguoi, dto.MaGiaiDau, dto.DangMo), JsonRequestBehavior.AllowGet);
         }
     }
 }

@@ -78,6 +78,53 @@ namespace GUI_HTML.Controllers
             }
         }
 
+        [HttpPost]
+        [RequireLogin]
+        public JsonResult UploadBanner()
+        {
+            try
+            {
+                HttpPostedFileBase file = Request.Files["file"];
+                if (file == null || file.ContentLength == 0)
+                {
+                    return Json(new { Success = false, Message = "Không có file banner được gửi lên." });
+                }
+
+                if (file.ContentLength > MaxFileSizeBytes)
+                {
+                    return Json(new { Success = false, Message = "Banner vượt quá giới hạn 5 MB." });
+                }
+
+                string ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (Array.IndexOf(AllowedExts, ext) < 0)
+                {
+                    return Json(new { Success = false, Message = "Banner chỉ chấp nhận ảnh jpg, jpeg, png, gif hoặc webp." });
+                }
+
+                string imgDir = Server.MapPath("~/img/banners/");
+                if (!Directory.Exists(imgDir))
+                {
+                    Directory.CreateDirectory(imgDir);
+                }
+
+                string newFileName = "banner_" + Guid.NewGuid().ToString("N") + ext;
+                string fullPath = Path.Combine(imgDir, newFileName);
+                file.SaveAs(fullPath);
+
+                string bannerUrl = "/img/banners/" + newFileName;
+                return Json(new
+                {
+                    Success = true,
+                    Message = "Upload banner thành công.",
+                    Data = new { Url = bannerUrl }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Success = false, Message = "Lỗi upload banner: " + ex.Message });
+            }
+        }
+
         private void RefreshCurrentUserSession(int maNguoiDung)
         {
             var user = _identityDal.LayTheoId(maNguoiDung);

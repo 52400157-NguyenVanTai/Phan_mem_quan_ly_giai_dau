@@ -13,6 +13,31 @@ namespace BUS
         private readonly MatchmakingDAL _dal = new MatchmakingDAL();
         private readonly TournamentBuilderDAL _tournamentDal = new TournamentBuilderDAL();
 
+        public ServiceResultDTO TaoLichThiDau(int maNguoiDung, TaoLichGiaiDoanDTO dto)
+        {
+            if (maNguoiDung <= 0)
+            {
+                return ServiceResultDTO.Fail("Bạn cần đăng nhập để tạo lịch thi đấu.");
+            }
+
+            if (dto == null || dto.MaGiaiDau <= 0 || dto.MaGiaiDoan <= 0)
+            {
+                return ServiceResultDTO.Fail("Dữ liệu tạo lịch không hợp lệ.");
+            }
+
+            if (!_dal.CoQuyenQuanLyGiai(dto.MaGiaiDau, maNguoiDung))
+            {
+                return ServiceResultDTO.Fail("Bạn không có quyền tạo lịch cho giải đấu này.");
+            }
+
+            if (!_dal.DaDongDangKyHoacDaKhoiTranh(dto.MaGiaiDau))
+            {
+                return ServiceResultDTO.Fail("Chỉ được tạo lịch sau khi đã đóng đăng ký hoặc giải đã sang giai đoạn thi đấu.");
+            }
+
+            return TaoLichThiDau(dto);
+        }
+
         public ServiceResultDTO TaoLichThiDau(TaoLichGiaiDoanDTO dto)
         {
             if (dto == null || dto.MaGiaiDau <= 0 || dto.MaGiaiDoan <= 0)
@@ -150,18 +175,85 @@ namespace BUS
                 return ServiceResultDTO.Fail("Giải đấu không tồn tại hoặc chưa công khai.");
             }
 
+            DateTime? thoiGianDongDangKy = row["thoi_gian_dong_dang_ky"] == DBNull.Value
+                ? (DateTime?)null
+                : Convert.ToDateTime(row["thoi_gian_dong_dang_ky"]);
+            string trangThai = row["trang_thai"].ToString();
+            bool dangMoDangKy = row.Table.Columns.Contains("dang_mo_dang_ky")
+                && row["dang_mo_dang_ky"] != DBNull.Value
+                && Convert.ToBoolean(row["dang_mo_dang_ky"]);
+            bool dangChoChotDanhSach = string.Equals(trangThai, "chuan_bi_dien_ra", StringComparison.OrdinalIgnoreCase)
+                && dangMoDangKy
+                && (!thoiGianDongDangKy.HasValue || thoiGianDongDangKy.Value > DateTime.Now);
+
             PublicTournamentOverviewDTO dto = new PublicTournamentOverviewDTO
             {
                 MaGiaiDau = Convert.ToInt32(row["ma_giai_dau"]),
                 TenGiaiDau = row["ten_giai_dau"].ToString(),
+                TenGame = row["ten_game"] == DBNull.Value ? "Chưa chọn game" : row["ten_game"].ToString(),
+                TenBanToChuc = row["ten_ban_to_chuc"] == DBNull.Value ? "Ban tổ chức" : row["ten_ban_to_chuc"].ToString(),
                 BannerUrl = row["banner_url"] == DBNull.Value ? null : row["banner_url"].ToString(),
-                TrangThai = row["trang_thai"].ToString(),
+                MoTa = row["mo_ta"] == DBNull.Value ? null : row["mo_ta"].ToString(),
+                LuatGiai = row["luat_giai"] == DBNull.Value ? null : row["luat_giai"].ToString(),
+                TongGiaiThuong = row["tong_giai_thuong"] == DBNull.Value ? 0 : Convert.ToDecimal(row["tong_giai_thuong"]),
+                TrangThai = trangThai,
+                ThoiGianMoDangKy = row["thoi_gian_mo_dang_ky"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["thoi_gian_mo_dang_ky"]),
+                ThoiGianDongDangKy = thoiGianDongDangKy,
                 NgayBatDau = row["ngay_bat_dau"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_bat_dau"]),
                 NgayKetThuc = row["ngay_ket_thuc"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_ket_thuc"]),
+                SoDoiToiDa = row["so_doi_toi_da"] == DBNull.Value ? 0 : Convert.ToInt32(row["so_doi_toi_da"]),
+                SoDoiDaDangKy = row["so_doi_da_dang_ky"] == DBNull.Value ? 0 : Convert.ToInt32(row["so_doi_da_dang_ky"]),
+                DangChoChotDanhSach = dangChoChotDanhSach,
+                GiaiDoanDangDienRa = row["giai_doan_dang_dien_ra"] == DBNull.Value ? null : row["giai_doan_dang_dien_ra"].ToString(),
+                DoiThamGia = _dal.LayDoiThamGiaPublic(maGiaiDau),
+                Timeline = TaoTimelineVongDoi(trangThai, dangChoChotDanhSach),
                 GiaiDoan = _tournamentDal.LayDanhSachGiaiDoan(maGiaiDau)
             };
 
             return ServiceResultDTO.Ok("Lấy dữ liệu cổng thông tin giải đấu thành công.", dto);
+        }
+
+        private static List<PublicTournamentTimelineItemDTO> TaoTimelineVongDoi(string trangThaiRaw, bool dangChoChotDanhSach)
+        {
+            string trangThai = string.IsNullOrWhiteSpace(trangThaiRaw)
+                ? string.Empty
+                : trangThaiRaw.Trim().ToLowerInvariant();
+
+            int step = 0;
+            if (trangThai == "cho_xet_duyet")
+            {
+                step = 1;
+            }
+            else if (trangThai == "chuan_bi_dien_ra")
+            {
+                step = dangChoChotDanhSach ? 2 : 3;
+            }
+            else if (trangThai == "dang_dien_ra")
+            {
+                step = 4;
+            }
+            else if (trangThai == "ket_thuc")
+            {
+                step = 5;
+            }
+
+            List<PublicTournamentTimelineItemDTO> list = new List<PublicTournamentTimelineItemDTO>
+            {
+                new PublicTournamentTimelineItemDTO{ Key = "cho_duyet", Label = "Chờ duyệt" },
+                new PublicTournamentTimelineItemDTO{ Key = "mo_dang_ky", Label = "Mở đăng ký" },
+                new PublicTournamentTimelineItemDTO{ Key = "dong_dang_ky", Label = "Đóng đăng ký" },
+                new PublicTournamentTimelineItemDTO{ Key = "dang_thi_dau", Label = "Đang thi đấu" },
+                new PublicTournamentTimelineItemDTO{ Key = "ket_thuc", Label = "Đã kết thúc" }
+            };
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                int idx = i + 1;
+                list[i].IsDone = step > idx;
+                list[i].IsCurrent = step == idx;
+            }
+
+            return list;
         }
 
         public ServiceResultDTO BangXepHangTheoGiaiDoan(int maGiaiDoan)

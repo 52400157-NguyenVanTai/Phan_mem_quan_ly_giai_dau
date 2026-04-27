@@ -165,6 +165,7 @@ namespace DTO
         public int MaNguoiTao { get; set; }
         public string TenGiaiDau { get; set; }
         public int? MaTroChoi { get; set; }
+        public string TheThuc { get; set; }
         public string BannerUrl { get; set; }
         public decimal TongGiaiThuong { get; set; }
         public string MoTa { get; set; }
@@ -205,6 +206,12 @@ namespace DTO
     {
         public int MaGiaiDau { get; set; }
         public int MaAdmin { get; set; }
+        public string LyDo { get; set; }
+    }
+
+    public class TuChoiYeuCauGiaiDTO
+    {
+        public int MaGiaiDau { get; set; }
         public string LyDo { get; set; }
     }
 
@@ -295,6 +302,14 @@ namespace DTO
         public int? MaTranTiepTheoThua { get; set; }
         public string TenNhomA { get; set; }
         public string TenNhomB { get; set; }
+        public double? DiemNhomA { get; set; }
+        public double? DiemNhomB { get; set; }
+        public string KetQuaTomTat { get; set; }
+        public DateTime? ThoiGianNhapDiem { get; set; }
+        public int SoLanSua { get; set; }
+        public DateTime? ChoPhepSuaDen { get; set; }
+        public bool CoYeuCauMoKhoaChoDuyet { get; set; }
+        public string TrangThaiNhapKetQua { get; set; }
     }
 
     public class RefereePlayerStatInputDTO
@@ -328,14 +343,126 @@ namespace DTO
         public string PhanHoiAdmin { get; set; }
     }
 
+    public class YeuCauMoKhoaKetQuaDTO
+    {
+        public int MaTran { get; set; }
+        public string LyDo { get; set; }
+    }
+
+    public class XuLyYeuCauMoKhoaKetQuaDTO
+    {
+        public int MaYeuCau { get; set; }
+        public bool ChapNhan { get; set; }
+        public int? SoGioMoKhoa { get; set; }
+        public string PhanHoiAdmin { get; set; }
+    }
+
     public class PublicTournamentOverviewDTO
     {
         public int MaGiaiDau { get; set; }
         public string TenGiaiDau { get; set; }
+        public string TenGame { get; set; }
+        public string TenBanToChuc { get; set; }
         public string BannerUrl { get; set; }
+        public string MoTa { get; set; }
+        public string LuatGiai { get; set; }
+        public decimal TongGiaiThuong { get; set; }
         public string TrangThai { get; set; }
+        public DateTime? ThoiGianMoDangKy { get; set; }
+        public DateTime? ThoiGianDongDangKy { get; set; }
         public DateTime? NgayBatDau { get; set; }
         public DateTime? NgayKetThuc { get; set; }
+        public int SoDoiToiDa { get; set; }
+        public int SoDoiDaDangKy { get; set; }
+        public bool DangChoChotDanhSach { get; set; }
+        public string GiaiDoanDangDienRa { get; set; }
+        public List<PublicTournamentTimelineItemDTO> Timeline { get; set; }
+        public List<PublicTournamentTeamDTO> DoiThamGia { get; set; }
         public List<GiaiDoanDTO> GiaiDoan { get; set; }
+    }
+
+    public class PublicTournamentTimelineItemDTO
+    {
+        public string Key { get; set; }
+        public string Label { get; set; }
+        public bool IsDone { get; set; }
+        public bool IsCurrent { get; set; }
+    }
+
+    public class PublicTournamentTeamDTO
+    {
+        public int MaNhom { get; set; }
+        public int? MaDoi { get; set; }
+        public string TenNhom { get; set; }
+        public string TenDoi { get; set; }
+        public int? HatGiong { get; set; }
+        public string TrangThaiThamGia { get; set; }
+    }
+
+    public class PublicHomepageDataDTO
+    {
+        public PublicHeroStatsDTO HeroStats { get; set; }
+        public List<PublicTournamentCardDTO> FeaturedTournaments { get; set; }
+        public List<PublicGameCardDTO> SupportedGames { get; set; }
+        public List<PublicTeamCardDTO> FeaturedTeams { get; set; }
+        public List<PublicTournamentCardDTO> OpenRegistrationTournaments { get; set; }
+        public List<PublicTournamentCardDTO> UpcomingTournaments { get; set; }
+        public List<PublicMatchCardDTO> RecentOrLiveMatches { get; set; }
+    }
+
+    public class PublicHeroStatsDTO
+    {
+        public int TongGiaiDangHoatDong { get; set; }
+        public int TongDoiTuyenThamGia { get; set; }
+        public int TongGameHoTro { get; set; }
+        public int TongLuotTheoDoi { get; set; }
+        public int TongGiaiMoDangKy { get; set; }
+        public int TongGiaiSapDienRa { get; set; }
+    }
+
+    public class PublicTournamentCardDTO
+    {
+        public int MaGiaiDau { get; set; }
+        public string TenGiaiDau { get; set; }
+        public int? MaTroChoi { get; set; }
+        public string TenGame { get; set; }
+        public string TrangThai { get; set; }
+        public DateTime? NgayBatDau { get; set; }
+        public DateTime? ThoiGianDongDangKy { get; set; }
+        public decimal TongGiaiThuong { get; set; }
+        public int SoDoiDaDangKy { get; set; }
+        public int SoLuongDoiToiDa { get; set; }
+    }
+
+    public class PublicGameCardDTO
+    {
+        public int MaTroChoi { get; set; }
+        public string TenGame { get; set; }
+        public string TheLoai { get; set; }
+        public int SoGiaiDangVanHanh { get; set; }
+    }
+
+    public class PublicTeamCardDTO
+    {
+        public int MaDoi { get; set; }
+        public string TenDoi { get; set; }
+        public string LogoUrl { get; set; }
+        public string Slogan { get; set; }
+        public int SoThanhVienActive { get; set; }
+        public int SoGiaiDaThamGia { get; set; }
+        public bool DangTuyen { get; set; }
+    }
+
+    public class PublicMatchCardDTO
+    {
+        public int MaTran { get; set; }
+        public int MaGiaiDau { get; set; }
+        public string TenGiaiDau { get; set; }
+        public string TenGiaiDoan { get; set; }
+        public string TrangThai { get; set; }
+        public string TenDoiA { get; set; }
+        public string TenDoiB { get; set; }
+        public DateTime? ThoiGianBatDau { get; set; }
+        public DateTime? ThoiGianKetThuc { get; set; }
     }
 }

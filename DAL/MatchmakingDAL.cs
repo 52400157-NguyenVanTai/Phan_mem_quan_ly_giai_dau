@@ -18,6 +18,48 @@ namespace DAL
             return dt.Rows.Count == 0 ? null : dt.Rows[0];
         }
 
+        public bool CoQuyenQuanLyGiai(int maGiaiDau, int maNguoiDung)
+        {
+            const string query = @"
+SELECT COUNT(1)
+FROM GIAI_DAU g
+LEFT JOIN QUAN_TRI_GIAI_DAU qt ON qt.ma_giai_dau = g.ma_giai_dau AND qt.ma_nguoi_dung = @MaNguoiDung
+LEFT JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = @MaNguoiDung
+WHERE g.ma_giai_dau = @MaGiaiDau
+  AND (
+      g.ma_nguoi_tao = @MaNguoiDung
+      OR qt.ma_quan_tri IS NOT NULL
+      OR LOWER(ISNULL(nd.vai_tro_he_thong, '')) = 'admin'
+  );";
+
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaGiaiDau", SqlDbType.Int){ Value = maGiaiDau },
+                new SqlParameter("@MaNguoiDung", SqlDbType.Int){ Value = maNguoiDung }
+            });
+
+            return Convert.ToInt32(result) > 0;
+        }
+
+        public bool DaDongDangKyHoacDaKhoiTranh(int maGiaiDau)
+        {
+            const string query = @"
+SELECT COUNT(1)
+FROM GIAI_DAU
+WHERE ma_giai_dau = @MaGiaiDau
+  AND (
+      (thoi_gian_dong_dang_ky IS NOT NULL AND thoi_gian_dong_dang_ky <= GETDATE())
+      OR trang_thai IN ('chuan_bi_dien_ra', 'dang_dien_ra', 'tong_ket', 'ket_thuc')
+  );";
+
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaGiaiDau", SqlDbType.Int){ Value = maGiaiDau }
+            });
+
+            return Convert.ToInt32(result) > 0;
+        }
+
         public bool GiaiDoanTruocDaKetThuc(int maGiaiDau, int thuTu)
         {
             if (thuTu <= 1) return true;
@@ -384,17 +426,35 @@ VALUES(@MaGiaiDau, @MaGiaiDoan, @MaNhom);";
         public List<MatchNodeDTO> LayTranTheoGiaiDoan(int maGiaiDoan)
         {
             const string query = @"
-SELECT td.*, t1.ten_nhom AS ten_nhom_a, t2.ten_nhom AS ten_nhom_b
+SELECT td.*, 
+       t1.ten_nhom AS ten_nhom_a,
+       t1.diem_so AS diem_nhom_a,
+       t2.ten_nhom AS ten_nhom_b,
+       t2.diem_so AS diem_nhom_b,
+       CASE 
+            WHEN td.trang_thai = 'da_hoan_thanh' AND t1.diem_so IS NOT NULL AND t2.diem_so IS NOT NULL
+                THEN CONCAT(CAST(t1.diem_so AS NVARCHAR(20)), ' - ', CAST(t2.diem_so AS NVARCHAR(20)))
+            ELSE NULL
+       END AS ket_qua_tom_tat,
+       td.thoi_gian_nhap_diem,
+       ISNULL(td.so_lan_sua, 0) AS so_lan_sua,
+       CAST(NULL AS DATETIME) AS cho_phep_sua_den,
+       CAST(0 AS BIT) AS co_yeu_cau_mo_khoa_cho_duyet,
+       CASE
+            WHEN td.thoi_gian_nhap_diem IS NULL THEN 'chua_nhap'
+            WHEN ISNULL(td.so_lan_sua, 0) > 0 THEN 'da_chinh_sua'
+            ELSE 'da_nhap_khoa'
+       END AS trang_thai_nhap_ket_qua
 FROM TRAN_DAU td
 OUTER APPLY (
-    SELECT TOP 1 n.ten_nhom
+    SELECT TOP 1 n.ten_nhom, ct.diem_so
     FROM CHI_TIET_TRAN_DAU ct
     JOIN NHOM_DOI n ON n.ma_nhom = ct.ma_nhom
     WHERE ct.ma_tran = td.ma_tran
     ORDER BY ct.ma_nhom ASC
 ) t1
 OUTER APPLY (
-    SELECT TOP 1 n.ten_nhom
+    SELECT TOP 1 n.ten_nhom, ct.diem_so
     FROM CHI_TIET_TRAN_DAU ct
     JOIN NHOM_DOI n ON n.ma_nhom = ct.ma_nhom
     WHERE ct.ma_tran = td.ma_tran
@@ -430,7 +490,53 @@ ORDER BY td.so_vong, td.ma_tran;";
                     MaTranTiepTheoThang = row["ma_tran_tiep_theo_thang"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_tran_tiep_theo_thang"]),
                     MaTranTiepTheoThua = row["ma_tran_tiep_theo_thua"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_tran_tiep_theo_thua"]),
                     TenNhomA = row["ten_nhom_a"] == DBNull.Value ? null : row["ten_nhom_a"].ToString(),
-                    TenNhomB = row["ten_nhom_b"] == DBNull.Value ? null : row["ten_nhom_b"].ToString()
+                    TenNhomB = row["ten_nhom_b"] == DBNull.Value ? null : row["ten_nhom_b"].ToString(),
+                    DiemNhomA = row["diem_nhom_a"] == DBNull.Value ? (double?)null : Convert.ToDouble(row["diem_nhom_a"]),
+                    DiemNhomB = row["diem_nhom_b"] == DBNull.Value ? (double?)null : Convert.ToDouble(row["diem_nhom_b"]),
+                    KetQuaTomTat = row["ket_qua_tom_tat"] == DBNull.Value ? null : row["ket_qua_tom_tat"].ToString(),
+                    ThoiGianNhapDiem = row["thoi_gian_nhap_diem"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["thoi_gian_nhap_diem"]),
+                    SoLanSua = row["so_lan_sua"] == DBNull.Value ? 0 : Convert.ToInt32(row["so_lan_sua"]),
+                    ChoPhepSuaDen = row["cho_phep_sua_den"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["cho_phep_sua_den"]),
+                    CoYeuCauMoKhoaChoDuyet = row["co_yeu_cau_mo_khoa_cho_duyet"] != DBNull.Value && Convert.ToBoolean(row["co_yeu_cau_mo_khoa_cho_duyet"]),
+                    TrangThaiNhapKetQua = row["trang_thai_nhap_ket_qua"] == DBNull.Value ? "chua_nhap" : row["trang_thai_nhap_ket_qua"].ToString()
+                });
+            }
+
+            return list;
+        }
+
+        public List<PublicTournamentTeamDTO> LayDoiThamGiaPublic(int maGiaiDau)
+        {
+            const string query = @"
+SELECT tgg.ma_nhom,
+       n.ma_doi,
+       n.ten_nhom,
+       d.ten_doi,
+       tgg.hat_giong,
+       tgg.trang_thai_tham_gia
+FROM THAM_GIA_GIAI tgg
+JOIN NHOM_DOI n ON n.ma_nhom = tgg.ma_nhom
+LEFT JOIN DOI d ON d.ma_doi = n.ma_doi
+WHERE tgg.ma_giai_dau = @MaGiaiDau
+  AND tgg.trang_thai_duyet = 'da_duyet'
+ORDER BY ISNULL(tgg.hat_giong, 9999), n.ten_nhom;";
+
+            DataTable dt = DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@MaGiaiDau", SqlDbType.Int){ Value = maGiaiDau }
+            });
+
+            List<PublicTournamentTeamDTO> list = new List<PublicTournamentTeamDTO>();
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new PublicTournamentTeamDTO
+                {
+                    MaNhom = Convert.ToInt32(row["ma_nhom"]),
+                    MaDoi = row["ma_doi"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_doi"]),
+                    TenNhom = row["ten_nhom"] == DBNull.Value ? null : row["ten_nhom"].ToString(),
+                    TenDoi = row["ten_doi"] == DBNull.Value ? null : row["ten_doi"].ToString(),
+                    HatGiong = row["hat_giong"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["hat_giong"]),
+                    TrangThaiThamGia = row["trang_thai_tham_gia"] == DBNull.Value ? null : row["trang_thai_tham_gia"].ToString()
                 });
             }
 
@@ -468,11 +574,36 @@ ORDER BY bxh.thu_hang_hien_tai ASC, bxh.diem_tong_ket DESC, bxh.hieu_so_phu DESC
         public DataRow LayTongQuanPublicGiai(int maGiaiDau)
         {
             const string query = @"
-SELECT ma_giai_dau, ten_giai_dau, banner_url, trang_thai, ngay_bat_dau, ngay_ket_thuc
-FROM GIAI_DAU
-WHERE ma_giai_dau = @MaGiaiDau
-  AND is_deleted = 0
-  AND trang_thai IN ('mo_dang_ky', 'sap_dien_ra', 'dang_dien_ra', 'ket_thuc');";
+SELECT g.ma_giai_dau,
+       g.ten_giai_dau,
+       tc.ten_game,
+       nd.ten_dang_nhap AS ten_ban_to_chuc,
+       g.banner_url,
+       g.mo_ta,
+       g.luat_giai,
+       g.tong_giai_thuong,
+       g.trang_thai,
+       g.thoi_gian_mo_dang_ky,
+       g.thoi_gian_dong_dang_ky,
+       g.dang_mo_dang_ky,
+       g.ngay_bat_dau,
+       g.ngay_ket_thuc,
+       g.so_doi_toi_da,
+       (SELECT COUNT(1)
+        FROM THAM_GIA_GIAI t
+        WHERE t.ma_giai_dau = g.ma_giai_dau
+          AND t.trang_thai_duyet = 'da_duyet') AS so_doi_da_dang_ky,
+       (SELECT TOP 1 gd.ten_giai_doan
+        FROM GIAI_DOAN gd
+        WHERE gd.ma_giai_dau = g.ma_giai_dau
+          AND gd.trang_thai = 'dang_dien_ra'
+        ORDER BY gd.thu_tu ASC) AS giai_doan_dang_dien_ra
+FROM GIAI_DAU g
+LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = g.ma_tro_choi
+LEFT JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = g.ma_nguoi_tao
+WHERE g.ma_giai_dau = @MaGiaiDau
+  AND ISNULL(g.is_deleted, 0) = 0
+  AND g.trang_thai IN ('cho_xet_duyet', 'chuan_bi_dien_ra', 'dang_dien_ra', 'tong_ket', 'ket_thuc');";
 
             DataTable dt = DataProvider.ExecuteQuery(query, new[]
             {
@@ -653,7 +784,7 @@ SELECT
 FROM GIAI_DAU g
 LEFT JOIN TRO_CHOI tc ON g.ma_tro_choi = tc.ma_tro_choi
 WHERE ISNULL(g.is_deleted, 0) = 0
-  AND g.trang_thai IN ('mo_dang_ky', 'sap_dien_ra', 'dang_dien_ra', 'ket_thuc') ";
+  AND g.trang_thai IN ('chuan_bi_dien_ra', 'dang_dien_ra', 'tong_ket', 'ket_thuc') ";
 
             List<SqlParameter> p = new List<SqlParameter>();
             if (maTroChoi.HasValue && maTroChoi.Value > 0)

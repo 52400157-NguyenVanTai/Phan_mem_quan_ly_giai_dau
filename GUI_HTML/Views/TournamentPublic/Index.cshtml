@@ -3,29 +3,53 @@
     var maGiaiDau = (int)ViewBag.MaGiaiDau;
 }
 
-<div class="container py-4" data-ma-giai-dau="@maGiaiDau" id="public-tournament-root">
+<div class="container py-4 tournament-public-page" data-ma-giai-dau="@maGiaiDau" id="public-tournament-root">
     <div id="public-alert" class="alert d-none" role="alert"></div>
 
-    <div class="mb-4">
-        <h2 id="public-title" class="mb-1">Giải đấu</h2>
-        <p id="public-meta" class="text-muted mb-0"></p>
-        <div id="public-live-status" class="small text-success mt-1">Live Engine đang kết nối...</div>
-    </div>
+    <section class="tpub-hero" id="tpub-hero">
+        <div class="tpub-hero-overlay"></div>
+        <div class="tpub-hero-content">
+            <span class="tpub-status" id="public-status-label">Đang tải...</span>
+            <h1 id="public-title" class="tpub-title">Giải đấu</h1>
+            <p id="public-subtitle" class="tpub-subtitle">Đang tải thông tin giải đấu...</p>
 
-    <ul id="stage-tabs" class="nav nav-tabs mb-3"></ul>
-
-    <div class="card">
-        <div class="card-body">
-            <div id="stage-content"></div>
+            <div class="tpub-meta-grid" id="public-meta-grid"></div>
         </div>
-    </div>
+    </section>
 
-    <div class="card mt-3">
-        <div class="card-body">
-            <h5 class="mb-3">Vinh danh tự động</h5>
-            <div id="honoring-content" class="small text-muted">Đang tải dữ liệu vinh danh...</div>
+    <section class="tpub-timeline-wrap">
+        <h4 class="tpub-section-title">Tiến trình giải đấu</h4>
+        <div id="tournament-timeline" class="tpub-timeline"></div>
+        <div id="public-stage-now" class="tpub-stage-now"></div>
+    </section>
+
+    <section class="tpub-toolbar">
+        <ul class="tpub-main-tabs" id="public-main-tabs">
+            <li><button type="button" class="active" data-section="overview">Tổng quan</button></li>
+            <li><button type="button" data-section="teams">Đội tham gia</button></li>
+            <li><button type="button" data-section="schedule">Lịch thi đấu</button></li>
+            <li><button type="button" data-section="results">Kết quả / BXH</button></li>
+            <li><button type="button" data-section="rules">Luật giải</button></li>
+        </ul>
+
+        <div class="tpub-stage-picker">
+            <label for="public-stage-select">Giai đoạn</label>
+            <select id="public-stage-select"></select>
         </div>
-    </div>
+    </section>
+
+    <div id="public-live-status" class="small text-success mt-2 mb-3">Live Engine đang kết nối...</div>
+
+    <section class="tpub-section-card" id="section-overview"></section>
+    <section class="tpub-section-card d-none" id="section-teams"></section>
+    <section class="tpub-section-card d-none" id="section-schedule"></section>
+    <section class="tpub-section-card d-none" id="section-results"></section>
+    <section class="tpub-section-card d-none" id="section-rules"></section>
+
+    <section class="tpub-section-card mt-3">
+        <h4 class="tpub-section-title">Vinh danh tự động</h4>
+        <div id="honoring-content" class="small text-muted">Đang tải dữ liệu vinh danh...</div>
+    </section>
 </div>
 
 @section scripts {

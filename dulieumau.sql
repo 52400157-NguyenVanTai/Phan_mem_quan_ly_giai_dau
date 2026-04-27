@@ -1,12 +1,10 @@
 USE QuanLy_Esports;
 GO
 
-SET LANGUAGE Vietnamese;
-GO
-
 -- ============================================================
--- SEED: 6 Game được hệ thống hỗ trợ
+-- SEED: Dữ liệu nền game và vị trí
 -- ============================================================
+DELETE FROM HO_SO_IN_GAME;
 DELETE FROM DANH_MUC_VI_TRI;
 DELETE FROM TRO_CHOI;
 
@@ -19,7 +17,6 @@ INSERT INTO TRO_CHOI (ma_tro_choi, ten_game, the_loai, is_active) VALUES
 (5, N'Valorant',          'FPS',          1),
 (6, N'CS:GO',             'FPS',          1);
 SET IDENTITY_INSERT TRO_CHOI OFF;
-GO
 
 -- ============================================================
 -- SEED: Vị trí thi đấu theo từng game + Ban Huấn Luyện chung
@@ -77,7 +74,6 @@ INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALU
 (NULL, N'HLV Chiến thuật',           'CT',  'HuanLuyen'),
 (NULL, N'Trợ lý HLV',               'TL',  'HuanLuyen'),
 (NULL, N'Quản lý đội',              'QL',  'HuanLuyen');
-GO
 
 -- ============================================================
 -- SEED: Tài khoản người dùng
@@ -99,5 +95,5 @@ VALUES
 ('player_gumayusi', 'gumayusi@esports.vn', '$2a$12$CmghxarlP9QssLWCVdacXOdmLm.vNBA1szNsFV1emK6ZD/blLCX1m', 'user', N'Tuyển thủ Xạ Thủ'),
 ('referee_chinh', 'trongtai@esports.vn', '$2a$12$CmghxarlP9QssLWCVdacXOdmLm.vNBA1szNsFV1emK6ZD/blLCX1m', 'user', N'Trọng tài chính bắt giải');
 
-
-select * from NGUOI_DUNG;
+PRINT N'Seed mẫu đã chạy xong (TRO_CHOI, DANH_MUC_VI_TRI, NGUOI_DUNG).';
+GO

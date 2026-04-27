@@ -173,6 +173,39 @@
       .join("");
   }
 
+  function renderUnlockRequestList(rows) {
+    const container = document.getElementById("referee-unlock-request-list");
+    if (!container) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      container.innerHTML =
+        "<span class='text-muted'>Không có yêu cầu mở quyền sửa phù hợp.</span>";
+      return;
+    }
+
+    container.innerHTML = rows
+      .map(function (r) {
+        return (
+          "<div class='border rounded p-2 mb-2'>" +
+          "<b>YC #" +
+          r.ma_yeu_cau +
+          "</b> | Trận #" +
+          r.ma_tran +
+          " | Trọng tài: " +
+          (r.ten_trong_tai || r.ma_trong_tai_yeu_cau || "-") +
+          " | Trạng thái: " +
+          (r.trang_thai || "-") +
+          "<div class='small mt-1'><b>Lý do:</b> " +
+          (r.ly_do_yeu_cau || "(không có)") +
+          "</div>" +
+          (r.phan_hoi_admin
+            ? "<div class='small'><b>Phản hồi admin:</b> " + r.phan_hoi_admin + "</div>"
+            : "") +
+          "</div>"
+        );
+      })
+      .join("");
+  }
+
   function renderAuditLog(rows) {
     const container = document.getElementById("referee-audit-list");
     if (!container) return;
@@ -488,6 +521,15 @@
     const result = await response.json();
     showAlert(result.Success, result.Message, result.Data);
     if (result.Success && result.Data) {
+      const hiddenMatch = document.getElementById("referee-ma-tran");
+      if (hiddenMatch) hiddenMatch.value = String(maTran);
+
+      const unlockForm = document.getElementById("form-referee-request-unlock");
+      if (unlockForm) {
+        const unlockMatchInput = unlockForm.querySelector('input[name="MaTran"]');
+        if (unlockMatchInput) unlockMatchInput.value = String(maTran);
+      }
+
       renderRefereeGrid(result.Data.Roster || []);
     }
   });
@@ -530,9 +572,44 @@
   const btnAdminEdit = document.getElementById("btn-admin-edit");
   if (btnAdminEdit) {
     btnAdminEdit.addEventListener("click", function () {
-      submitRefereeResult("/RefereeApi/AdminSuaKetQua", "btn-admin-edit");
+      showAlert(
+        false,
+        "Admin không sửa kết quả trực tiếp. Hãy duyệt yêu cầu mở quyền sửa để trọng tài cập nhật.",
+      );
     });
   }
+
+  bindForm("form-referee-request-unlock", async function (form) {
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.MaTran = Number(payload.MaTran || 0);
+    const result = await postJson("/RefereeApi/TaoYeuCauMoKhoa", payload);
+    showAlert(result.Success, result.Message, result.Data);
+  });
+
+  bindForm("form-admin-load-unlock-requests", async function (form) {
+    const trangThai = new FormData(form).get("trangThai") || "";
+    const response = await fetch(
+      "/RefereeApi/DanhSachYeuCauMoKhoa?trangThai=" +
+        encodeURIComponent(String(trangThai)),
+      { method: "GET" },
+    );
+    const result = await response.json();
+    showAlert(result.Success, result.Message, result.Data);
+    if (result.Success) {
+      renderUnlockRequestList(result.Data || []);
+    }
+  });
+
+  bindForm("form-admin-handle-unlock-request", async function (form) {
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.MaYeuCau = Number(payload.MaYeuCau || 0);
+    payload.SoGioMoKhoa = payload.SoGioMoKhoa
+      ? Number(payload.SoGioMoKhoa)
+      : null;
+    payload.ChapNhan = String(payload.ChapNhan).toLowerCase() === "true";
+    const result = await postJson("/RefereeApi/XuLyYeuCauMoKhoa", payload);
+    showAlert(result.Success, result.Message, result.Data);
+  });
 
   bindForm("form-referee-dispute", async function (form) {
     const payload = Object.fromEntries(new FormData(form).entries());

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using DAL;
 using DTO;
 
@@ -57,6 +58,12 @@ namespace BUS
                 return ServiceResultDTO.Fail("Phải có ít nhất 1 giai đoạn.");
             }
 
+            dto.TheThuc = ChuanHoaTheThucGiaiDau(dto);
+            if (string.IsNullOrWhiteSpace(dto.TheThuc))
+            {
+                return ServiceResultDTO.Fail("Không xác định được thể thức giải đấu.");
+            }
+
             // Validate stage dates
             for (int i = 0; i < dto.GiaiDoan.Count; i++)
             {
@@ -106,6 +113,50 @@ namespace BUS
             return ServiceResultDTO.Ok(msg, new { maGiaiDau, trangThai });
         }
 
+        private static string ChuanHoaTheThucGiaiDau(TaoGiaiDauDTO dto)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.TheThuc))
+            {
+                return dto.TheThuc.Trim().ToLowerInvariant();
+            }
+
+            if (dto.GiaiDoan == null || dto.GiaiDoan.Count == 0)
+            {
+                return null;
+            }
+
+            string[] stageFormats = dto.GiaiDoan
+                .Select(g => (g?.TheThuc ?? string.Empty).Trim().ToLowerInvariant())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToArray();
+
+            if (stageFormats.Length == 0)
+            {
+                return null;
+            }
+
+            if (stageFormats.Length > 1)
+            {
+                return "hon_hop";
+            }
+
+            string stageFormat = stageFormats[0];
+            switch (stageFormat)
+            {
+                case "loai_truc_tiep":
+                case "nhanh_thang_nhanh_thua":
+                    return stageFormat;
+                case "vong_tron":
+                case "league_bang_cheo":
+                case "thuy_si":
+                case "champion_rush":
+                    return "vong_tron_tinh_diem";
+                default:
+                    return "hon_hop";
+            }
+        }
+
         public ServiceResultDTO GuiXetDuyet(int maNguoiGui, int maGiaiDau)
         {
             DataRow giaiDau = _dal.LayGiaiTheoId(maGiaiDau);
@@ -126,9 +177,32 @@ namespace BUS
             }
 
             bool ok = _dal.CapNhatTrangThaiGiaiTheoMa(maGiaiDau, TrangThaiChoXetDuyet);
-            return ok
-                ? ServiceResultDTO.Ok("Đã gửi xét duyệt thành công.", new { maGiaiDau, trangThai = "chờ xét duyệt" })
-                : ServiceResultDTO.Fail("Không thể gửi xét duyệt.");
+            if (!ok)
+            {
+                return ServiceResultDTO.Fail("Không thể gửi xét duyệt.");
+            }
+
+            NguoiDungDTO nguoiGui = _identityDal.LayTheoId(maNguoiGui);
+            string tenNguoiGui = nguoiGui != null ? nguoiGui.TenDangNhap : ("UID #" + maNguoiGui);
+            int? maTroChoi = giaiDau["ma_tro_choi"] == DBNull.Value ? (int?)null : Convert.ToInt32(giaiDau["ma_tro_choi"]);
+            string tenGame = _dal.LayTenGameTheoMa(maTroChoi) ?? "Chưa chọn game";
+            string tenGiai = giaiDau["ten_giai_dau"].ToString();
+            string thoiGianDuKien = giaiDau["ngay_bat_dau"] == DBNull.Value
+                ? "Chưa có"
+                : Convert.ToDateTime(giaiDau["ngay_bat_dau"]).ToString("dd/MM/yyyy HH:mm");
+
+            foreach (int maAdmin in _dal.LayDanhSachAdminHeThong())
+            {
+                _dal.TaoThongBao(
+                    maAdmin,
+                    "Yêu cầu tạo giải mới cần duyệt",
+                    string.Format("{0} vừa gửi yêu cầu tạo giải \"{1}\" ({2}) - dự kiến: {3}. Trạng thái: chờ xét duyệt. Vào tab Yêu cầu Admin để xử lý.", tenNguoiGui, tenGiai, tenGame, thoiGianDuKien),
+                    "giai_dau",
+                    "giai_dau",
+                    maGiaiDau);
+            }
+
+            return ServiceResultDTO.Ok("Đã gửi xét duyệt thành công.", new { maGiaiDau, trangThai = "chờ xét duyệt" });
         }
 
         public ServiceResultDTO PheDuyet(int maAdmin, int maGiaiDau)
@@ -151,9 +225,24 @@ namespace BUS
             }
 
             bool ok = _dal.CapNhatTrangThaiGiaiTheoMa(maGiaiDau, TrangThaiChuanBiDienRa);
-            return ok
-                ? ServiceResultDTO.Ok("Phê duyệt giải đấu thành công. Giải đã chuyển sang trạng thái chuẩn bị diễn ra.", new { maGiaiDau, trangThai = "chuẩn bị diễn ra" })
-                : ServiceResultDTO.Fail("Không thể phê duyệt.");
+            if (!ok)
+            {
+                return ServiceResultDTO.Fail("Không thể phê duyệt.");
+            }
+
+            if (giaiDau["ma_nguoi_tao"] != DBNull.Value)
+            {
+                int maNguoiTao = Convert.ToInt32(giaiDau["ma_nguoi_tao"]);
+                _dal.TaoThongBao(
+                    maNguoiTao,
+                    "Yêu cầu tạo giải đã được duyệt",
+                    string.Format("Giải đấu \"{0}\" đã được admin duyệt. Bạn có thể mở đăng ký và tiếp tục thiết lập giải.", giaiDau["ten_giai_dau"]),
+                    "giai_dau",
+                    "giai_dau",
+                    maGiaiDau);
+            }
+
+            return ServiceResultDTO.Ok("Phê duyệt giải đấu thành công. Giải đã chuyển sang trạng thái chuẩn bị diễn ra.", new { maGiaiDau, trangThai = "chuẩn bị diễn ra" });
         }
 
         public ServiceResultDTO BulkPheDuyet(int maAdmin)
@@ -181,6 +270,19 @@ namespace BUS
                 if (ok)
                 {
                     approvedCount++;
+
+                    DataRow giaiDau = _dal.LayGiaiTheoId(maGiaiDau);
+                    if (giaiDau != null && giaiDau["ma_nguoi_tao"] != DBNull.Value)
+                    {
+                        int maNguoiTao = Convert.ToInt32(giaiDau["ma_nguoi_tao"]);
+                        _dal.TaoThongBao(
+                            maNguoiTao,
+                            "Yêu cầu tạo giải đã được duyệt",
+                            string.Format("Giải đấu \"{0}\" đã được admin duyệt.", giaiDau["ten_giai_dau"]),
+                            "giai_dau",
+                            "giai_dau",
+                            maGiaiDau);
+                    }
                 }
                 else
                 {
@@ -198,7 +300,7 @@ namespace BUS
             return ServiceResultDTO.Ok(message, new { approvedCount, failedCount });
         }
 
-        public ServiceResultDTO TuChoiVaXoaCung(int maAdmin, int maGiaiDau)
+        public ServiceResultDTO TuChoiYeuCau(int maAdmin, int maGiaiDau, string lyDo)
         {
             if (!LaAdmin(maAdmin))
             {
@@ -212,16 +314,59 @@ namespace BUS
             }
 
             string trangThai = giaiDau["trang_thai"].ToString();
-            if (!string.Equals(trangThai, TrangThaiChoXetDuyet, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(trangThai, TrangThaiNhap, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(trangThai, TrangThaiChoXetDuyet, StringComparison.OrdinalIgnoreCase))
             {
-                return ServiceResultDTO.Fail("Chỉ được từ chối khi giải ở trạng thái nháp hoặc chờ xét duyệt.");
+                return ServiceResultDTO.Fail("Chỉ được từ chối khi giải ở trạng thái chờ xét duyệt.");
             }
 
-            bool ok = _dal.XoaCungGiai(maGiaiDau);
-            return ok
-                ? ServiceResultDTO.Ok("Admin đã từ chối và xóa cứng giải đấu ngay lập tức.")
-                : ServiceResultDTO.Fail("Không thể xóa giải đấu.");
+            bool ok = _dal.CapNhatTrangThaiGiaiTheoMa(maGiaiDau, TrangThaiNhap);
+            if (!ok)
+            {
+                return ServiceResultDTO.Fail("Không thể từ chối yêu cầu.");
+            }
+
+            string lyDoTuChoi = string.IsNullOrWhiteSpace(lyDo) ? "Không đáp ứng tiêu chí xét duyệt." : lyDo.Trim();
+            if (giaiDau["ma_nguoi_tao"] != DBNull.Value)
+            {
+                int maNguoiTao = Convert.ToInt32(giaiDau["ma_nguoi_tao"]);
+                _dal.TaoThongBao(
+                    maNguoiTao,
+                    "Yêu cầu tạo giải bị từ chối",
+                    string.Format("Giải đấu \"{0}\" chưa được duyệt. Lý do: {1}", giaiDau["ten_giai_dau"], lyDoTuChoi),
+                    "giai_dau",
+                    "giai_dau",
+                    maGiaiDau);
+            }
+
+            return ServiceResultDTO.Ok("Đã từ chối yêu cầu tạo giải.");
+        }
+
+        public ServiceResultDTO LayDanhSachChoXetDuyet(int maAdmin)
+        {
+            if (!LaAdmin(maAdmin))
+            {
+                return ServiceResultDTO.Fail("Chỉ admin hệ thống mới có quyền xem danh sách yêu cầu.");
+            }
+
+            DataTable dt = _dal.LayDanhSachChoXetDuyet();
+            List<object> list = new List<object>();
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new
+                {
+                    ma_giai_dau = Convert.ToInt32(row["ma_giai_dau"]),
+                    ten_giai_dau = row["ten_giai_dau"].ToString(),
+                    ma_nguoi_tao = row["ma_nguoi_tao"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_nguoi_tao"]),
+                    ten_nguoi_tao = row["ten_nguoi_tao"] == DBNull.Value ? null : row["ten_nguoi_tao"].ToString(),
+                    ma_tro_choi = row["ma_tro_choi"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["ma_tro_choi"]),
+                    ten_game = row["ten_game"] == DBNull.Value ? null : row["ten_game"].ToString(),
+                    ngay_bat_dau = row["ngay_bat_dau"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_bat_dau"]),
+                    ngay_ket_thuc = row["ngay_ket_thuc"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["ngay_ket_thuc"]),
+                    trang_thai = row["trang_thai"].ToString()
+                });
+            }
+
+            return ServiceResultDTO.Ok("Lấy danh sách yêu cầu chờ xét duyệt thành công.", list);
         }
 
         public ServiceResultDTO KhoaGiai(CapNhatTrangThaiGiaiDTO dto)

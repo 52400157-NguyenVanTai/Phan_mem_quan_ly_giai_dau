@@ -375,6 +375,225 @@ GROUP BY td.ma_giai_dau, ctnct.ma_nguoi_dung;", new[]
             return Convert.ToInt32(result) > 0;
         }
 
+        public bool DaCoYeuCauMoKhoaChoXuLy(int maTran)
+        {
+            const string query = @"
+SELECT COUNT(1)
+FROM YEU_CAU_MO_KHOA_KET_QUA
+WHERE ma_tran = @MaTran
+  AND trang_thai = 'cho_duyet';";
+
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaTran", SqlDbType.Int){ Value = maTran }
+            });
+
+            return Convert.ToInt32(result) > 0;
+        }
+
+        public int TaoYeuCauMoKhoa(int maTran, int maTrongTai, string lyDo)
+        {
+            const string query = @"
+INSERT INTO YEU_CAU_MO_KHOA_KET_QUA(ma_tran, ma_trong_tai_yeu_cau, ly_do_yeu_cau)
+OUTPUT INSERTED.ma_yeu_cau
+VALUES(@MaTran, @MaTrongTai, @LyDo);";
+
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaTran", SqlDbType.Int){ Value = maTran },
+                new SqlParameter("@MaTrongTai", SqlDbType.Int){ Value = maTrongTai },
+                new SqlParameter("@LyDo", SqlDbType.NVarChar){ Value = lyDo }
+            });
+
+            return Convert.ToInt32(result);
+        }
+
+        public List<Dictionary<string, object>> LayDanhSachYeuCauMoKhoa(string trangThai)
+        {
+            const string query = @"
+SELECT y.ma_yeu_cau,
+       y.ma_tran,
+       y.ma_trong_tai_yeu_cau,
+       nd.ten_dang_nhap AS ten_trong_tai,
+       y.ly_do_yeu_cau,
+       y.trang_thai,
+       y.phan_hoi_admin,
+       y.ma_admin_xu_ly,
+       ad.ten_dang_nhap AS ten_admin_xu_ly,
+       y.thoi_gian_tao,
+       y.thoi_gian_xu_ly,
+       y.thoi_gian_mo_khoa_den
+FROM YEU_CAU_MO_KHOA_KET_QUA y
+JOIN NGUOI_DUNG nd ON nd.ma_nguoi_dung = y.ma_trong_tai_yeu_cau
+LEFT JOIN NGUOI_DUNG ad ON ad.ma_nguoi_dung = y.ma_admin_xu_ly
+WHERE (@TrangThai IS NULL OR y.trang_thai = @TrangThai)
+ORDER BY y.thoi_gian_tao DESC, y.ma_yeu_cau DESC;";
+
+            DataTable dt = DataProvider.ExecuteQuery(query, new[]
+            {
+                new SqlParameter("@TrangThai", SqlDbType.NVarChar)
+                {
+                    Value = string.IsNullOrWhiteSpace(trangThai) ? (object)DBNull.Value : trangThai.Trim()
+                }
+            });
+
+            return ToList(dt);
+        }
+
+        public bool XuLyYeuCauMoKhoa(int maYeuCau, int maAdmin, bool chapNhan, int soGioMoKhoa, string phanHoiAdmin, out int maTran, out int maTrongTai)
+        {
+            maTran = 0;
+            maTrongTai = 0;
+
+            using (SqlConnection conn = DataProvider.CreateConnection())
+            {
+                conn.Open();
+                using (SqlTransaction tran = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        DataTable dt = DataProvider.ExecuteQuery(@"
+SELECT ma_tran, ma_trong_tai_yeu_cau
+FROM YEU_CAU_MO_KHOA_KET_QUA
+WHERE ma_yeu_cau = @MaYeuCau
+  AND trang_thai = 'cho_duyet';", new[]
+                        {
+                            new SqlParameter("@MaYeuCau", SqlDbType.Int){ Value = maYeuCau }
+                        }, conn, tran);
+
+                        if (dt.Rows.Count == 0)
+                        {
+                            tran.Rollback();
+                            return false;
+                        }
+
+                        maTran = Convert.ToInt32(dt.Rows[0]["ma_tran"]);
+                        maTrongTai = Convert.ToInt32(dt.Rows[0]["ma_trong_tai_yeu_cau"]);
+
+                        int soGio = Math.Max(1, soGioMoKhoa);
+
+                        int affected = DataProvider.ExecuteNonQuery(@"
+UPDATE YEU_CAU_MO_KHOA_KET_QUA
+SET trang_thai = @TrangThai,
+    ma_admin_xu_ly = @MaAdmin,
+    phan_hoi_admin = @PhanHoi,
+    thoi_gian_xu_ly = GETDATE(),
+    thoi_gian_mo_khoa_den = CASE WHEN @ChapNhan = 1 THEN DATEADD(HOUR, @SoGioMoKhoa, GETDATE()) ELSE NULL END
+WHERE ma_yeu_cau = @MaYeuCau
+  AND trang_thai = 'cho_duyet';", new[]
+                        {
+                            new SqlParameter("@TrangThai", SqlDbType.NVarChar){ Value = chapNhan ? "da_duyet" : "tu_choi" },
+                            new SqlParameter("@MaAdmin", SqlDbType.Int){ Value = maAdmin },
+                            new SqlParameter("@PhanHoi", SqlDbType.NVarChar){ Value = (object)phanHoiAdmin ?? DBNull.Value },
+                            new SqlParameter("@ChapNhan", SqlDbType.Bit){ Value = chapNhan },
+                            new SqlParameter("@SoGioMoKhoa", SqlDbType.Int){ Value = soGio },
+                            new SqlParameter("@MaYeuCau", SqlDbType.Int){ Value = maYeuCau }
+                        }, conn, tran);
+
+                        if (affected <= 0)
+                        {
+                            tran.Rollback();
+                            return false;
+                        }
+
+                        DataProvider.ExecuteNonQuery(@"
+UPDATE TRAN_DAU
+SET cho_phep_sua_den = CASE WHEN @ChapNhan = 1 THEN DATEADD(HOUR, @SoGioMoKhoa, GETDATE()) ELSE NULL END
+WHERE ma_tran = @MaTran;", new[]
+                        {
+                            new SqlParameter("@ChapNhan", SqlDbType.Bit){ Value = chapNhan },
+                            new SqlParameter("@SoGioMoKhoa", SqlDbType.Int){ Value = soGio },
+                            new SqlParameter("@MaTran", SqlDbType.Int){ Value = maTran }
+                        }, conn, tran);
+
+                        tran.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        tran.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
+        public int? LayTrongTaiTheoTran(int maTran)
+        {
+            const string query = @"
+SELECT ma_trong_tai
+FROM TRAN_DAU
+WHERE ma_tran = @MaTran;";
+
+            object result = DataProvider.ExecuteScalar(query, new[]
+            {
+                new SqlParameter("@MaTran", SqlDbType.Int){ Value = maTran }
+            });
+
+            if (result == null || result == DBNull.Value)
+            {
+                return null;
+            }
+
+            return Convert.ToInt32(result);
+        }
+
+        public List<int> LayDanhSachAdminHeThong()
+        {
+            const string query = @"
+SELECT ma_nguoi_dung
+FROM NGUOI_DUNG
+WHERE LOWER(ISNULL(vai_tro_he_thong, '')) = 'admin';";
+
+            DataTable dt = DataProvider.ExecuteQuery(query);
+            List<int> result = new List<int>();
+            foreach (DataRow row in dt.Rows)
+            {
+                result.Add(Convert.ToInt32(row["ma_nguoi_dung"]));
+            }
+
+            return result;
+        }
+
+        public bool TaoThongBao(int maNguoiNhan, string tieuDe, string noiDung, string loai, string doiTuongLoai, int? doiTuongId)
+        {
+            const string query = @"
+INSERT INTO THONG_BAO
+(
+    ma_nguoi_nhan,
+    tieu_de,
+    noi_dung,
+    loai_thong_bao,
+    doi_tuong_loai,
+    doi_tuong_id,
+    da_doc,
+    ngay_tao
+)
+VALUES
+(
+    @MaNguoiNhan,
+    @TieuDe,
+    @NoiDung,
+    @Loai,
+    @DoiTuongLoai,
+    @DoiTuongId,
+    0,
+    GETDATE()
+);";
+
+            int affected = DataProvider.ExecuteNonQuery(query, new[]
+            {
+                new SqlParameter("@MaNguoiNhan", SqlDbType.Int){ Value = maNguoiNhan },
+                new SqlParameter("@TieuDe", SqlDbType.NVarChar, 200){ Value = tieuDe ?? string.Empty },
+                new SqlParameter("@NoiDung", SqlDbType.NVarChar){ Value = noiDung ?? string.Empty },
+                new SqlParameter("@Loai", SqlDbType.NVarChar, 50){ Value = (object)loai ?? DBNull.Value },
+                new SqlParameter("@DoiTuongLoai", SqlDbType.NVarChar, 50){ Value = (object)doiTuongLoai ?? DBNull.Value },
+                new SqlParameter("@DoiTuongId", SqlDbType.Int){ Value = (object)doiTuongId ?? DBNull.Value }
+            });
+
+            return affected > 0;
+        }
+
         public bool NhomThuocTran(int maTran, int maNhom)
         {
             const string query = @"
@@ -512,7 +731,28 @@ SELECT td.ma_tran,
        td.thoi_gian_ket_thuc,
        td.trang_thai,
        td.thoi_gian_nhap_diem,
-       td.so_lan_sua
+       td.so_lan_sua,
+       td.cho_phep_sua_den,
+       CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM YEU_CAU_MO_KHOA_KET_QUA y
+                WHERE y.ma_tran = td.ma_tran
+                  AND y.trang_thai = 'cho_duyet'
+            ) THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+       END AS co_yeu_cau_mo_khoa_cho_duyet,
+       CASE
+            WHEN td.thoi_gian_nhap_diem IS NULL THEN 'chua_nhap'
+            WHEN EXISTS (
+                SELECT 1 FROM YEU_CAU_MO_KHOA_KET_QUA y
+                WHERE y.ma_tran = td.ma_tran
+                  AND y.trang_thai = 'cho_duyet'
+            ) THEN 'cho_mo_quyen_sua'
+            WHEN td.cho_phep_sua_den IS NOT NULL AND td.cho_phep_sua_den >= GETDATE() THEN 'duoc_mo_sua'
+            WHEN ISNULL(td.so_lan_sua, 0) > 0 THEN 'da_chinh_sua'
+            ELSE 'da_nhap_khoa'
+       END AS trang_thai_nhap_ket_qua
 FROM TRAN_DAU td
 WHERE td.ma_trong_tai = @MaTrongTai
   AND " + condition + @"
@@ -529,7 +769,23 @@ ORDER BY ISNULL(td.thoi_gian_bat_dau, td.thoi_gian_ket_thuc) DESC, td.ma_tran DE
         public DataRow LayThongTinTran(int maTran)
         {
             const string query = @"
-SELECT ma_tran, ma_giai_dau, ma_giai_doan, ma_trong_tai, trang_thai, thoi_gian_ket_thuc, thoi_gian_nhap_diem, so_lan_sua
+SELECT ma_tran,
+       ma_giai_dau,
+       ma_giai_doan,
+       ma_trong_tai,
+       trang_thai,
+       thoi_gian_ket_thuc,
+       thoi_gian_nhap_diem,
+       so_lan_sua,
+       cho_phep_sua_den,
+       CASE
+            WHEN EXISTS (
+                SELECT 1 FROM YEU_CAU_MO_KHOA_KET_QUA y
+                WHERE y.ma_tran = TRAN_DAU.ma_tran
+                  AND y.trang_thai = 'cho_duyet'
+            ) THEN CAST(1 AS BIT)
+            ELSE CAST(0 AS BIT)
+       END AS co_yeu_cau_mo_khoa_cho_duyet
 FROM TRAN_DAU
 WHERE ma_tran = @MaTran;";
 
@@ -604,8 +860,8 @@ SELECT COUNT(1)
 FROM TRAN_DAU
 WHERE ma_tran = @MaTran
   AND thoi_gian_nhap_diem IS NOT NULL
-  AND ISNULL(so_lan_sua, 0) = 0
-  AND DATEDIFF(HOUR, thoi_gian_nhap_diem, GETDATE()) <= 12;";
+  AND cho_phep_sua_den IS NOT NULL
+  AND cho_phep_sua_den >= GETDATE();";
 
             object result = DataProvider.ExecuteScalar(query, new[]
             {
@@ -713,7 +969,8 @@ WHERE ma_tran = @MaTran
 
                         string updateTran = laSua
                             ? @"UPDATE TRAN_DAU
-SET so_lan_sua = CASE WHEN @BoQuaKhoa12h = 1 THEN so_lan_sua ELSE so_lan_sua + 1 END
+SET so_lan_sua = CASE WHEN @BoQuaKhoa12h = 1 THEN so_lan_sua ELSE so_lan_sua + 1 END,
+    cho_phep_sua_den = NULL
 WHERE ma_tran = @MaTran;"
                             : @"UPDATE TRAN_DAU
 SET thoi_gian_nhap_diem = ISNULL(thoi_gian_nhap_diem, GETDATE()),

@@ -1068,7 +1068,7 @@ SELECT TOP " + top + @"
 FROM GIAI_DAU g
 LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = g.ma_tro_choi
 LEFT JOIN VW_TUONG_TAC_TONG_HOP v ON v.ma_giai_dau = g.ma_giai_dau
-WHERE g.trang_thai IN ('mo_dang_ky','sap_dien_ra','dang_dien_ra')
+WHERE g.trang_thai IN ('chuan_bi_dien_ra','dang_dien_ra')
   AND ISNULL(g.is_deleted,0) = 0
 ORDER BY (ISNULL(v.tong_like,0) + ISNULL(v.tong_theo_doi,0)) DESC;";
             return DataProvider.ExecuteQuery(query, null);
@@ -1086,7 +1086,7 @@ FROM GIAI_DAU g
 LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = g.ma_tro_choi
 LEFT JOIN VW_TUONG_TAC_TONG_HOP v ON v.ma_giai_dau = g.ma_giai_dau
 WHERE g.ngay_bat_dau > GETDATE()
-  AND g.trang_thai IN ('mo_dang_ky','sap_dien_ra')
+  AND g.trang_thai = 'chuan_bi_dien_ra'
   AND ISNULL(g.is_deleted,0) = 0
 ORDER BY g.ngay_bat_dau ASC;";
             return DataProvider.ExecuteQuery(query, null);
@@ -1103,7 +1103,8 @@ SELECT TOP " + top + @"
 FROM GIAI_DAU g
 LEFT JOIN TRO_CHOI tc ON tc.ma_tro_choi = g.ma_tro_choi
 LEFT JOIN VW_TUONG_TAC_TONG_HOP v ON v.ma_giai_dau = g.ma_giai_dau
-WHERE g.trang_thai = 'mo_dang_ky'
+WHERE g.trang_thai = 'chuan_bi_dien_ra'
+  AND ISNULL(g.dang_mo_dang_ky, 0) = 1
   AND ISNULL(g.is_deleted,0) = 0
 ORDER BY g.ngay_bat_dau ASC;";
             return DataProvider.ExecuteQuery(query, null);

@@ -44,6 +44,9 @@
     <Compile Include="Class1.cs" />
     <Compile Include="CoreDtos.cs" />
     <Compile Include="NguoiDungDTO.cs" />
+    <Compile Include="MaGiaiDauDTO.cs" />
+    <Compile Include="CapNhatDangMoDangKyDTO.cs" />
+    <Compile Include="XoaGiaiDoanDTO.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

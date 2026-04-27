@@ -123,6 +123,7 @@
     <Compile Include="Controllers\AdminApiController.cs" />
     <Compile Include="Controllers\AuthApiController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\HomepageApiController.cs" />
     <Compile Include="Controllers\MatchmakingApiController.cs" />
     <Compile Include="Controllers\PortalController.cs" />
     <Compile Include="Controllers\ProfileApiController.cs" />
@@ -169,6 +170,8 @@
     <Content Include="Scripts\bootstrap.esm.js" />
     <Content Include="Scripts\bootstrap.esm.min.js" />
     <Content Include="Scripts\app.js" />
+    <Content Include="Scripts\home-hero-particles.js" />
+    <Content Include="Scripts\home-public.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />

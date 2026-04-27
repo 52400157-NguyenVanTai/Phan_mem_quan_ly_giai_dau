@@ -68,6 +68,9 @@
             <button class="sidebar-item d-none" id="btn-admin-module" data-page="admin-requests" onclick="navigateTo('admin-requests')">
                 <span class="si-icon">⚙️</span> Yêu cầu Admin
             </button>
+            <button class="sidebar-item" data-page="referee-center" onclick="navigateTo('referee-center')">
+                <span class="si-icon">🧑‍⚖️</span> Trung tâm Trọng tài
+            </button>
         </div>
     </nav>
 
@@ -117,6 +120,7 @@
 
         <!-- CONTENT AREA -->
         <div id="content-area">
+            <div id="global-alert" class="alert d-none" role="alert" style="margin-bottom:12px"></div>
 
             <!-- HOME PAGE -->
             <div id="page-home" class="page-section">
@@ -349,57 +353,77 @@
             <div id="page-organize" class="page-section" style="display:none">
                 <div class="page-title">🏆 Tổ chức giải đấu</div>
                 <p class="page-sub">Tạo và quản lý giải đấu của bạn</p>
-                <div class="profile-card">
-                    <h5>Thông tin cơ bản</h5>
-                    <div class="form-group-dark">
-                        <label>Tên giải đấu</label>
-                        <input class="form-control-dark" id="org-ten-giai" placeholder="Nhập tên giải đấu" />
-                    </div>
-                    <div class="form-group-dark">
-                        <label>Mô tả giải đấu</label>
-                        <textarea class="form-control-dark" id="org-mo-ta" placeholder="Nhập mô tả giải đấu" rows="3"></textarea>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="form-group-dark">
-                        <div>
-                            <label>Game</label>
-                            <select class="select-dark" id="org-game"></select>
+                <div class="profile-card organize-card">
+                    <div class="organize-section">
+                        <h5>Thông tin cơ bản</h5>
+                        <div class="organize-grid-two">
+                            <div class="form-group-dark">
+                                <label>Tên giải đấu</label>
+                                <input class="form-control-dark" id="org-ten-giai" placeholder="Nhập tên giải đấu" />
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Game</label>
+                                <select class="select-dark" id="org-game"></select>
+                            </div>
                         </div>
-                        <div>
-                            <label>Banner giải đấu</label>
-                            <input class="form-control-dark" id="org-banner-file" type="file" accept="image/*" />
+                        <div class="organize-grid-two">
+                            <div class="form-group-dark">
+                                <label>Banner giải đấu</label>
+                                <input class="form-control-dark" id="org-banner-file" type="file" accept="image/*" />
+                                <small class="organize-helper">Ảnh gợi ý: JPG/PNG, tối đa 5MB.</small>
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Tổng giải thưởng (VNĐ)</label>
+                                <input class="form-control-dark" id="org-giai-thuong" type="number" min="0" placeholder="0" readonly style="background:var(--bg-dark)" />
+                                <small class="organize-helper">Tự động tính theo danh sách giải thưởng chi tiết.</small>
+                            </div>
+                        </div>
+                        <div class="form-group-dark">
+                            <label>Mô tả giải đấu</label>
+                            <textarea class="form-control-dark" id="org-mo-ta" placeholder="Nhập mô tả giải đấu" rows="4"></textarea>
                         </div>
                     </div>
-                    <div class="form-group-dark">
-                        <label>Tổng giải thưởng (VNĐ) - Tự động tính từ giải thưởng chi tiết</label>
-                        <input class="form-control-dark" id="org-giai-thuong" type="number" min="0" placeholder="0" readonly style="background:var(--bg-dark)" />
-                    </div>
-                    <div class="form-group-dark">
-                        <label>Giải thưởng chi tiết (Tùy chọn)</label>
-                        <div id="org-prizes-list" style="margin-bottom: 10px;"></div>
-                        <button class="btn-outline-glow" onclick="addPrizeInput()">+ Thêm giải thưởng</button>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="form-group-dark">
-                        <div>
-                            <label>Ngày bắt đầu</label>
-                            <input class="form-control-dark" id="org-start" type="datetime-local" />
+
+                    <div class="organize-section">
+                        <h5>Giải thưởng</h5>
+                        <div class="form-group-dark">
+                            <label>Giải thưởng chi tiết (Tùy chọn)</label>
+                            <div id="org-prizes-list" style="margin-bottom:10px"></div>
+                            <button class="btn-outline-glow" onclick="addPrizeInput()">+ Thêm giải thưởng</button>
                         </div>
-                        <div>
-                            <label>Ngày kết thúc</label>
-                            <input class="form-control-dark" id="org-end" type="datetime-local" />
+                    </div>
+
+                    <div class="organize-section">
+                        <h5>Thời gian</h5>
+                        <div class="organize-grid-two organize-grid-time">
+                            <div class="form-group-dark">
+                                <label>Ngày bắt đầu</label>
+                                <input class="form-control-dark" id="org-start" type="datetime-local" />
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Ngày kết thúc</label>
+                                <input class="form-control-dark" id="org-end" type="datetime-local" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="organize-section">
+                        <h5>Thiết lập giải</h5>
+                        <div class="organize-grid-two">
+                            <div class="form-group-dark">
+                                <label>Số đội tối thiểu</label>
+                                <input class="form-control-dark" id="org-so-doi-toi-thieu" type="number" min="2" placeholder="Tối thiểu 2" value="2" />
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Số đội tối đa (tùy chọn)</label>
+                                <input class="form-control-dark" id="org-so-doi-toi-da" type="number" min="2" placeholder="Để trống nếu không giới hạn" />
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="profile-card" style="margin-top:20px">
                     <h5>Thiết lập giai đoạn</h5>
-                    <div class="form-group-dark">
-                        <label>Số đội tối thiểu</label>
-                        <input class="form-control-dark" id="org-so-doi-toi-thieu" type="number" min="2" placeholder="Tối thiểu 2" value="2" />
-                    </div>
-                    <div class="form-group-dark">
-                        <label>Số đội tối đa (tùy chọn)</label>
-                        <input class="form-control-dark" id="org-so-doi-toi-da" type="number" min="2" placeholder="Để trống nếu không giới hạn" />
-                    </div>
                     <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border-dark);border-radius:8px;padding:12px;margin-bottom:12px">
                         <table style="width:100%;border-collapse:collapse">
                             <thead>
@@ -423,10 +447,10 @@
                                         </select>
                                     </td>
                                     <td style="padding:8px">
-                                        <input class="form-control-dark" id="stage-1-start" type="datetime-local" style="width:160px" />
+                                        <input class="form-control-dark organize-stage-datetime" id="stage-1-start" type="datetime-local" />
                                     </td>
                                     <td style="padding:8px">
-                                        <input class="form-control-dark" id="stage-1-end" type="datetime-local" style="width:160px" />
+                                        <input class="form-control-dark organize-stage-datetime" id="stage-1-end" type="datetime-local" />
                                     </td>
                                     <td style="padding:8px"></td>
                                 </tr>
@@ -587,6 +611,116 @@
                 <div class="page-title">⚙️ Yêu cầu Admin</div>
                 <p class="page-sub">Phê duyệt hoặc từ chối yêu cầu tạo giải đấu</p>
                 <div id="admin-request-list"></div>
+
+                <div class="profile-card" style="margin-top:16px">
+                    <h5>Quản trị mở quyền sửa kết quả</h5>
+                    <form id="form-admin-load-unlock-requests" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                        <select class="select-dark" name="trangThai" style="min-width:180px">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="cho_duyet">Chờ duyệt</option>
+                            <option value="da_duyet">Đã duyệt</option>
+                            <option value="tu_choi">Từ chối</option>
+                        </select>
+                        <button class="btn-primary-glow" type="submit">Tải danh sách yêu cầu</button>
+                    </form>
+                    <div id="referee-unlock-request-list"></div>
+
+                    <form id="form-admin-handle-unlock-request" style="margin-top:14px">
+                        <div class="organize-grid-two">
+                            <div class="form-group-dark">
+                                <label>Mã yêu cầu</label>
+                                <input class="form-control-dark" name="MaYeuCau" type="number" min="1" required />
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Hành động</label>
+                                <select class="select-dark" name="ChapNhan">
+                                    <option value="true">Duyệt mở quyền sửa</option>
+                                    <option value="false">Từ chối</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="organize-grid-two">
+                            <div class="form-group-dark">
+                                <label>Số giờ mở quyền sửa (khi duyệt)</label>
+                                <input class="form-control-dark" name="SoGioMoKhoa" type="number" min="1" value="2" />
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Phản hồi admin</label>
+                                <input class="form-control-dark" name="PhanHoiAdmin" placeholder="Lý do duyệt/từ chối" />
+                            </div>
+                        </div>
+                        <button class="btn-save" type="submit">Xử lý yêu cầu</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="page-referee-center" class="page-section" style="display:none">
+                <div class="page-title">🧑‍⚖️ Trung tâm Trọng tài</div>
+                <p class="page-sub">Nhập kết quả, chỉnh sửa theo quyền mở khóa và theo dõi khiếu nại</p>
+
+                <div class="profile-card" style="margin-bottom:16px">
+                    <h5>Danh sách trận của tôi</h5>
+                    <form id="form-referee-my-matches" style="display:flex;gap:8px;flex-wrap:wrap">
+                        <select class="select-dark" name="tab" style="min-width:180px">
+                            <option value="can_nhap_diem">Cần nhập điểm</option>
+                            <option value="sap_dien_ra">Sắp diễn ra</option>
+                            <option value="da_hoan_thanh">Đã hoàn thành</option>
+                        </select>
+                        <button class="btn-primary-glow" type="submit">Tải danh sách</button>
+                    </form>
+                    <div id="referee-match-list" style="margin-top:10px"></div>
+                </div>
+
+                <div class="profile-card" style="margin-bottom:16px">
+                    <h5>Chi tiết trận và nhập kết quả</h5>
+                    <form id="form-referee-load-match" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                        <input class="form-control-dark" style="max-width:220px" name="maTran" type="number" min="1" placeholder="Mã trận" required />
+                        <button class="btn-primary-glow" type="submit">Tải chi tiết trận</button>
+                    </form>
+                    <input type="hidden" id="referee-ma-tran" value="0" />
+
+                    <table id="referee-player-grid" class="tpub-table">
+                        <thead>
+                            <tr>
+                                <th>Người chơi</th>
+                                <th>K</th>
+                                <th>D</th>
+                                <th>A</th>
+                                <th>Điểm sinh tồn</th>
+                                <th>KDA</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+
+                    <div class="form-group-dark" style="margin-top:12px">
+                        <label>Lý do sửa (bắt buộc khi sửa)</label>
+                        <input class="form-control-dark" id="referee-ly-do" placeholder="Nhập lý do khi chỉnh sửa kết quả" />
+                    </div>
+
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn-save" id="btn-referee-save" type="button">Nhập kết quả lần đầu</button>
+                        <button class="btn-outline-glow" id="btn-referee-edit" type="button">Sửa kết quả</button>
+                        <button class="btn-outline-glow" id="btn-admin-edit" type="button">Admin sửa trực tiếp</button>
+                    </div>
+                </div>
+
+                <div class="profile-card" style="margin-bottom:16px">
+                    <h5>Yêu cầu mở quyền sửa kết quả</h5>
+                    <form id="form-referee-request-unlock">
+                        <div class="organize-grid-two">
+                            <div class="form-group-dark">
+                                <label>Mã trận</label>
+                                <input class="form-control-dark" name="MaTran" type="number" min="1" required />
+                            </div>
+                            <div class="form-group-dark">
+                                <label>Lý do yêu cầu</label>
+                                <input class="form-control-dark" name="LyDo" required placeholder="Nêu rõ lý do cần mở quyền sửa" />
+                            </div>
+                        </div>
+                        <button class="btn-primary-glow" type="submit">Gửi yêu cầu mở khóa</button>
+                    </form>
+                </div>
             </div>
         </div><!-- /content-area -->
     </div><!-- /main-area -->
@@ -611,5 +745,6 @@
 
 <script src="~/Scripts/jquery-3.7.0.min.js"></script>
 <script src="~/Scripts/app.js"></script>
+<script src="~/Scripts/portal.js"></script>
 </body>
 </html>

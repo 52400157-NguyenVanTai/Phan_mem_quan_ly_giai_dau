@@ -191,7 +191,7 @@ BEGIN
         ma_nguoi_dung      INT          NOT NULL,
         ma_nhom            INT          NULL,          -- NULL = team member without squad, 0 = management group (nhóm quản lý)
         ma_vi_tri          INT          NULL,
-        vai_tro_noi_bo     NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_VAITRO    DEFAULT 'member',
+        vai_tro_noi_bo     NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_VAITRO    DEFAULT 'thanh_vien',
         phan_he            NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_PHANHE    DEFAULT 'thi_dau',
         trang_thai_duyet   NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_DUYET     DEFAULT 'da_duyet',
         trang_thai_hop_dong NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_HOPDONG  DEFAULT 'dang_hieu_luc',
@@ -200,7 +200,7 @@ BEGIN
         CONSTRAINT FK_TV_ND       FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_TV_NHOM     FOREIGN KEY (ma_nhom)       REFERENCES NHOM_DOI(ma_nhom),
         CONSTRAINT FK_TV_VITRI    FOREIGN KEY (ma_vi_tri)     REFERENCES DANH_MUC_VI_TRI(ma_vi_tri),
-        CONSTRAINT CHK_TV_VAITRO  CHECK (vai_tro_noi_bo     IN ('chairman','leader','coach','captain','member')),
+        CONSTRAINT CHK_TV_VAITRO  CHECK (vai_tro_noi_bo     IN ('chu_tich','ban_dieu_hanh','doi_truong','thanh_vien')),
         CONSTRAINT CHK_TV_PHANHE  CHECK (phan_he             IN ('thi_dau','ban_huan_luyen')),
         CONSTRAINT CHK_TV_DUYET   CHECK (trang_thai_duyet    IN ('cho_duyet','da_duyet','bi_tu_choi')),
         CONSTRAINT CHK_TV_HOPDONG CHECK (trang_thai_hop_dong IN ('dang_hieu_luc','tu_do','da_giai_phong'))
@@ -325,6 +325,56 @@ BEGIN
 END
 GO
 
+-- ---------------------------------------------------------------
+-- 4.6  YEU_CAU_XAC_NHAN_LOI_MOI  (Invite confirmation request)
+-- ---------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'YEU_CAU_XAC_NHAN_LOI_MOI')
+BEGIN
+    CREATE TABLE YEU_CAU_XAC_NHAN_LOI_MOI (
+        ma_yeu_cau         INT          IDENTITY PRIMARY KEY,
+        ma_nguoi_gui       INT          NOT NULL,
+        ma_doi             INT          NOT NULL,
+        ma_nhom            INT          NULL,
+        ma_nguoi_nhan      INT          NOT NULL,
+        trang_thai         NVARCHAR(50) NOT NULL CONSTRAINT DF_YCXNLM_TRANGTHAI DEFAULT 'cho_xac_nhan',
+        ngay_tao           DATETIME     NOT NULL CONSTRAINT DF_YCXNLM_NGAYTAO DEFAULT GETDATE(),
+        ngay_xac_nhan      DATETIME     NULL,
+        ma_nguoi_xac_nhan  INT          NULL,
+
+        CONSTRAINT FK_YCXNLM_NGUOI_GUI      FOREIGN KEY (ma_nguoi_gui)      REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_YCXNLM_DOI            FOREIGN KEY (ma_doi)            REFERENCES DOI(ma_doi),
+        CONSTRAINT FK_YCXNLM_NHOM           FOREIGN KEY (ma_nhom)           REFERENCES NHOM_DOI(ma_nhom),
+        CONSTRAINT FK_YCXNLM_NGUOI_NHAN     FOREIGN KEY (ma_nguoi_nhan)     REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_YCXNLM_NGUOI_XAC_NHAN FOREIGN KEY (ma_nguoi_xac_nhan) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT CHK_YCXNLM_TRANGTHAI CHECK (trang_thai IN ('cho_xac_nhan', 'da_xac_nhan', 'tu_choi'))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_YCXNLM_NguoiGui' AND object_id = OBJECT_ID('YEU_CAU_XAC_NHAN_LOI_MOI'))
+BEGIN
+    CREATE INDEX IX_YCXNLM_NguoiGui ON YEU_CAU_XAC_NHAN_LOI_MOI(ma_nguoi_gui);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_YCXNLM_Doi' AND object_id = OBJECT_ID('YEU_CAU_XAC_NHAN_LOI_MOI'))
+BEGIN
+    CREATE INDEX IX_YCXNLM_Doi ON YEU_CAU_XAC_NHAN_LOI_MOI(ma_doi);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_YCXNLM_NguoiNhan' AND object_id = OBJECT_ID('YEU_CAU_XAC_NHAN_LOI_MOI'))
+BEGIN
+    CREATE INDEX IX_YCXNLM_NguoiNhan ON YEU_CAU_XAC_NHAN_LOI_MOI(ma_nguoi_nhan);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_YCXNLM_TrangThai' AND object_id = OBJECT_ID('YEU_CAU_XAC_NHAN_LOI_MOI'))
+BEGIN
+    CREATE INDEX IX_YCXNLM_TrangThai ON YEU_CAU_XAC_NHAN_LOI_MOI(trang_thai);
+END
+GO
+
 -- ==============================================================
 -- SECTION 5 — TOURNAMENT
 -- ==============================================================
@@ -341,14 +391,27 @@ BEGIN
         ma_nguoi_tao           INT            NULL,
         the_thuc               NVARCHAR(50)   NOT NULL,
         banner_url             NVARCHAR(400)  NULL,
+        mo_ta                  NVARCHAR(500)  NULL,
+        kieu_tham_gia          NVARCHAR(20)   NOT NULL CONSTRAINT DF_GD_KIEU_THAM_GIA DEFAULT 'theo_doi',
+        so_nguoi_moi_doi       INT            NULL,
+        so_luong_doi_toi_da    INT            NULL,
+        luat_giai              NVARCHAR(MAX)  NULL,
+        thong_tin_lien_he      NVARCHAR(250)  NULL,
+        che_do_cong_khai       NVARCHAR(30)   NOT NULL CONSTRAINT DF_GD_CHE_DO_CONG_KHAI DEFAULT 'cong_khai_sau_duyet',
         ngay_bat_dau           DATETIME       NULL,
         ngay_ket_thuc          DATETIME       NULL,
         thoi_gian_mo_dang_ky   DATETIME       NULL,
         thoi_gian_dong_dang_ky DATETIME       NULL,
+        so_doi_toi_thieu       INT            NOT NULL CONSTRAINT DF_GD_DOI_TOI_THIEU DEFAULT 2,
+        so_doi_toi_da          INT            NULL,
+        dang_mo_dang_ky        BIT            NOT NULL CONSTRAINT DF_GD_MO_DANG_KY DEFAULT 0,
         tong_giai_thuong       DECIMAL(15,2)  NOT NULL CONSTRAINT DF_GD_GIAILTHUONG DEFAULT 0,
-        trang_thai             NVARCHAR(30)   NOT NULL CONSTRAINT DF_GD_TRANGTHAI   DEFAULT 'ban_nhap',
+        trang_thai             NVARCHAR(30)   NOT NULL CONSTRAINT DF_GD_TRANGTHAI   DEFAULT 'nhap',
         hien_thi_public        BIT            NOT NULL CONSTRAINT DF_GD_PUBLIC      DEFAULT 1,
         is_deleted             BIT            NOT NULL CONSTRAINT DF_GD_DELETED     DEFAULT 0,
+        thoi_gian_bat_dau_tam_hoan DATETIME   NULL,
+        thoi_gian_ket_thuc_tam_hoan DATETIME  NULL,
+        thoi_gian_tam_hoan_total INT          NULL,
         thoi_gian_khoa         DATETIME       NULL,
         ma_nguoi_khoa          INT            NULL,
         ly_do_khoa             NVARCHAR(500)  NULL,
@@ -361,9 +424,13 @@ BEGIN
             'dau_theo_bang','vong_tron_tinh_diem','hon_hop'
         )),
         CONSTRAINT CHK_GD_TRANGTHAI CHECK (trang_thai IN (
-            'ban_nhap','cho_phe_duyet','mo_dang_ky',
-            'sap_dien_ra','dang_dien_ra','ket_thuc','khoa'
+            'nhap','cho_xet_duyet','chuan_bi_dien_ra','dang_dien_ra',
+            'tong_ket','ket_thuc','tam_hoan','khoa'
         )),
+        CONSTRAINT CHK_GD_KIEU_THAM_GIA CHECK (kieu_tham_gia IN ('theo_doi','ca_nhan')),
+        CONSTRAINT CHK_GD_CHE_DO_CONG_KHAI CHECK (che_do_cong_khai IN ('cong_khai_sau_duyet','rieng_tu')),
+        CONSTRAINT CHK_GD_SO_NGUOI_MOI_DOI CHECK (so_nguoi_moi_doi IS NULL OR so_nguoi_moi_doi > 0),
+        CONSTRAINT CHK_GD_SO_LUONG_DOI_TOI_DA CHECK (so_luong_doi_toi_da IS NULL OR so_luong_doi_toi_da >= 2),
         CONSTRAINT CHK_GD_THOIGIAN_DANGKY CHECK (
             thoi_gian_dong_dang_ky IS NULL
             OR ngay_bat_dau IS NULL
@@ -470,14 +537,20 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'GIAI_THUONG')
 BEGIN
     CREATE TABLE GIAI_THUONG (
-        ma_giai_thuong INT           IDENTITY PRIMARY KEY,
-        ma_giai_dau    INT           NOT NULL,
-        vi_tri_top     INT           NOT NULL,
-        so_tien        DECIMAL(15,2) NOT NULL,
+        ma_giai_thuong INT            IDENTITY PRIMARY KEY,
+        ma_giai_dau    INT            NOT NULL,
+        vi_tri_top     INT            NULL,
+        so_tien        DECIMAL(15,2)  NULL,
+        ten_giai       NVARCHAR(150)  NULL,
+        gia_tri        DECIMAL(15,2)  NOT NULL CONSTRAINT DF_GT_GIA_TRI DEFAULT 0,
+        so_luong       INT            NOT NULL CONSTRAINT DF_GT_SO_LUONG DEFAULT 1,
+        mo_ta          NVARCHAR(500)  NULL,
 
         CONSTRAINT FK_GT_GD  FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau),
-        CONSTRAINT CHK_GT_VITRI CHECK (vi_tri_top > 0),
-        CONSTRAINT CHK_GT_SOTIEN CHECK (so_tien >= 0)
+        CONSTRAINT CHK_GT_VITRI CHECK (vi_tri_top IS NULL OR vi_tri_top > 0),
+        CONSTRAINT CHK_GT_SOTIEN CHECK (so_tien IS NULL OR so_tien >= 0),
+        CONSTRAINT CHK_GT_GIA_TRI CHECK (gia_tri >= 0),
+        CONSTRAINT CHK_GT_SO_LUONG CHECK (so_luong > 0)
     );
 END
 GO
@@ -497,6 +570,8 @@ BEGIN
         ten_giai_doan         NVARCHAR(100) NOT NULL,
         the_thuc              NVARCHAR(50)  NOT NULL,
         thu_tu                INT           NOT NULL,
+        ngay_bat_dau          DATETIME      NULL,
+        ngay_ket_thuc         DATETIME      NULL,
         so_doi_di_tiep        INT           NOT NULL CONSTRAINT DF_GDO_DOIDITIEP DEFAULT 0,
         diem_nguong_match_point INT          NULL,
         trang_thai            NVARCHAR(30)  NOT NULL CONSTRAINT DF_GDO_TRANGTHAI DEFAULT 'chua_bat_dau',
@@ -539,6 +614,7 @@ BEGIN
         thoi_gian_ket_thuc     DATETIME      NULL,
         thoi_gian_nhap_diem    DATETIME      NULL,
         so_lan_sua             INT           NOT NULL CONSTRAINT DF_TD_SOLANSUA DEFAULT 0,
+        cho_phep_sua_den       DATETIME      NULL,
         trang_thai             NVARCHAR(20)  NOT NULL CONSTRAINT DF_TD_TRANGTHAI DEFAULT 'chua_dau',
 
         CONSTRAINT FK_TD_GD        FOREIGN KEY (ma_giai_dau)             REFERENCES GIAI_DAU(ma_giai_dau),
@@ -661,9 +737,256 @@ BEGIN
 END
 GO
 
--- ==============================================================
+-- ---------------------------------------------------------------
+-- 7.6  YEU_CAU_MO_KHOA_KET_QUA  (Referee unlock-result request)
+-- ---------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'YEU_CAU_MO_KHOA_KET_QUA')
+BEGIN
+    CREATE TABLE YEU_CAU_MO_KHOA_KET_QUA (
+        ma_yeu_cau            INT            IDENTITY PRIMARY KEY,
+        ma_tran               INT            NOT NULL,
+        ma_trong_tai_yeu_cau  INT            NOT NULL,
+        ly_do_yeu_cau         NVARCHAR(1000) NOT NULL,
+        trang_thai            NVARCHAR(20)   NOT NULL CONSTRAINT DF_YCMK_TRANGTHAI DEFAULT 'cho_duyet',
+        phan_hoi_admin        NVARCHAR(1000) NULL,
+        ma_admin_xu_ly        INT            NULL,
+        thoi_gian_tao         DATETIME       NOT NULL CONSTRAINT DF_YCMK_TAO DEFAULT GETDATE(),
+        thoi_gian_xu_ly       DATETIME       NULL,
+        thoi_gian_mo_khoa_den DATETIME       NULL,
+
+        CONSTRAINT FK_YCMK_TRAN_DAU   FOREIGN KEY (ma_tran)              REFERENCES TRAN_DAU(ma_tran),
+        CONSTRAINT FK_YCMK_TRONG_TAI  FOREIGN KEY (ma_trong_tai_yeu_cau) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_YCMK_ADMIN_XULY FOREIGN KEY (ma_admin_xu_ly)       REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT CHK_YCMK_TRANGTHAI CHECK (trang_thai IN ('cho_duyet','da_duyet','tu_choi'))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_YCMK_PENDING_TRAN' AND object_id = OBJECT_ID('YEU_CAU_MO_KHOA_KET_QUA'))
+BEGIN
+    CREATE UNIQUE INDEX UX_YCMK_PENDING_TRAN
+    ON YEU_CAU_MO_KHOA_KET_QUA(ma_tran)
+    WHERE trang_thai = 'cho_duyet';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_YCMK_TRANGTHAI_TAO' AND object_id = OBJECT_ID('YEU_CAU_MO_KHOA_KET_QUA'))
+BEGIN
+    CREATE INDEX IX_YCMK_TRANGTHAI_TAO
+    ON YEU_CAU_MO_KHOA_KET_QUA(trang_thai, thoi_gian_tao DESC);
+END
+GO
+
+-- ---------------------------------------------------------------
+-- 7.x  Schema sync for existing databases (idempotent patch)
+-- ---------------------------------------------------------------
+IF COL_LENGTH('dbo.GIAI_DAU', 'so_doi_toi_thieu') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD so_doi_toi_thieu INT NOT NULL CONSTRAINT DF_GD_DOI_TOI_THIEU_PATCH DEFAULT 2;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'so_doi_toi_da') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD so_doi_toi_da INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'dang_mo_dang_ky') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD dang_mo_dang_ky BIT NOT NULL CONSTRAINT DF_GD_MO_DANG_KY_PATCH DEFAULT 0;
+END
+GO
+
+IF COL_LENGTH('dbo.TRAN_DAU', 'cho_phep_sua_den') IS NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU
+    ADD cho_phep_sua_den DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'mo_ta') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD mo_ta NVARCHAR(500) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'kieu_tham_gia') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD kieu_tham_gia NVARCHAR(20) NOT NULL CONSTRAINT DF_GD_KIEU_THAM_GIA_PATCH DEFAULT 'theo_doi';
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'so_nguoi_moi_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD so_nguoi_moi_doi INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'so_luong_doi_toi_da') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD so_luong_doi_toi_da INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'luat_giai') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD luat_giai NVARCHAR(MAX) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'thong_tin_lien_he') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD thong_tin_lien_he NVARCHAR(250) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'che_do_cong_khai') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD che_do_cong_khai NVARCHAR(30) NOT NULL CONSTRAINT DF_GD_CHE_DO_CONG_KHAI_PATCH DEFAULT 'cong_khai_sau_duyet';
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_bat_dau_tam_hoan') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD thoi_gian_bat_dau_tam_hoan DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_ket_thuc_tam_hoan') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD thoi_gian_ket_thuc_tam_hoan DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_tam_hoan_total') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD thoi_gian_tam_hoan_total INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DOAN', 'ngay_bat_dau') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN
+    ADD ngay_bat_dau DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DOAN', 'ngay_ket_thuc') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN
+    ADD ngay_ket_thuc DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_THUONG', 'ten_giai') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_THUONG
+    ADD ten_giai NVARCHAR(150) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_THUONG', 'gia_tri') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_THUONG
+    ADD gia_tri DECIMAL(15,2) NOT NULL CONSTRAINT DF_GT_GIA_TRI_PATCH DEFAULT 0;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_THUONG', 'so_luong') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_THUONG
+    ADD so_luong INT NOT NULL CONSTRAINT DF_GT_SO_LUONG_PATCH DEFAULT 1;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_THUONG', 'mo_ta') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_THUONG
+    ADD mo_ta NVARCHAR(500) NULL;
+END
+GO
+
+IF EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'NHOM_DOI'
+      AND COLUMN_NAME = 'ma_tro_choi'
+      AND IS_NULLABLE = 'NO'
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_NHOM_TC' AND parent_object_id = OBJECT_ID('dbo.NHOM_DOI'))
+    BEGIN
+        ALTER TABLE dbo.NHOM_DOI DROP CONSTRAINT FK_NHOM_TC;
+    END
+
+    ALTER TABLE dbo.NHOM_DOI ALTER COLUMN ma_tro_choi INT NULL;
+    ALTER TABLE dbo.NHOM_DOI ADD CONSTRAINT FK_NHOM_TC FOREIGN KEY (ma_tro_choi) REFERENCES TRO_CHOI(ma_tro_choi);
+END
+GO
+
+IF COL_LENGTH('dbo.DOI', 'ten_viet_tat') IS NULL
+BEGIN
+    ALTER TABLE dbo.DOI ADD ten_viet_tat NVARCHAR(20) NULL;
+END
+GO
+
+UPDATE dbo.GIAI_DAU
+SET trang_thai = CASE trang_thai
+    WHEN 'ban_nhap' THEN 'nhap'
+    WHEN 'cho_phe_duyet' THEN 'cho_xet_duyet'
+    WHEN 'mo_dang_ky' THEN 'chuan_bi_dien_ra'
+    WHEN 'sap_dien_ra' THEN 'chuan_bi_dien_ra'
+    ELSE trang_thai
+END
+WHERE trang_thai IN ('ban_nhap', 'cho_phe_duyet', 'mo_dang_ky', 'sap_dien_ra');
+GO
+
+IF EXISTS (SELECT 1 FROM sys.default_constraints WHERE name = 'DF_GD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT DF_GD_TRANGTHAI;
+END
+GO
+
+ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT DF_GD_TRANGTHAI DEFAULT 'nhap' FOR trang_thai;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_GD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT CHK_GD_TRANGTHAI;
+END
+GO
+
+ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT CHK_GD_TRANGTHAI
+CHECK (trang_thai IN ('nhap','cho_xet_duyet','chuan_bi_dien_ra','dang_dien_ra','tong_ket','ket_thuc','tam_hoan','khoa'));
+GO
+
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_TV_VAITRO' AND parent_object_id = OBJECT_ID('dbo.THANH_VIEN_DOI'))
+BEGIN
+    ALTER TABLE dbo.THANH_VIEN_DOI DROP CONSTRAINT CHK_TV_VAITRO;
+END
+GO
+
+ALTER TABLE dbo.THANH_VIEN_DOI ADD CONSTRAINT CHK_TV_VAITRO
+CHECK (vai_tro_noi_bo IN ('chu_tich', 'thanh_vien', 'ban_dieu_hanh', 'doi_truong'));
+GO
+
+-- ============================================================== 
 -- SECTION 8 — PLAYER STATS & LEADERBOARD
--- ==============================================================
+-- ============================================================== 
 
 -- ---------------------------------------------------------------
 -- 8.1  CHI_TIET_NGUOI_CHOI_TRAN  (Per-player stats in a match)
@@ -801,10 +1124,10 @@ SELECT
     (SELECT COUNT(1) FROM NGUOI_DUNG     WHERE is_banned   = 0)                                         AS tong_user_active,
     (SELECT COUNT(1) FROM NGUOI_DUNG     WHERE is_banned   = 1)                                         AS tong_user_bi_ban,
     (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai  = 'dang_dien_ra' AND is_deleted = 0)         AS giai_dang_chay,
-    (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai IN ('mo_dang_ky','sap_dien_ra','dang_dien_ra') AND is_deleted = 0) AS giai_dang_hoat_dong,
+    (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai IN ('chuan_bi_dien_ra','dang_dien_ra') AND is_deleted = 0) AS giai_dang_hoat_dong,
     (SELECT COUNT(1) FROM DOI            WHERE trang_thai  = 'dang_hoat_dong')                          AS tong_doi_hoat_dong,
     (SELECT COUNT(1) FROM KHIEU_NAI_KET_QUA WHERE trang_thai = 'cho_xu_ly')                            AS khieu_nai_cho_xu_ly,
-    (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai  = 'cho_phe_duyet' AND is_deleted = 0)        AS giai_cho_duyet,
+    (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai  = 'cho_xet_duyet' AND is_deleted = 0)        AS giai_cho_duyet,
     (SELECT COUNT(1) FROM TRO_CHOI       WHERE is_active   = 1)                                         AS tong_game_active;
 GO
 
@@ -824,215 +1147,62 @@ GROUP BY ma_giai_dau;
 GO
 
 -- ==============================================================
--- SECTION 12 — STORED PROCEDURES
--- ==============================================================
-
--- ---------------------------------------------------------------
--- SP1  SP_XoaXachGiaiDau — Hard-delete all data of one tournament
--- ---------------------------------------------------------------
-CREATE PROCEDURE SP_XoaXachGiaiDau
-    @MaGiaiDau INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        -- Audit & match details
-        DELETE FROM LICH_SU_SUA_KET_QUA
-            WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
-        DELETE FROM KET_QUA_TRAN
-            WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
-        DELETE FROM CHI_TIET_NGUOI_CHOI_TRAN
-            WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
-        DELETE FROM CHI_TIET_TRAN_DAU
-            WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
-        DELETE FROM KHIEU_NAI_KET_QUA
-            WHERE ma_tran IN (SELECT ma_tran FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau);
-        DELETE FROM TRAN_DAU WHERE ma_giai_dau = @MaGiaiDau;
-
-        -- Roster & registration
-        DELETE FROM DOI_HINH_THI_DAU WHERE ma_giai_dau = @MaGiaiDau;
-        DELETE FROM THAM_GIA_GIAI    WHERE ma_giai_dau = @MaGiaiDau;
-
-        -- Supporting tables
-        DELETE FROM BANG_XEP_HANG         WHERE ma_giai_dau = @MaGiaiDau;
-        DELETE FROM BANG_XEP_HANG_CA_NHAN WHERE ma_giai_dau = @MaGiaiDau;
-        DELETE FROM QUAN_TRI_GIAI_DAU     WHERE ma_giai_dau = @MaGiaiDau;
-        DELETE FROM GIAI_THUONG           WHERE ma_giai_dau = @MaGiaiDau;
-        DELETE FROM TUONG_TAC_GIAI_DAU    WHERE ma_giai_dau = @MaGiaiDau;
-        DELETE FROM GIAI_DOAN             WHERE ma_giai_dau = @MaGiaiDau;
-
-        -- Parent
-        DELETE FROM GIAI_DAU WHERE ma_giai_dau = @MaGiaiDau;
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        DECLARE @Msg NVARCHAR(4000) = ERROR_MESSAGE();
-        RAISERROR(@Msg, 16, 1);
-    END CATCH
-END;
-GO
-
--- ---------------------------------------------------------------
--- SP2  SP_XoaGiaiBiKhoaQuaHan — Auto-delete tournaments locked > 30 days
--- ---------------------------------------------------------------
-CREATE PROCEDURE SP_XoaGiaiBiKhoaQuaHan
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @DanhSach TABLE (ma_giai_dau INT PRIMARY KEY);
-
-    INSERT INTO @DanhSach(ma_giai_dau)
-    SELECT ma_giai_dau
-    FROM   GIAI_DAU
-    WHERE  trang_thai    = 'khoa'
-      AND  thoi_gian_khoa IS NOT NULL
-      AND  thoi_gian_khoa <= DATEADD(DAY, -30, GETDATE());
-
-    DECLARE @Ma INT;
-    WHILE EXISTS (SELECT 1 FROM @DanhSach)
-    BEGIN
-        SELECT TOP 1 @Ma = ma_giai_dau FROM @DanhSach ORDER BY ma_giai_dau;
-        EXEC SP_XoaXachGiaiDau @MaGiaiDau = @Ma;
-        DELETE FROM @DanhSach WHERE ma_giai_dau = @Ma;
-    END
-END;
-GO
-
--- ---------------------------------------------------------------
--- SP3  SP_TaoJob_DonDepGiaiKhoaQuaHan — Register SQL Agent Job
---      Run once manually after deployment:
---      EXEC dbo.SP_TaoJob_DonDepGiaiKhoaQuaHan;
--- ---------------------------------------------------------------
-CREATE PROCEDURE SP_TaoJob_DonDepGiaiKhoaQuaHan
-AS
-BEGIN
-    SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM msdb.dbo.sysjobs WHERE name = N'JOB_DON_DEP_GIAI_KHOA_QUA_HAN')
-        EXEC msdb.dbo.sp_delete_job @job_name = N'JOB_DON_DEP_GIAI_KHOA_QUA_HAN';
-
-    EXEC msdb.dbo.sp_add_job
-        @job_name   = N'JOB_DON_DEP_GIAI_KHOA_QUA_HAN',
-        @enabled    = 1,
-        @description = N'Xóa cứng giải đấu ở trạng thái khóa quá 30 ngày';
-
-    EXEC msdb.dbo.sp_add_jobstep
-        @job_name     = N'JOB_DON_DEP_GIAI_KHOA_QUA_HAN',
-        @step_name    = N'Step_Execute_Cleanup',
-        @subsystem    = N'TSQL',
-        @database_name = N'QuanLy_Esports',
-        @command      = N'EXEC dbo.SP_XoaGiaiBiKhoaQuaHan;';
-
-    EXEC msdb.dbo.sp_add_schedule
-        @schedule_name    = N'SCH_DAILY_1AM_DON_DEP_GIAI_KHOA',
-        @freq_type        = 4,     -- Daily
-        @freq_interval    = 1,
-        @active_start_time = 010000;  -- 01:00 AM
-
-    EXEC msdb.dbo.sp_attach_schedule
-        @job_name      = N'JOB_DON_DEP_GIAI_KHOA_QUA_HAN',
-        @schedule_name = N'SCH_DAILY_1AM_DON_DEP_GIAI_KHOA';
-
-    EXEC msdb.dbo.sp_add_jobserver
-        @job_name = N'JOB_DON_DEP_GIAI_KHOA_QUA_HAN';
-END;
-GO
-
--- ==============================================================
--- SECTION 13 — RECOMMENDED INDEXES
+-- SECTION 12 — RECOMMENDED INDEXES
 -- (Beyond the ones created automatically for PK / UNIQUE)
 -- ==============================================================
 
 -- Fast lookup: notifications by recipient + read status
-CREATE INDEX IX_TB_NGUOINHAN_DADOC
-    ON THONG_BAO(ma_nguoi_nhan, da_doc)
-    INCLUDE (tieu_de, ngay_tao);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TB_NGUOINHAN_DADOC' AND object_id = OBJECT_ID('THONG_BAO'))
+BEGIN
+    CREATE INDEX IX_TB_NGUOINHAN_DADOC
+        ON THONG_BAO(ma_nguoi_nhan, da_doc)
+        INCLUDE (tieu_de, ngay_tao);
+END
 
 -- Fast lookup: tournaments by status (public listing)
-CREATE INDEX IX_GD_TRANGTHAI_PUBLIC
-    ON GIAI_DAU(trang_thai, is_deleted, hien_thi_public)
-    INCLUDE (ten_giai_dau, ngay_bat_dau, ma_tro_choi);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_GD_TRANGTHAI_PUBLIC' AND object_id = OBJECT_ID('GIAI_DAU'))
+BEGIN
+    CREATE INDEX IX_GD_TRANGTHAI_PUBLIC
+        ON GIAI_DAU(trang_thai, is_deleted, hien_thi_public)
+        INCLUDE (ten_giai_dau, ngay_bat_dau, ma_tro_choi);
+END
 
 -- Fast lookup: squad members by squad
-CREATE INDEX IX_TV_NHOM_TRANGTHAI
-    ON THANH_VIEN_DOI(ma_nhom, trang_thai_duyet)
-    INCLUDE (ma_nguoi_dung, vai_tro_noi_bo);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TV_NHOM_TRANGTHAI' AND object_id = OBJECT_ID('THANH_VIEN_DOI'))
+BEGIN
+    CREATE INDEX IX_TV_NHOM_TRANGTHAI
+        ON THANH_VIEN_DOI(ma_nhom, trang_thai_duyet)
+        INCLUDE (ma_nguoi_dung, vai_tro_noi_bo);
+END
 
 -- Fast lookup: match list per tournament stage
-CREATE INDEX IX_TD_GD_GDO_TRANGTHAI
-    ON TRAN_DAU(ma_giai_dau, ma_giai_doan, trang_thai)
-    INCLUDE (thoi_gian_bat_dau, the_thuc_tran);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TD_GD_GDO_TRANGTHAI' AND object_id = OBJECT_ID('TRAN_DAU'))
+BEGIN
+    CREATE INDEX IX_TD_GD_GDO_TRANGTHAI
+        ON TRAN_DAU(ma_giai_dau, ma_giai_doan, trang_thai)
+        INCLUDE (thoi_gian_bat_dau, the_thuc_tran);
+END
 
 -- Fast lookup: player stats per match
-CREATE INDEX IX_CTUNCT_TRAN
-    ON CHI_TIET_NGUOI_CHOI_TRAN(ma_tran)
-    INCLUDE (ma_nguoi_dung, so_kill, so_death, so_assist, is_mvp_tran);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CTUNCT_TRAN' AND object_id = OBJECT_ID('CHI_TIET_NGUOI_CHOI_TRAN'))
+BEGIN
+    CREATE INDEX IX_CTUNCT_TRAN
+        ON CHI_TIET_NGUOI_CHOI_TRAN(ma_tran)
+        INCLUDE (ma_nguoi_dung, so_kill, so_death, so_assist, is_mvp_tran);
+END
 
 -- Fast lookup: individual leaderboard per tournament
-CREATE INDEX IX_BXHCN_GD_KDA
-    ON BANG_XEP_HANG_CA_NHAN(ma_giai_dau, diem_kda_trung_binh DESC)
-    INCLUDE (ma_nguoi_dung, so_lan_dat_mvp_tran);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_BXHCN_GD_KDA' AND object_id = OBJECT_ID('BANG_XEP_HANG_CA_NHAN'))
+BEGIN
+    CREATE INDEX IX_BXHCN_GD_KDA
+        ON BANG_XEP_HANG_CA_NHAN(ma_giai_dau, diem_kda_trung_binh DESC)
+        INCLUDE (ma_nguoi_dung, so_lan_dat_mvp_tran);
+END
 
 GO
 
 -- ==============================================================
 -- DONE
 -- ==============================================================
-<<<<<<< HEAD
-
--- Bảng lưu trạng thái Like và Follow của từng user với từng giải đấu.
--- Mỗi cặp (ma_nguoi_dung, ma_giai_dau) chỉ có 1 dòng duy nhất.
-IF OBJECT_ID('TUONG_TAC_GIAI_DAU', 'U') IS NULL
-CREATE TABLE TUONG_TAC_GIAI_DAU (
-    ma_tuong_tac   INT IDENTITY PRIMARY KEY,
-    ma_nguoi_dung  INT NOT NULL,
-    ma_giai_dau    INT NOT NULL,
-    da_like        BIT NOT NULL DEFAULT 0,
-    dang_theo_doi  BIT NOT NULL DEFAULT 0,
-    thoi_gian_tao  DATETIME NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_TTGD_ND    FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
-    CONSTRAINT FK_TTGD_GD    FOREIGN KEY (ma_giai_dau)   REFERENCES GIAI_DAU(ma_giai_dau),
-    CONSTRAINT UQ_TTGD       UNIQUE (ma_nguoi_dung, ma_giai_dau)
-);
-GO
-
--- View tổng hợp đếm like / follow nhanh theo giải đấu
-IF OBJECT_ID('VW_TUONG_TAC_TONG_HOP', 'V') IS NOT NULL
-    DROP VIEW VW_TUONG_TAC_TONG_HOP;
-GO
-
-CREATE VIEW VW_TUONG_TAC_TONG_HOP AS
-SELECT
-    ma_giai_dau,
-    SUM(CAST(da_like       AS INT)) AS tong_like,
-    SUM(CAST(dang_theo_doi AS INT)) AS tong_theo_doi
-FROM TUONG_TAC_GIAI_DAU
-GROUP BY ma_giai_dau;
-GO
-
--- ==============================================================
--- UPDATE THEO YEU CAU TAO GIAI DAU
--- ==============================================================
-IF COL_LENGTH('GIAI_DAU', 'mo_ta') IS NULL
-    ALTER TABLE GIAI_DAU ADD mo_ta NVARCHAR(MAX) NULL;
-
-IF COL_LENGTH('GIAI_DAU', 'so_nguoi_moi_doi') IS NULL
-    ALTER TABLE GIAI_DAU ADD so_nguoi_moi_doi INT NULL;
-
-IF COL_LENGTH('GIAI_THUONG', 'ten_giai') IS NULL
-    ALTER TABLE GIAI_THUONG ADD ten_giai NVARCHAR(200) NULL;
-
-IF COL_LENGTH('GIAI_THUONG', 'mo_ta') IS NULL
-    ALTER TABLE GIAI_THUONG ADD mo_ta NVARCHAR(MAX) NULL;
-
-IF COL_LENGTH('GIAI_THUONG', 'phan_thuong') IS NULL
-    ALTER TABLE GIAI_THUONG ADD phan_thuong NVARCHAR(MAX) NULL;
-GO
-
-=======
 PRINT N'QuanLy_Esports database initialized successfully.';
 GO
->>>>>>> b055aa5 (new)

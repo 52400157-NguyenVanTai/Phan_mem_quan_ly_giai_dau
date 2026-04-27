@@ -64,7 +64,7 @@ WHERE ma_yeu_cau = @MaYeuCau";
             const string query = @"
 INSERT INTO GIAI_DAU(ten_giai_dau, ma_nguoi_tao, ma_tro_choi, the_thuc, ngay_bat_dau, ngay_ket_thuc, tong_giai_thuong, trang_thai, hien_thi_public, is_deleted)
 OUTPUT INSERTED.ma_giai_dau
-VALUES(@TenGiaiDau, @MaNguoiTao, @MaTroChoi, @TheThuc, @NgayBatDau, @NgayKetThuc, @TongGiaiThuong, 'sap_dien_ra', 1, 0);";
+VALUES(@TenGiaiDau, @MaNguoiTao, @MaTroChoi, @TheThuc, @NgayBatDau, @NgayKetThuc, @TongGiaiThuong, 'chuan_bi_dien_ra', 1, 0);";
 
             object result = DataProvider.ExecuteScalar(query, new[]
             {

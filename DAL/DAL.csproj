@@ -52,6 +52,7 @@
     <Compile Include="MatchmakingDAL.cs" />
     <Compile Include="NguoiDungDAL.cs" />
     <Compile Include="ProfileDAL.cs" />
+    <Compile Include="PublicHomepageDAL.cs" />
     <Compile Include="RefereeDAL.cs" />
     <Compile Include="RecruitmentDAL.cs" />
     <Compile Include="TeamDAL.cs" />

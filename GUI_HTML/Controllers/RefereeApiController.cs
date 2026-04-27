@@ -62,6 +62,33 @@ namespace GUI_HTML.Controllers
 
         [HttpPost]
         [RequireLogin]
+        [RequireRefereeMatchAccess]
+        public JsonResult TaoYeuCauMoKhoa(YeuCauMoKhoaKetQuaDTO dto)
+        {
+            int maTrongTai = (int)Session["CurrentUserId"];
+            return Json(_bus.TaoYeuCauMoKhoaKetQua(maTrongTai, dto), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        [RequireSystemRole("admin")]
+        public JsonResult DanhSachYeuCauMoKhoa(string trangThai = null)
+        {
+            int maAdmin = (int)Session["CurrentUserId"];
+            return Json(_bus.DanhSachYeuCauMoKhoa(maAdmin, trangThai), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [RequireSystemRole("admin")]
+        public JsonResult XuLyYeuCauMoKhoa(XuLyYeuCauMoKhoaKetQuaDTO dto)
+        {
+            int maAdmin = (int)Session["CurrentUserId"];
+            return Json(_bus.XuLyYeuCauMoKhoa(maAdmin, dto), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [RequireLogin]
         public JsonResult TaoKhieuNai(TaoKhieuNaiKetQuaDTO dto)
         {
             int maNguoiGui = (int)Session["CurrentUserId"];

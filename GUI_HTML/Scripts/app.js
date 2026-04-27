@@ -239,6 +239,7 @@
       "create-team": "page-create-team",
       profile: "page-profile",
       "player-profile": "page-player-profile",
+      "referee-center": "page-referee-center",
       "manage-tournament": "page-manage-tournament",
     };
     const target = pageMap[page];
@@ -340,9 +341,15 @@
       name: "",
     };
     const status = t.trang_thai || "";
+    const dangMoDangKy = !!t.dang_mo_dang_ky;
     let statusHtml = "";
     if (status === "dang_dien_ra")
       statusHtml = "<span class='tc-status live'>🔴 Live</span>";
+    else if (status === "chuan_bi_dien_ra")
+      statusHtml =
+        "<span class='tc-status upcoming'>🔵 " +
+        (dangMoDangKy ? "Mở đăng ký" : "Chuẩn bị diễn ra") +
+        "</span>";
     else if (status === "mo_dang_ky" || status === "sap_dien_ra")
       statusHtml = "<span class='tc-status upcoming'>🔵 Sắp diễn ra</span>";
     else statusHtml = "<span class='tc-status finished'>✅ Kết thúc</span>";
@@ -536,7 +543,7 @@
 
     const active = result.Data.filter((t) => t.trang_thai === "dang_dien_ra");
     const upcoming = result.Data.filter(
-      (t) => t.trang_thai === "mo_dang_ky" || t.trang_thai === "sap_dien_ra",
+      (t) => t.trang_thai === "chuan_bi_dien_ra",
     );
 
     const activeList = active.slice(0, 6);
@@ -863,10 +870,10 @@
         </select>
       </td>
       <td style="padding:8px">
-        <input class="form-control-dark" id="stage-${stageCount}-start" type="datetime-local" style="width:160px" />
+        <input class="form-control-dark organize-stage-datetime" id="stage-${stageCount}-start" type="datetime-local" />
       </td>
       <td style="padding:8px">
-        <input class="form-control-dark" id="stage-${stageCount}-end" type="datetime-local" style="width:160px" />
+        <input class="form-control-dark organize-stage-datetime" id="stage-${stageCount}-end" type="datetime-local" />
       </td>
       <td style="padding:8px">
         <button class="btn-outline-glow" style="padding:4px 8px;font-size:0.8rem" onclick="removeStage(${stageCount})">Xóa</button>
@@ -1054,13 +1061,21 @@
           method: "POST",
           body: formData,
         });
+        if (!uploadRes.ok) {
+          throw new Error("Upload banner thất bại với mã HTTP " + uploadRes.status);
+        }
+
         const uploadResult = await uploadRes.json();
         if (uploadResult.Success && uploadResult.Data) {
           payload.BannerUrl = uploadResult.Data.Url;
+        } else {
+          msg.style.color = "#ff4757";
+          msg.textContent = uploadResult.Message || "Upload banner thất bại.";
+          return;
         }
       } catch (e) {
         msg.style.color = "#ff4757";
-        msg.textContent = "Lỗi upload banner.";
+        msg.textContent = e?.message || "Lỗi upload banner.";
         return;
       }
     }
@@ -1071,9 +1086,15 @@
       return;
     }
 
-    if (!payload.SoDoi || payload.SoDoi < 2) {
+    if (!payload.SoDoiToiThieu || payload.SoDoiToiThieu < 2) {
       msg.style.color = "#ff4757";
       msg.textContent = "Số đội tham gia phải tối thiểu 2.";
+      return;
+    }
+
+    if (payload.SoDoiToiDa && payload.SoDoiToiDa < payload.SoDoiToiThieu) {
+      msg.style.color = "#ff4757";
+      msg.textContent = "Số đội tối đa phải lớn hơn hoặc bằng số đội tối thiểu.";
       return;
     }
 
@@ -1133,7 +1154,7 @@
       msg.textContent = result.Message;
       document.getElementById("org-ten-giai").value = "";
       document.getElementById("org-mo-ta").value = "";
-      document.getElementById("org-banner").value = "";
+      document.getElementById("org-banner-file").value = "";
       document.getElementById("org-prizes-list").innerHTML = "";
 
       showSidebarItem("side-my-tournaments");
@@ -1172,10 +1193,10 @@
       };
       const status = t.trang_thai || "";
       let statusHtml = "";
-      if (status === "ban_nhap")
+      if (status === "nhap")
         statusHtml =
           "<span class='tc-status' style='color:#a4b0be'>📝 Bản nháp</span>";
-      else if (status === "cho_phe_duyet")
+      else if (status === "cho_xet_duyet")
         statusHtml =
           "<span class='tc-status' style='color:#eccc68'>⏳ Chờ duyệt</span>";
       else if (status === "dang_dien_ra")
@@ -1257,11 +1278,11 @@
       currentDangMoDangKy = t.dang_mo_dang_ky || false;
 
       let statusText = status;
-      if (status === "ban_nhap") statusText = "Bản nháp";
-      if (status === "cho_phe_duyet") statusText = "Đang chờ Admin duyệt";
-      if (status === "sap_dien_ra" || status === "mo_dang_ky")
-        statusText = "Sắp diễn ra";
-      if (status === "chuan_bi_dien_ra") statusText = "Chuẩn bị diễn ra";
+      if (status === "nhap") statusText = "Bản nháp";
+      if (status === "cho_xet_duyet")
+        statusText = "Đang chờ Admin duyệt";
+      if (status === "chuan_bi_dien_ra")
+        statusText = currentDangMoDangKy ? "Mở đăng ký" : "Chuẩn bị diễn ra";
 
       document.getElementById("manage-tour-status").innerHTML =
         'Trạng thái hiện tại: <strong style="color:var(--primary)">' +
@@ -1269,11 +1290,11 @@
         "</strong>";
 
       // Action buttons based on status
-      if (status === "ban_nhap") {
+      if (status === "nhap") {
         actionsEl.innerHTML =
           '<button class="btn-primary-glow" onclick="submitGuiDuyet()">Gửi yêu cầu xét duyệt</button>' +
           '<p style="margin-top:10px; font-size: 0.9em; color:var(--text-muted)">Sau khi thêm xong các giai đoạn, hãy bấm Gửi yêu cầu để admin duyệt giải.</p>';
-      } else if (status === "mo_dang_ky" || status === "sap_dien_ra") {
+      } else if (status === "chuan_bi_dien_ra" && !currentDangMoDangKy) {
         actionsEl.innerHTML =
           '<button class="btn-primary-glow" onclick="submitBatDauGiai()">Bắt đầu giải ngay</button>' +
           '<p style="margin-top:10px; font-size: 0.9em; color:var(--text-muted)">Khóa danh sách đăng ký và bắt đầu thi đấu.</p>';
@@ -1685,13 +1706,14 @@
     showSidebarItem("side-my-tournaments");
     grid.innerHTML = result.Data.map(function (t) {
       const statusMap = {
-        ban_nhap: { label: "Bản nháp", cls: "tc-status" },
-        cho_phe_duyet: { label: "Chờ duyệt", cls: "tc-status" },
-        mo_dang_ky: { label: "Mở đăng ký", cls: "tc-status upcoming" },
-        sap_dien_ra: { label: "Sắp diễn ra", cls: "tc-status upcoming" },
+        nhap: { label: "Bản nháp", cls: "tc-status" },
+        cho_xet_duyet: { label: "Chờ duyệt", cls: "tc-status" },
+        chuan_bi_dien_ra: { label: "Chuẩn bị diễn ra", cls: "tc-status upcoming" },
         dang_dien_ra: { label: "🔴 Live", cls: "tc-status live" },
         ket_thuc: { label: "✅ Kết thúc", cls: "tc-status finished" },
+        tong_ket: { label: "🧾 Tổng kết", cls: "tc-status finished" },
         khoa: { label: "🔒 Khóa", cls: "tc-status" },
+        tam_hoan: { label: "⏸ Tạm hoãn", cls: "tc-status" },
       };
       const s = statusMap[t.trang_thai] || {
         label: t.trang_thai,
@@ -2995,13 +3017,14 @@
 
   function formatTournamentStatus(status) {
     const map = {
-      ban_nhap: "Ban nhap",
-      cho_phe_duyet: "Cho phe duyet",
-      mo_dang_ky: "Mo dang ky",
-      sap_dien_ra: "Sap dien ra",
+      nhap: "Ban nhap",
+      cho_xet_duyet: "Cho phe duyet",
+      chuan_bi_dien_ra: "Chuan bi dien ra",
       dang_dien_ra: "Dang dien ra",
+      tong_ket: "Tong ket",
       ket_thuc: "Ket thuc",
       khoa: "Khoa",
+      tam_hoan: "Tam hoan",
     };
     return map[status] || status || "";
   }
@@ -3035,6 +3058,7 @@
       profile: "page-profile",
       "player-profile": "page-player-profile",
       "admin-requests": "page-admin-requests",
+      "referee-center": "page-referee-center",
       "manage-tournament": "page-manage-tournament",
       "team-explorer": "page-team-explorer",
       "team-detail": "page-team-detail",
@@ -3093,50 +3117,49 @@
       return;
     }
 
-    grid.innerHTML = result.Data.map(function (t) {
-      const gameName = t.ten_game || "Giai hon hop";
-      const prize = t.tong_giai_thuong
-        ? Number(t.tong_giai_thuong).toLocaleString("vi-VN") + " VND"
-        : "N/A";
-      const ownerActions = t.is_owner
-        ? '<div class="tc-actions" style="margin-top:12px">' +
-          '<button class="btn-outline-glow" onclick="openManageTournament(' +
-          t.ma_giai_dau +
-          ", '" +
-          String(t.ten_giai_dau || "").replace(/'/g, "\\'") +
-          "')\">Duyet doi</button>" +
-          (t.trang_thai === "ban_nhap"
-            ? '<button class="btn-primary-glow" onclick="submitTournamentApproval(' +
-              t.ma_giai_dau +
-              ')">Gui admin</button>'
-            : "") +
-          "</div>"
-        : '<div style="margin-top:12px;color:var(--text-muted);font-size:.85rem">Ban dang tham gia giai nay.</div>';
+    grid.innerHTML = result.Data
+      .map(function (t) {
+        const gameName = t.ten_game || "Giai hon hop";
+        const prize = t.tong_giai_thuong
+          ? Number(t.tong_giai_thuong).toLocaleString("vi-VN") + " VND"
+          : "N/A";
+        const ownerActions = t.is_owner
+          ? '<div class="tc-actions" style="margin-top:12px">' +
+            '<button class="btn-primary-glow" style="padding:6px 12px" onclick="manageTournament(' +
+            t.ma_giai_dau +
+            ')">Quan ly</button>' +
+            (t.trang_thai === "nhap"
+              ? '<button class="btn-outline-glow" style="padding:6px 12px" onclick="submitTournamentApproval(' +
+                t.ma_giai_dau +
+                ')">Gui admin</button>'
+              : "") +
+            "</div>"
+          : "";
 
-      return (
-        '<div class="tournament-card">' +
-        '<div class="tc-banner" onclick="openTournament(' +
-        t.ma_giai_dau +
-        ')" style="cursor:pointer;background:linear-gradient(135deg,#1a1f36,#18a0fb33)"><span style="font-size:2.5rem">T</span></div>' +
-        '<div class="tc-body">' +
-        '<div class="tc-game-badge">' +
-        gameName +
-        "</div>" +
-        '<div class="tc-name" onclick="openTournament(' +
-        t.ma_giai_dau +
-        ')" style="cursor:pointer">' +
-        t.ten_giai_dau +
-        "</div>" +
-        '<div class="tc-meta"><span class="tc-status">' +
-        formatTournamentStatus(t.trang_thai) +
-        "</span><span>" +
-        prize +
-        "</span></div>" +
-        ownerActions +
-        "</div>" +
-        "</div>"
-      );
-    }).join("");
+        return (
+          '<div class="tournament-card">' +
+          '<div class="tc-banner" onclick="openTournament(' +
+          t.ma_giai_dau +
+          ')" style="cursor:pointer;background:linear-gradient(135deg,#1a1f36,#18a0fb33)"><span style="font-size:2.5rem">T</span></div>' +
+          '<div class="tc-body">' +
+          '<div class="tc-game-badge">' +
+          gameName +
+          "</div>" +
+          '<div class="tc-name" onclick="openTournament(' +
+          t.ma_giai_dau +
+          ')" style="cursor:pointer">' +
+          t.ten_giai_dau +
+          "</div>" +
+          '<div class="tc-meta"><span class="tc-status">' +
+          formatTournamentStatus(t.trang_thai) +
+          "</span><span>" +
+          prize +
+          "</span></div>" +
+          ownerActions +
+          "</div></div>"
+        );
+      })
+      .join("");
   };
 
   window.submitTournamentApproval = async function (maGiaiDau) {
@@ -3246,11 +3269,8 @@
     wrap.innerHTML =
       '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">!</div><h4>Đang tải yêu cầu...</h4></div>';
 
-    const result = await api("/AdminApi/Dashboard");
-    const requests =
-      result.Success && result.Data && result.Data.ActionRequired
-        ? result.Data.ActionRequired.GiaiChoXetDuyet
-        : [];
+    const result = await api("/TournamentBuilderApi/DanhSachChoXetDuyet");
+    const requests = result.Success && Array.isArray(result.Data) ? result.Data : [];
     if (!Array.isArray(requests) || !requests.length) {
       wrap.innerHTML =
         '<div class="empty-state" style="padding:30px"><div class="empty-state-icon">OK</div><h4>Không có yêu cầu nào</h4></div>';
@@ -3290,6 +3310,9 @@
         const ngayBatDau = item.ngay_bat_dau
           ? new Date(item.ngay_bat_dau)
           : null;
+        const ngayKetThuc = item.ngay_ket_thuc
+          ? new Date(item.ngay_ket_thuc)
+          : null;
         const isExpired = ngayBatDau && ngayBatDau < now;
         const expiredBadge = isExpired
           ? '<span style="background:#ff4757;color:white;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-left:8px">QUÁ HẠN</span>'
@@ -3311,11 +3334,21 @@
           '<div style="color:var(--text-muted);font-size:.9rem">Game: ' +
           (item.ten_game || "Không rõ") +
           "</div>" +
+          '<div style="color:var(--text-muted);font-size:.9rem">Trạng thái: ' +
+          (item.trang_thai || "cho_xet_duyet") +
+          "</div>" +
           (ngayBatDau
             ? '<div style="color:var(--text-muted);font-size:.9rem">Ngày bắt đầu: ' +
               ngayBatDau.toLocaleDateString("vi-VN") +
               " " +
               ngayBatDau.toLocaleTimeString("vi-VN") +
+              "</div>"
+            : "") +
+          (ngayKetThuc
+            ? '<div style="color:var(--text-muted);font-size:.9rem">Ngày kết thúc: ' +
+              ngayKetThuc.toLocaleDateString("vi-VN") +
+              " " +
+              ngayKetThuc.toLocaleTimeString("vi-VN") +
               "</div>"
             : "") +
           "</div>" +
@@ -3325,7 +3358,7 @@
           ')">Duyệt</button>' +
           '<button class="btn-outline-glow" onclick="rejectTournamentRequest(' +
           ma +
-          ')">Hủy</button>' +
+          ')">Từ chối</button>' +
           "</div>" +
           "</div>" +
           "</div>"
@@ -3351,10 +3384,13 @@
   };
 
   window.rejectTournamentRequest = async function (maGiaiDau) {
+    const lyDo = prompt("Nhập lý do từ chối (không bắt buộc):", "");
+    if (lyDo === null) return;
+
     const result = await api(
-      "/TournamentBuilderApi/TuChoi?maGiaiDau=" + maGiaiDau,
+      "/TournamentBuilderApi/TuChoi",
       "POST",
-      {},
+      { MaGiaiDau: maGiaiDau, LyDo: lyDo },
     );
     showToast(
       result.Success
@@ -3395,28 +3431,31 @@
       '<div style="color:var(--text-muted);padding:20px">Đang tải thông báo...</div>';
 
     const result = await api("/TeamApi/ThongBao");
-    if (
-      !result.Success ||
-      !Array.isArray(result.Data) ||
-      result.Data.length === 0
-    ) {
+    const notifications = Array.isArray(result.Data)
+      ? result.Data
+      : Array.isArray(result.Data?.danh_sach)
+        ? result.Data.danh_sach
+        : [];
+
+    if (!result.Success || notifications.length === 0) {
       list.innerHTML =
         '<div class="empty-state"><div class="empty-state-icon">🔔</div><h4>Không có thông báo nào</h4><p>Bạn sẽ nhận thông báo khi có cập nhật mới.</p></div>';
       updateNotifBadge(0);
       return;
     }
 
-    const unreadCount = result.Data.filter((n) => !n.da_doc).length;
+    const unreadCount = notifications.filter((n) => !n.da_doc).length;
     updateNotifBadge(unreadCount);
 
-    list.innerHTML = result.Data.map(function (n) {
+    list.innerHTML = notifications.map(function (n) {
       const unread = !n.da_doc ? " unread" : "";
+      const loaiThongBao = String(n.loai_thong_bao || n.loai || "").toLowerCase();
       const icon =
-        n.loai === "loi_moi"
+        loaiThongBao === "loi_moi"
           ? "📩"
-          : n.loai === "xin_gia_nhap"
+          : loaiThongBao === "xin_gia_nhap"
             ? "🙋"
-            : n.loai === "duyet"
+            : loaiThongBao === "giai_dau"
               ? "✅"
               : "🔔";
       const time = n.ngay_tao
@@ -3598,7 +3637,7 @@
         '<button class="btn-primary-glow" style="padding:6px 14px;font-size:.82rem;flex:1" onclick="event.stopPropagation();manageTournament(' +
         t.ma_giai_dau +
         ')">⚙️ Quản lý</button>' +
-        (t.trang_thai === "ban_nhap"
+        (t.trang_thai === "nhap"
           ? '<button class="btn-outline-glow" style="padding:6px 14px;font-size:.82rem;flex:1" onclick="event.stopPropagation();submitTournamentApproval(' +
             t.ma_giai_dau +
             ')">📤 Gửi duyệt</button>'

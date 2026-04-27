@@ -213,7 +213,7 @@ namespace BUS
 
         /// <summary>
         /// Xóa cứng (Hard Wipe) toàn bộ dữ liệu của một giải đấu qua SP_XoaXachGiaiDau.
-        /// Chỉ cho phép xóa giải ở trạng thái ban_nhap hoặc khoa.
+        /// Chỉ cho phép xóa giải khi không còn ở trạng thái hoạt động.
         /// </summary>
         public ServiceResultDTO XoaCungGiaiDau(int maAdmin, int maGiaiDau)
         {
@@ -228,7 +228,7 @@ namespace BUS
             }
 
             string trangThai = _dal.LayTrangThaiGiai(maGiaiDau);
-            if (trangThai == "dang_dien_ra" || trangThai == "mo_dang_ky" || trangThai == "sap_dien_ra")
+            if (trangThai == "dang_dien_ra" || trangThai == "chuan_bi_dien_ra")
             {
                 return ServiceResultDTO.Fail(
                     "Không thể xóa cứng giải đang hoạt động (trạng thái: " + trangThai + "). " +
