@@ -34,6 +34,12 @@
     let currentSection = "overview";
     let overviewData = null;
 
+    // Check if required elements exist
+    if (!subtitleEl || !statusEl || !mainTabsEl) {
+      console.error("Required elements not found in DOM");
+      return;
+    }
+
     function fmtDate(value) {
       if (!value) return "-";
       const d = new Date(value);
@@ -101,6 +107,8 @@
     }
 
     function renderMetaCards(data) {
+      if (!metaGridEl) return; // Skip if element doesn't exist in new layout
+      
       const cards = [
         { label: "Game", value: data.TenGame || "-" },
         { label: "Ban tổ chức", value: data.TenBanToChuc || "-" },
@@ -138,6 +146,8 @@
     }
 
     function renderTimeline(timeline) {
+      if (!timelineEl) return; // Skip if element doesn't exist
+      
       if (!Array.isArray(timeline) || !timeline.length) {
         timelineEl.innerHTML = "<div class='text-muted'>Chưa có timeline.</div>";
         return;
@@ -161,77 +171,109 @@
     }
 
     function renderOverview(data) {
-      sectionOverviewEl.innerHTML =
-        '<div class="tpub-overview-grid">' +
-        '<article class="tpub-panel"><h5>Mô tả</h5><p>' +
-        (data.MoTa || "Chưa có mô tả cho giải đấu này.") +
-        "</p></article>" +
-        '<article class="tpub-panel"><h5>Thông tin nhanh</h5>' +
-        '<ul class="tpub-quick-list">' +
-        "<li><span>Trạng thái</span><b>" +
-        mapTournamentStatus(data.TrangThai) +
-        "</b></li>" +
-        "<li><span>Đóng đăng ký</span><b>" +
-        fmtDate(data.ThoiGianDongDangKy) +
-        "</b></li>" +
-        "<li><span>Giai đoạn đang diễn ra</span><b>" +
-        (data.GiaiDoanDangDienRa || "Chưa xác định") +
-        "</b></li>" +
-        "</ul></article>" +
-        "</div>";
+      // Don't overwrite the container - the new sidebar handles overview content
+      // Only populate the new sidebar elements
+      
+      // Populate new sidebar elements
+      const sidebarDescContent = document.getElementById("sidebar-description-content");
+      if (sidebarDescContent) {
+        sidebarDescContent.textContent = data.MoTa || "Chưa có mô tả cho giải đấu này.";
+      }
+
+      const sidebarQuickInfoContent = document.getElementById("sidebar-quick-info-content");
+      if (sidebarQuickInfoContent) {
+        sidebarQuickInfoContent.innerHTML =
+          "<li><span>Trạng thái</span><b>" +
+          mapTournamentStatus(data.TrangThai) +
+          "</b></li>" +
+          "<li><span>Đóng đăng ký</span><b>" +
+          fmtDate(data.ThoiGianDongDangKy) +
+          "</b></li>" +
+          "<li><span>Giai đoạn hiện tại</span><b>" +
+          (data.GiaiDoanDangDienRa || "Chưa xác định") +
+          "</b></li>";
+      }
+
+      const sidebarRulesContent = document.getElementById("sidebar-rules-content");
+      if (sidebarRulesContent) {
+        sidebarRulesContent.textContent = data.LuatGiai || "Chưa cập nhật luật giải.";
+      }
+
+      // Populate organizer details
+      const organizerGame = document.getElementById("organizer-game");
+      const organizerName = document.getElementById("organizer-name");
+      const organizerPrize = document.getElementById("organizer-prize");
+
+      if (organizerGame) organizerGame.textContent = data.TenGame || "-";
+      if (organizerName) organizerName.textContent = data.TenBanToChuc || "-";
+      if (organizerPrize) organizerPrize.textContent = fmtCurrency(data.TongGiaiThuong);
+
+      // Populate tournament header meta-data
+      const metaTeamsCount = document.getElementById("meta-teams-count");
+      const metaDates = document.getElementById("meta-dates");
+      const metaCurrentStage = document.getElementById("meta-current-stage");
+
+      if (metaTeamsCount) {
+        metaTeamsCount.textContent =
+          String(data.SoDoiDaDangKy || 0) + " / " + String(data.SoDoiToiDa || 0);
+      }
+      if (metaDates) {
+        metaDates.textContent =
+          fmtDate(data.NgayBatDau) + " - " + fmtDate(data.NgayKetThuc);
+      }
+      if (metaCurrentStage) {
+        metaCurrentStage.textContent = data.GiaiDoanDangDienRa || "Chưa xác định";
+      }
     }
 
     function renderTeams(data) {
       const teams = Array.isArray(data.DoiThamGia) ? data.DoiThamGia : [];
+      
+      // Only update the teams grid in the right column (new layout)
+      // Don't overwrite the sectionTeamsEl container
+      
+      const teamsGrid = document.getElementById("registered-teams-grid");
       if (!teams.length) {
-        sectionTeamsEl.innerHTML = "<div class='text-muted'>Chưa có đội tham gia được duyệt.</div>";
+        if (teamsGrid) {
+          teamsGrid.innerHTML = "<div class='team-card-mini loading'>Chưa có đội tham gia</div>";
+        }
         return;
       }
 
-      sectionTeamsEl.innerHTML =
-        '<div class="tpub-table-wrap"><table class="tpub-table">' +
-        "<thead><tr><th>#</th><th>Đội</th><th>Nhóm</th><th>Seed</th><th>Trạng thái</th></tr></thead>" +
-        "<tbody>" +
-        teams
-          .map(function (t, idx) {
+      if (teamsGrid) {
+        teamsGrid.innerHTML = teams
+          .map(function (t) {
+            const teamInitial = (t.TenDoi || "T").charAt(0).toUpperCase();
             return (
-              "<tr>" +
-              "<td>" +
-              (idx + 1) +
-              "</td>" +
-              "<td>" +
+              '<div class="team-card-mini">' +
+              '<div class="team-logo-placeholder">' +
+              teamInitial +
+              "</div>" +
+              '<div class="team-name">' +
               (t.TenDoi || "-") +
-              "</td>" +
-              "<td>" +
-              (t.TenNhom || "-") +
-              "</td>" +
-              "<td>" +
-              (t.HatGiong == null ? "-" : t.HatGiong) +
-              "</td>" +
-              "<td><span class='tpub-pill'>" +
-              (t.TrangThaiThamGia || "-") +
-              "</span></td>" +
-              "</tr>"
+              "</div>" +
+              "</div>"
             );
           })
-          .join("") +
-        "</tbody></table></div>";
+          .join("");
+      }
     }
 
     function renderRules(data) {
-      sectionRulesEl.innerHTML =
-        '<article class="tpub-panel"><h5>Luật giải</h5><div class="tpub-rules">' +
-        (data.LuatGiai || "Chưa cập nhật luật giải.") +
-        "</div></article>";
+      // Don't overwrite the container - the new sidebar handles rules content
+      // Rules content is already populated in renderOverview via sidebarRulesContent
     }
 
     function renderScheduleBlocked(data) {
+      if (!sectionScheduleEl) return;
+      
+      // Inject content without overwriting the container's CSS classes
       sectionScheduleEl.innerHTML =
-        '<div class="tpub-empty">Lịch thi đấu sẽ hiển thị sau khi đóng đăng ký. Hiện tại đang chờ chốt danh sách đội (' +
+        '<div class="schedule-message">Lịch thi đấu sẽ hiển thị sau khi đóng đăng ký. Hiện tại đang chờ chốt danh sách đội (' +
         String(data.SoDoiDaDangKy || 0) +
         "/" +
         String(data.SoDoiToiDa || 0) +
-        ").</div>";
+        ").</div>';
     }
 
     function renderMatchCard(m) {
@@ -435,8 +477,10 @@
         "/MatchmakingApi/DanhSachTran?maGiaiDoan=" + stage.MaGiaiDoan,
       );
       if (!matchRes.Success) {
-        sectionScheduleEl.innerHTML =
-          "<div class='tpub-empty'>" + (matchRes.Message || "Không tải được lịch thi đấu.") + "</div>";
+        if (sectionScheduleEl) {
+          sectionScheduleEl.innerHTML =
+            "<div class='schedule-message'>" + (matchRes.Message || "Không tải được lịch thi đấu.") + "</div>";
+        }
         return;
       }
 
@@ -444,26 +488,34 @@
 
       if (overviewData.DangChoChotDanhSach && matches.length === 0) {
         renderScheduleBlocked(overviewData);
-        sectionResultsEl.innerHTML =
-          "<div class='tpub-empty'>Kết quả/BXH sẽ có sau khi lịch thi đấu được tạo.</div>";
+        if (sectionResultsEl) {
+          sectionResultsEl.innerHTML =
+            "<div class='schedule-message'>Kết quả/BXH sẽ có sau khi lịch thi đấu được tạo.</div>";
+        }
         return;
       }
 
       if (matches.length === 0) {
-        sectionScheduleEl.innerHTML =
-          "<div class='tpub-empty'>Chưa sinh lịch thi đấu cho giai đoạn này.</div>";
-        sectionResultsEl.innerHTML =
-          "<div class='tpub-empty'>Chưa có kết quả cho giai đoạn này.</div>";
+        if (sectionScheduleEl) {
+          sectionScheduleEl.innerHTML =
+            "<div class='schedule-message'>Chưa sinh lịch thi đấu cho giai đoạn này.</div>";
+        }
+        if (sectionResultsEl) {
+          sectionResultsEl.innerHTML =
+            "<div class='schedule-message'>Chưa có kết quả cho giai đoạn này.</div>";
+        }
         return;
       }
 
       const roundNow = getRoundNow(matches);
-      stageNowEl.textContent =
-        "Giai đoạn hiện tại: " +
-        (stage.TenGiaiDoan || "-") +
-        " • " +
-        mapFormatLabel(stage.TheThuc) +
-        (roundNow ? " • Round " + roundNow : "");
+      if (stageNowEl) {
+        stageNowEl.textContent =
+          "Giai đoạn hiện tại: " +
+          (stage.TenGiaiDoan || "-") +
+          " • " +
+          mapFormatLabel(stage.TheThuc) +
+          (roundNow ? " • Round " + roundNow : "");
+      }
 
       const format = String(stage.TheThuc || "").toLowerCase();
       let scheduleHtml = "";
@@ -472,11 +524,13 @@
         scheduleHtml = renderDoubleBracket(matches);
       else scheduleHtml = renderRoundList(matches);
 
-      sectionScheduleEl.innerHTML =
-        '<h5 class="mb-3">' +
-        mapFormatLabel(stage.TheThuc) +
-        "</h5>" +
-        (scheduleHtml || "<div class='tpub-empty'>Chưa có lịch thi đấu.</div>");
+      if (sectionScheduleEl) {
+        sectionScheduleEl.innerHTML =
+          '<h5 class="section-title">' +
+          mapFormatLabel(stage.TheThuc) +
+          "</h5>" +
+          (scheduleHtml || "<div class='schedule-message'>Chưa có lịch thi đấu.</div>");
+      }
 
       const standingsFormats = [
         "vong_tron",
@@ -488,16 +542,20 @@
         const bxhRes = await getJson(
           "/MatchmakingApi/BangXepHang?maGiaiDoan=" + stage.MaGiaiDoan,
         );
-        sectionResultsEl.innerHTML = bxhRes.Success
-          ? renderStandings(bxhRes.Data || [])
-          : "<div class='tpub-empty'>" + (bxhRes.Message || "Không tải được bảng xếp hạng") + "</div>";
+        if (sectionResultsEl) {
+          sectionResultsEl.innerHTML = bxhRes.Success
+            ? renderStandings(bxhRes.Data || [])
+            : "<div class='schedule-message'>" + (bxhRes.Message || "Không tải được bảng xếp hạng") + "</div>";
+        }
       } else {
         const completed = matches.filter(function (m) {
           return String(m.TrangThai || "") === "da_hoan_thanh";
         });
-        sectionResultsEl.innerHTML = completed.length
-          ? '<div class="tpub-round-group">' + completed.map(renderMatchCard).join("") + "</div>"
-          : "<div class='tpub-empty'>Chưa có trận hoàn tất để hiển thị kết quả.</div>";
+        if (sectionResultsEl) {
+          sectionResultsEl.innerHTML = completed.length
+            ? '<div class="tpub-round-group">' + completed.map(renderMatchCard).join("") + "</div>"
+            : "<div class='schedule-message'>Chưa có trận hoàn tất để hiển thị kết quả.</div>";
+        }
       }
     }
 
@@ -510,6 +568,8 @@
     }
 
     function bindStageSelect(stages) {
+      if (!stageSelectEl) return;
+      
       stageSelectEl.innerHTML = stages
         .map(function (s) {
           return (
@@ -563,7 +623,7 @@
           "thuy_si",
           "champion_rush",
         ];
-        if (standingsFormats.indexOf(format) >= 0) {
+        if (standingsFormats.indexOf(format) >= 0 && sectionResultsEl) {
           sectionResultsEl.innerHTML = renderStandings((live.Data || {}).BangXepHang || []);
         }
       }
@@ -590,7 +650,18 @@
         (overviewData.TenGame || "") + " • " + (overviewData.TenBanToChuc || "Ban tổ chức");
       statusEl.textContent = mapTournamentStatus(overviewData.TrangThai);
 
-      if (overviewData.BannerUrl) {
+      // Set tournament banner background
+      const tournamentBanner = document.getElementById("tournament-banner");
+      if (tournamentBanner && overviewData.BannerUrl) {
+        tournamentBanner.style.backgroundImage =
+          "linear-gradient(120deg, rgba(9,11,17,0.6), rgba(14,18,29,0.8)), url('" +
+          overviewData.BannerUrl +
+          "')";
+        tournamentBanner.style.backgroundSize = "cover";
+        tournamentBanner.style.backgroundPosition = "center";
+      }
+
+      if (overviewData.BannerUrl && heroEl) {
         heroEl.style.backgroundImage =
           "linear-gradient(120deg, rgba(9,11,17,0.68), rgba(14,18,29,0.86)), url('" +
           overviewData.BannerUrl +
@@ -606,15 +677,23 @@
 
       const stages = Array.isArray(overviewData.GiaiDoan) ? overviewData.GiaiDoan : [];
       if (!stages.length) {
-        sectionScheduleEl.innerHTML =
-          "<div class='tpub-empty'>Giải đấu chưa cấu hình giai đoạn thi đấu.</div>";
-        sectionResultsEl.innerHTML =
-          "<div class='tpub-empty'>Chưa có dữ liệu kết quả.</div>";
-        stageNowEl.textContent = "Chưa có giai đoạn hoạt động.";
+        if (sectionScheduleEl) {
+          sectionScheduleEl.innerHTML =
+            "<div class='tpub-empty'>Giải đấu chưa cấu hình giai đoạn thi đấu.</div>";
+        }
+        if (sectionResultsEl) {
+          sectionResultsEl.innerHTML =
+            "<div class='tpub-empty'>Chưa có dữ liệu kết quả.</div>";
+        }
+        if (stageNowEl) {
+          stageNowEl.textContent = "Chưa có giai đoạn hoạt động.";
+        }
       } else {
         bindStageSelect(stages);
         currentStage = stages[0];
-        stageSelectEl.value = String(currentStage.MaGiaiDoan);
+        if (stageSelectEl) {
+          stageSelectEl.value = String(currentStage.MaGiaiDoan);
+        }
         await renderScheduleAndResult(currentStage);
       }
 

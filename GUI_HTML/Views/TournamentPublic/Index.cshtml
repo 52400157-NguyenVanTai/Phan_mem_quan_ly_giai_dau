@@ -1,55 +1,151 @@
 @{
     ViewBag.Title = "Cổng thông tin giải đấu";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     var maGiaiDau = (int)ViewBag.MaGiaiDau;
 }
 
-<div class="container py-4 tournament-public-page" data-ma-giai-dau="@maGiaiDau" id="public-tournament-root">
+@section styles {
+    <link href="~/Content/esport.css" rel="stylesheet" />
+}
+
+<div class="tournament-public-page" data-ma-giai-dau="@maGiaiDau" id="public-tournament-root" style="min-height: 100vh; padding: 24px; background: #0d0f14; font-family: 'Inter', sans-serif;">
     <div id="public-alert" class="alert d-none" role="alert"></div>
 
-    <section class="tpub-hero" id="tpub-hero">
-        <div class="tpub-hero-overlay"></div>
-        <div class="tpub-hero-content">
-            <span class="tpub-status" id="public-status-label">Đang tải...</span>
-            <h1 id="public-title" class="tpub-title">Giải đấu</h1>
-            <p id="public-subtitle" class="tpub-subtitle">Đang tải thông tin giải đấu...</p>
-
-            <div class="tpub-meta-grid" id="public-meta-grid"></div>
-        </div>
-    </section>
-
-    <section class="tpub-timeline-wrap">
-        <h4 class="tpub-section-title">Tiến trình giải đấu</h4>
-        <div id="tournament-timeline" class="tpub-timeline"></div>
-        <div id="public-stage-now" class="tpub-stage-now"></div>
-    </section>
-
-    <section class="tpub-toolbar">
-        <ul class="tpub-main-tabs" id="public-main-tabs">
-            <li><button type="button" class="active" data-section="overview">Tổng quan</button></li>
-            <li><button type="button" data-section="teams">Đội tham gia</button></li>
-            <li><button type="button" data-section="schedule">Lịch thi đấu</button></li>
-            <li><button type="button" data-section="results">Kết quả / BXH</button></li>
-            <li><button type="button" data-section="rules">Luật giải</button></li>
-        </ul>
-
-        <div class="tpub-stage-picker">
-            <label for="public-stage-select">Giai đoạn</label>
-            <select id="public-stage-select"></select>
-        </div>
-    </section>
-
-    <div id="public-live-status" class="small text-success mt-2 mb-3">Live Engine đang kết nối...</div>
-
-    <section class="tpub-section-card" id="section-overview"></section>
-    <section class="tpub-section-card d-none" id="section-teams"></section>
-    <section class="tpub-section-card d-none" id="section-schedule"></section>
-    <section class="tpub-section-card d-none" id="section-results"></section>
+    <!-- Hidden elements for JavaScript compatibility -->
+    <div id="tpub-hero" style="display:none;"></div>
+    <div id="public-meta-grid" style="display:none;"></div>
     <section class="tpub-section-card d-none" id="section-rules"></section>
 
-    <section class="tpub-section-card mt-3">
-        <h4 class="tpub-section-title">Vinh danh tự động</h4>
-        <div id="honoring-content" class="small text-muted">Đang tải dữ liệu vinh danh...</div>
-    </section>
+    <!-- Main 2-Column Layout -->
+    <div class="tournament-detail-grid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; max-width: 1400px; margin: 0 auto;">
+        <!-- Left Column - Sidebar (Secondary Information) -->
+        <aside class="tournament-sidebar" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Tournament Description -->
+            <div class="sidebar-card" id="sidebar-description" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px;">
+                <h5 class="sidebar-card-title" style="font-size: 0.95rem; font-weight: 700; color: #6c63ff; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Mô tả</h5>
+                <p class="sidebar-card-content" id="sidebar-description-content" style="color: #7b8db0; font-size: 0.88rem; line-height: 1.6; margin: 0;">Đang tải...</p>
+            </div>
+
+            <!-- Quick Info / Status -->
+            <div class="sidebar-card" id="sidebar-quick-info" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px;">
+                <h5 class="sidebar-card-title" style="font-size: 0.95rem; font-weight: 700; color: #6c63ff; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Thông tin nhanh</h5>
+                <ul class="sidebar-quick-list" id="sidebar-quick-info-content" style="list-style: none; margin: 0; padding: 0;">
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.07);"><span style="color: #7b8db0; font-size: 0.85rem;">Trạng thái</span><b style="color: #e8eaf6; font-weight: 600; font-size: 0.85rem;">Đang tải...</b></li>
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.07);"><span style="color: #7b8db0; font-size: 0.85rem;">Đóng đăng ký</span><b style="color: #e8eaf6; font-weight: 600; font-size: 0.85rem;">-</b></li>
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: none;"><span style="color: #7b8db0; font-size: 0.85rem;">Giai đoạn hiện tại</span><b style="color: #e8eaf6; font-weight: 600; font-size: 0.85rem;">-</b></li>
+                </ul>
+            </div>
+
+            <!-- Rules -->
+            <div class="sidebar-card" id="sidebar-rules" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px;">
+                <h5 class="sidebar-card-title" style="font-size: 0.95rem; font-weight: 700; color: #6c63ff; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Luật giải</h5>
+                <div class="sidebar-card-content sidebar-rules" id="sidebar-rules-content" style="color: #7b8db0; font-size: 0.88rem; white-space: pre-wrap;">Đang tải...</div>
+            </div>
+
+            <!-- Organizer Details -->
+            <div class="sidebar-card" id="sidebar-organizer" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px;">
+                <h5 class="sidebar-card-title" style="font-size: 0.95rem; font-weight: 700; color: #6c63ff; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Ban tổ chức</h5>
+                <div class="sidebar-organizer-content" id="sidebar-organizer-content" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="organizer-info" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.07);">
+                        <span class="organizer-label" style="color: #7b8db0; font-size: 0.85rem;">Game:</span>
+                        <span class="organizer-value" id="organizer-game" style="color: #e8eaf6; font-weight: 600; font-size: 0.85rem;">-</span>
+                    </div>
+                    <div class="organizer-info" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.07);">
+                        <span class="organizer-label" style="color: #7b8db0; font-size: 0.85rem;">Ban tổ chức:</span>
+                        <span class="organizer-value" id="organizer-name" style="color: #e8eaf6; font-weight: 600; font-size: 0.85rem;">-</span>
+                    </div>
+                    <div class="organizer-info" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: none;">
+                        <span class="organizer-label" style="color: #7b8db0; font-size: 0.85rem;">Giải thưởng:</span>
+                        <span class="organizer-value" id="organizer-prize" style="color: #e8eaf6; font-weight: 600; font-size: 0.85rem;">-</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Column - Primary Content -->
+        <main class="tournament-main" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Tournament Banner -->
+            <div class="tournament-banner" id="tournament-banner" style="position: relative; width: 100%; height: 280px; background: linear-gradient(135deg, #1a1f36, #2d1b69); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);">
+                <div class="banner-overlay" style="position: absolute; inset: 0; background: radial-gradient(circle at 85% 20%, rgba(108, 99, 255, 0.3), transparent 50%), linear-gradient(120deg, rgba(8, 10, 16, 0.6), rgba(8, 10, 16, 0.8));"></div>
+                <div class="banner-placeholder" style="position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                    <span class="banner-icon" style="font-size: 4rem; opacity: 0.6;">🏆</span>
+                    <span class="banner-text" style="font-size: 1.2rem; font-weight: 600; color: #7b8db0; text-transform: uppercase; letter-spacing: 2px;">Tournament Banner</span>
+                </div>
+            </div>
+
+            <!-- Tournament Header & Meta-data -->
+            <div class="tournament-header" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 24px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);">
+                <div class="tournament-status-badge" id="public-status-label" style="display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(0, 212, 255, 0.5); background: rgba(0, 212, 255, 0.1); color: #00d4ff; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Đang tải...</div>
+                <h1 class="tournament-title" id="public-title" style="font-family: 'Orbitron', sans-serif; font-size: 2rem; font-weight: 900; margin: 0 0 8px 0; background: linear-gradient(135deg, #6c63ff, #00d4ff); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.2;">Giải đấu</h1>
+                <p class="tournament-subtitle" id="public-subtitle" style="color: #7b8db0; font-size: 0.95rem; margin: 0 0 20px 0;">Đang tải thông tin giải đấu...</p>
+
+                <!-- Key Metrics -->
+                <div class="tournament-meta-row" style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+                    <div class="meta-item" style="display: flex; align-items: center; gap: 8px;">
+                        <span class="meta-label" style="color: #7b8db0; font-size: 0.85rem; font-weight: 500;">Số đội:</span>
+                        <span class="meta-value" id="meta-teams-count" style="color: #e8eaf6; font-size: 0.9rem; font-weight: 600;">0/0</span>
+                    </div>
+                    <div class="meta-item" style="display: flex; align-items: center; gap: 8px;">
+                        <span class="meta-label" style="color: #7b8db0; font-size: 0.85rem; font-weight: 500;">Thi đấu:</span>
+                        <span class="meta-value" id="meta-dates" style="color: #e8eaf6; font-size: 0.9rem; font-weight: 600;">-</span>
+                    </div>
+                    <div class="meta-item" style="display: flex; align-items: center; gap: 8px;">
+                        <span class="meta-label" style="color: #7b8db0; font-size: 0.85rem; font-weight: 500;">Giai đoạn hiện tại:</span>
+                        <span class="meta-value" id="meta-current-stage" style="color: #e8eaf6; font-size: 0.9rem; font-weight: 600;">-</span>
+                    </div>
+                </div>
+
+                <!-- CTA Button -->
+                <button class="btn-register-cta" id="btn-register-cta" type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 32px; background: linear-gradient(135deg, #6c63ff, #8b5cf6); border: none; border-radius: 12px; color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; transition: 0.2s ease; box-shadow: 0 4px 16px rgba(108, 99, 255, 0.25);">
+                    <span class="btn-icon" style="font-size: 1.2rem;">🎮</span>
+                    <span class="btn-text">Đăng ký tham gia</span>
+                </button>
+            </div>
+
+            <!-- Registered Teams Grid -->
+            <div class="teams-section" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);">
+                <h4 class="section-title" style="font-size: 1.1rem; font-weight: 700; margin: 0 0 16px 0; color: #e8eaf6;">Các đội đã đăng ký</h4>
+                <div class="teams-grid" id="registered-teams-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                    <div class="team-card-mini loading" style="color: #7b8db0; font-size: 0.85rem; text-align: center;">Đang tải...</div>
+                </div>
+            </div>
+
+            <!-- Timeline Section -->
+            <div class="timeline-section" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);">
+                <h4 class="section-title" style="font-size: 1.1rem; font-weight: 700; margin: 0 0 16px 0; color: #e8eaf6;">Tiến trình giải đấu</h4>
+                <div id="tournament-timeline" class="tournament-timeline" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px;"></div>
+                <div id="public-stage-now" class="stage-now" style="color: #9feeff; font-weight: 600; font-size: 0.9rem;"></div>
+            </div>
+
+            <!-- Toolbar for Detailed Views -->
+            <div class="tournament-toolbar" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 16px 20px; flex-wrap: wrap;">
+                <ul class="toolbar-tabs" id="public-main-tabs" style="list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <li><button type="button" class="active" data-section="overview" style="border: 1px solid rgba(0, 212, 255, 0.7); border-radius: 9px; background: rgba(0, 212, 255, 0.12); color: #ebfbff; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">Tổng quan</button></li>
+                    <li><button type="button" data-section="teams" style="border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 9px; background: rgba(255, 255, 255, 0.04); color: #7b8db0; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">Đội tham gia</button></li>
+                    <li><button type="button" data-section="schedule" style="border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 9px; background: rgba(255, 255, 255, 0.04); color: #7b8db0; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">Lịch thi đấu</button></li>
+                    <li><button type="button" data-section="results" style="border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 9px; background: rgba(255, 255, 255, 0.04); color: #7b8db0; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">Kết quả / BXH</button></li>
+                </ul>
+                <div class="stage-picker" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="public-stage-select" style="color: #7b8db0; font-size: 0.84rem; font-weight: 500;">Giai đoạn</label>
+                    <select id="public-stage-select" style="min-width: 220px; border: 1px solid rgba(108, 99, 255, 0.45); background: rgba(8, 10, 18, 0.84); color: #e8eaf6; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; cursor: pointer;"></select>
+                </div>
+            </div>
+
+            <div id="public-live-status" class="live-status" style="color: #2ed573; font-size: 0.8rem; margin-bottom: 12px;">Live Engine đang kết nối...</div>
+
+            <!-- Section Cards for Detailed Views -->
+            <section class="content-section" id="section-overview" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); min-height: 200px;"></section>
+            <section class="content-section d-none" id="section-teams" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); min-height: 200px;"></section>
+            <section class="content-section d-none" id="section-schedule" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); min-height: 200px;"></section>
+            <section class="content-section d-none" id="section-results" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); min-height: 200px;"></section>
+
+            <!-- Honoring Section -->
+            <section class="honoring-section" style="background: #161b27; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);">
+                <h4 class="section-title" style="font-size: 1.1rem; font-weight: 700; margin: 0 0 16px 0; color: #e8eaf6;">Vinh danh tự động</h4>
+                <div id="honoring-content" class="honoring-content" style="color: #7b8db0; font-size: 0.88rem;">Đang tải dữ liệu vinh danh...</div>
+            </section>
+        </main>
+    </div>
 </div>
 
 @section scripts {
