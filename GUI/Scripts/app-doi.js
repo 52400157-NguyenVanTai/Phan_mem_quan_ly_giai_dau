@@ -38,7 +38,31 @@
     }).then((r) => r.json());
   }
   function text(v) {
-    return v || "Chưa cập nhật";
+    return v || "";
+  }
+
+  function hasText(v) {
+    return v !== null && v !== undefined && String(v).trim().length > 0;
+  }
+
+  function setTabVisible(targetSelector, visible) {
+    const btn = document.querySelector(`[data-bs-target="${targetSelector}"]`);
+    if (!btn) return;
+    const li = btn.closest("li");
+    if (li) li.classList.toggle("d-none", !visible);
+    else btn.classList.toggle("d-none", !visible);
+
+    if (!visible) {
+      const pane = document.querySelector(targetSelector);
+      if (pane && pane.classList.contains("show")) {
+        const firstVisible = document.querySelector(
+          '.team-tabs [data-bs-toggle="pill"]:not(.d-none)',
+        );
+        if (firstVisible && typeof firstVisible.click === "function") {
+          firstVisible.click();
+        }
+      }
+    }
   }
   function roleLabel(role) {
     return (
@@ -79,6 +103,26 @@
 
   function goToDetail(maDoi) {
     window.location.href = `/Doi/ChiTiet/${maDoi}`;
+  }
+
+  function resolveTeamId() {
+    const detailPage = document.querySelector("[data-team-detail-page]");
+    if (detailPage) {
+      const raw =
+        detailPage.getAttribute("data-team-id") ||
+        detailPage.dataset.teamId ||
+        detailPage.dataset.team ||
+        "";
+      const parsed = parseInt(raw);
+      if (!Number.isNaN(parsed) && parsed > 0) return parsed;
+    }
+
+    const parts = (window.location.pathname || "").split("/").filter(Boolean);
+    const last = parts.length ? parts[parts.length - 1] : "";
+    const fromUrl = parseInt(last);
+    if (!Number.isNaN(fromUrl) && fromUrl > 0) return fromUrl;
+
+    return null;
   }
 
   function loadGames() {
@@ -129,16 +173,32 @@
   }
 
   function openDetail(maDoi) {
+    console.log("Loading team detail for ID:", maDoi);
     fetch(`${api.detail}?maDoi=${maDoi}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) {
+          console.error("HTTP error:", r.status, r.statusText);
+          showMessage(`Lỗi server (${r.status}). Vui lòng thử lại.`, false);
+          return null;
+        }
+        return r.json();
+      })
       .then((res) => {
+        if (!res) return;
+        console.log("Team detail response:", res);
         if (!res.success) {
-          showMessage(res.message, false);
+          showMessage(res.message || "Không tải được dữ liệu đội.", false);
           return;
         }
         state.selected = res.data;
         renderDetail();
-        loadPositions(state.selected.doi.ma_tro_choi);
+        if (state.selected && state.selected.doi) {
+          loadPositions(state.selected.doi.ma_tro_choi);
+        }
+      })
+      .catch((err) => {
+        console.error("Error loading team detail:", err);
+        showMessage("Lỗi kết nối: " + err.message, false);
       });
   }
 
@@ -160,35 +220,81 @@
   }
 
   function renderDetail() {
+    console.log("Rendering team detail:", state.selected);
     const data = state.selected;
     if (!data) return;
     const d = data.doi;
-    $("detailTitle").textContent = d.ten_doi;
-    $("detailSubtitle").textContent =
-      `${d.ten_game} • ${roleLabel(d.vai_tro_cua_toi)} • ${d.dang_tuyen ? "Đang tuyển dụng" : "Không tuyển dụng"}`;
-    $("detailLogo").innerHTML = d.logo_url
-      ? `<img src="${d.logo_url}" alt="${d.ten_doi}">`
-      : `<span>${(d.ten_viet_tat || d.ten_doi).substring(0, 2).toUpperCase()}</span>`;
-    $("detailAbout").innerHTML =
-      `<h4>${text(d.slogan)}</h4><p>${text(d.mo_ta)}</p><p><b>Chủ tịch:</b> ${d.ten_chu_tich}</p>`;
-    renderMembers(data.thanh_vien || [], d);
-    renderMatches("detailHistory", data.lich_su_thi_dau || []);
-    renderTournaments(data.giai_dau || []);
-    renderMatches("detailNextMatches", data.tran_dau_tiep_theo || []);
-    $("detailStats").innerHTML =
-      `<div class="stats-grid"><div><b>${data.thong_ke.tong_tran}</b><span>Trận</span></div><div><b>${data.thong_ke.so_tran_thang}</b><span>Thắng</span></div><div><b>${data.thong_ke.so_tran_thua}</b><span>Thua</span></div><div><b>${data.thong_ke.so_giai_tham_gia}</b><span>Giải</span></div></div><p class="text-muted mt-3">Giải thưởng sẽ hiển thị khi hệ thống có dữ liệu trao giải.</p>`;
-    renderActions(d);
+    try {
+      const title = $("detailTitle");
+      const subtitle = $("detailSubtitle");
+      const logo = $("detailLogo");
+      const about = $("detailAbout");
+      const stats = $("detailStats");
+      if (!title || !subtitle || !logo || !about || !stats) return;
+
+      title.textContent = d.ten_doi;
+      subtitle.textContent = `${d.ten_game} • ${roleLabel(d.vai_tro_cua_toi)} • ${d.dang_tuyen ? "Đang tuyển dụng" : "Không tuyển dụng"}`;
+      logo.innerHTML = d.logo_url
+        ? `<img src="${d.logo_url}" alt="${d.ten_doi}">`
+        : `<span>${(d.ten_viet_tat || d.ten_doi).substring(0, 2).toUpperCase()}</span>`;
+
+      const ngayTao = d.ngay_tao
+        ? new Date(d.ngay_tao).toLocaleDateString("vi-VN")
+        : "—";
+      about.innerHTML = `
+        <div class="team-info-grid">
+          <div><b>Tên viết tắt:</b> ${text(d.ten_viet_tat) || "—"}</div>
+          <div><b>Game:</b> ${text(d.ten_game)}</div>
+          <div><b>Chủ tịch:</b> ${text(d.ten_chu_tich)}</div>
+          <div><b>Ngày tạo:</b> ${ngayTao}</div>
+          <div><b>Thành viên:</b> ${d.so_thanh_vien || 0}</div>
+          <div><b>Tuyển dụng:</b> ${d.dang_tuyen ? "Đang tuyển" : "Không tuyển"}</div>
+        </div>
+        ${d.slogan ? `<h4 class="mt-3">${text(d.slogan)}</h4>` : ""}
+        ${d.mo_ta ? `<p>${text(d.mo_ta)}</p>` : ""}
+      `;
+
+      const members = data.thanh_vien || [];
+      const history = data.lich_su_thi_dau || [];
+      const tournaments = data.giai_dau || [];
+      const nextMatches = data.tran_dau_tiep_theo || [];
+
+      renderMembers(members, d);
+      renderMatches("detailHistory", history);
+      renderTournaments(tournaments);
+      renderMatches("detailNextMatches", nextMatches);
+
+      const tk = data.thong_ke || {
+        tong_tran: 0,
+        so_tran_thang: 0,
+        so_tran_thua: 0,
+        so_giai_tham_gia: 0,
+      };
+      stats.innerHTML = `<div class="stats-grid"><div><b>${tk.tong_tran}</b><span>Trận</span></div><div><b>${tk.so_tran_thang}</b><span>Thắng</span></div><div><b>${tk.so_tran_thua}</b><span>Thua</span></div><div><b>${tk.so_giai_tham_gia}</b><span>Giải</span></div></div><p class="text-muted mt-3">Giải thưởng sẽ hiển thị khi hệ thống có dữ liệu trao giải.</p>`;
+      renderActions(d);
+      console.log("Render detail complete.");
+    } catch (e) {
+      console.error("Error in renderDetail:", e);
+    }
   }
 
   function renderMembers(items, d) {
     const canManage = d.vai_tro_cua_toi === "chu_tich";
-    $("detailMembers").innerHTML =
-      items
-        .map(
-          (m) =>
-            `<div class="member-row"><div><b>${m.ho_ten || m.username}</b><span>${roleLabel(m.vai_tro_noi_bo)} • ${text(m.ten_vi_tri)}</span></div>${canManage && m.vai_tro_noi_bo !== "chu_tich" ? `<div class="member-actions"><select data-role="${m.ma_nguoi_dung}"><option value="thanh_vien" ${m.vai_tro_noi_bo === "thanh_vien" ? "selected" : ""}>Thành viên</option><option value="doi_truong" ${m.vai_tro_noi_bo === "doi_truong" ? "selected" : ""}>Đội trưởng</option><option value="ban_dieu_hanh" ${m.vai_tro_noi_bo === "ban_dieu_hanh" ? "selected" : ""}>Ban điều hành</option></select><button class="btn btn-sm btn-outline-danger" data-remove="${m.ma_nguoi_dung}">Loại</button></div>` : ""}</div>`,
-        )
-        .join("") || '<p class="text-muted">Chưa có thành viên.</p>';
+    const box = $("detailMembers");
+    if (!box) return;
+    box.innerHTML =
+      items.length > 0
+        ? items
+            .map(
+              (m) =>
+                `<div class="member-row">
+              <div class="member-avatar">${m.avatar_url ? `<img src="${m.avatar_url}" alt="">` : `<span>${(m.ho_ten || m.username || "?").charAt(0).toUpperCase()}</span>`}</div>
+              <div class="member-info"><b>${m.ho_ten || m.username || "Người dùng"}</b><span>${roleLabel(m.vai_tro_noi_bo)}${m.ten_vi_tri ? ` • ${m.ten_vi_tri}` : ""}${m.phan_he ? ` • ${m.phan_he}` : ""}</span></div>
+              ${canManage && m.vai_tro_noi_bo !== "chu_tich" ? `<div class="member-actions"><select class="form-select form-select-sm" data-role="${m.ma_nguoi_dung}"><option value="thanh_vien" ${m.vai_tro_noi_bo === "thanh_vien" ? "selected" : ""}>Thành viên</option><option value="doi_truong" ${m.vai_tro_noi_bo === "doi_truong" ? "selected" : ""}>Đội trưởng</option><option value="ban_dieu_hanh" ${m.vai_tro_noi_bo === "ban_dieu_hanh" ? "selected" : ""}>Ban điều hành</option></select><button class="btn btn-sm btn-outline-danger" data-remove="${m.ma_nguoi_dung}">Loại</button></div>` : ""}
+            </div>`,
+            )
+            .join("")
+        : '<div class="empty-tab-state"><p>Chưa có thành viên nào.</p></div>';
     document
       .querySelectorAll("[data-role]")
       .forEach((el) =>
@@ -206,23 +312,30 @@
   }
 
   function renderMatches(id, items) {
-    $(id).innerHTML =
-      items
-        .map(
-          (m) =>
-            `<div class="list-row"><b>${m.ten_giai_dau}</b><span>${text(m.vong_dau)} • ${text(m.trang_thai)} • ${m.thoi_gian_bat_dau ? new Date(m.thoi_gian_bat_dau).toLocaleString("vi-VN") : "Chưa có lịch"}</span></div>`,
-        )
-        .join("") || '<p class="text-muted">Không có dữ liệu.</p>';
+    const box = $(id);
+    if (!box) return;
+    box.innerHTML =
+      items.length > 0
+        ? items
+            .map(
+              (m) =>
+                `<div class="list-row"><b>${m.ten_giai_dau}</b><span>${text(m.vong_dau)} • ${text(m.trang_thai)} • ${m.thoi_gian_bat_dau ? new Date(m.thoi_gian_bat_dau).toLocaleString("vi-VN") : "Chưa có lịch"}</span></div>`,
+            )
+            .join("")
+        : `<div class="empty-tab-state"><p>${id === "detailHistory" ? "Chưa có lịch sử thi đấu." : "Chưa có trận đấu nào sắp tới."}</p></div>`;
   }
   function renderTournaments(items) {
-    $("detailTournaments").innerHTML =
-      items
-        .map(
-          (g) =>
-            `<div class="list-row"><b>${g.ten_giai_dau}</b><span>${g.trang_thai} • ${g.trang_thai_tham_gia}</span></div>`,
-        )
-        .join("") ||
-      '<p class="text-muted">Đội chưa tham gia giải đấu nào.</p>';
+    const box = $("detailTournaments");
+    if (!box) return;
+    box.innerHTML =
+      items.length > 0
+        ? items
+            .map(
+              (g) =>
+                `<div class="list-row"><b>${g.ten_giai_dau}</b><span>${g.trang_thai} • ${g.trang_thai_tham_gia}</span></div>`,
+            )
+            .join("")
+        : '<div class="empty-tab-state"><p>Chưa tham gia giải đấu nào.</p></div>';
   }
 
   function renderActions(d) {
@@ -256,8 +369,7 @@
         post(api.toggle, { ma_doi: d.ma_doi, dang_tuyen: !d.dang_tuyen }).then(
           () => openDetail(d.ma_doi),
         );
-    if ($("fillEditTeam"))
-      $("fillEditTeam").onclick = () => openEditTeam(d);
+    if ($("fillEditTeam")) $("fillEditTeam").onclick = () => openEditTeam(d);
     if ($("deleteTeam"))
       $("deleteTeam").onclick = () => {
         if (confirm("Bạn chắc chắn muốn xóa đội?"))
@@ -461,12 +573,15 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    loadGames().then(() => {
-      if ($("teamList")) loadTeams();
-      if ($("myTeamList")) loadMine();
-      const detailPage = document.querySelector("[data-team-detail-page]");
-      if (detailPage) openDetail(parseInt(detailPage.dataset.teamId));
-    });
+    const teamId = resolveTeamId();
+    if (teamId) openDetail(teamId);
+
+    loadGames()
+      .catch((err) => console.error("Error loading games:", err))
+      .finally(() => {
+        if ($("teamList")) loadTeams();
+        if ($("myTeamList")) loadMine();
+      });
     if ($("teamSearch")) $("teamSearch").addEventListener("input", loadTeams);
     if ($("gameFilter")) $("gameFilter").addEventListener("change", loadTeams);
     bindCreate();

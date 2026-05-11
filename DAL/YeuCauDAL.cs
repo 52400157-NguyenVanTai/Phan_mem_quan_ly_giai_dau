@@ -32,7 +32,7 @@ namespace DAL
                         FROM GIAI_DAU g
                         LEFT JOIN NGUOI_DUNG u ON g.ma_nguoi_tao = u.ma_nguoi_dung
                         LEFT JOIN DANH_MUC_TRO_CHOI t ON g.ma_tro_choi = t.ma_tro_choi
-                        WHERE g.trang_thai = 'cho_phe_duyet' AND g.is_deleted = 0";
+                        WHERE g.trang_thai = 'cho_xet_duyet' AND g.is_deleted = 0";
                     using (var cmd = new SqlCommand(sqlDuyetGiai, conn))
                     using (var r = cmd.ExecuteReader())
                     {
@@ -40,7 +40,7 @@ namespace DAL
                         {
                             ds.Add(new YeuCauTongHopDTO
                             {
-                                ma_yeu_cau = r.GetInt32(r.GetOrdinal("ma_giai_dau")), // Dùng ma_giai_dau làm ID
+                                ma_yeu_cau = r.GetInt32(r.GetOrdinal("ma_giai_dau")),
                                 loai_yeu_cau = "yeu_cau_tao_giai_dau",
                                 tieu_de = "Yêu cầu duyệt giải đấu mới",
                                 noi_dung = $"Giải đấu {r["ten_giai_dau"]} đang chờ Admin phê duyệt.",
@@ -62,7 +62,7 @@ namespace DAL
                     JOIN GIAI_DAU g ON t.ma_giai_dau = g.ma_giai_dau
                     JOIN DOI d ON t.ma_nhom = d.ma_doi
                     LEFT JOIN NGUOI_DUNG u ON d.ma_doi_truong = u.ma_nguoi_dung
-                    WHERE t.trang_thai_duyet = 'cho_duyet' AND g.ma_nguoi_tao = @UserId";
+                    WHERE t.trang_thai_duyet = 'cho_duyet' AND EXISTS (SELECT 1 FROM QUAN_TRI_GIAI_DAU qt WHERE qt.ma_giai_dau = g.ma_giai_dau AND qt.ma_nguoi_dung = @UserId AND qt.vai_tro_giai = 'ban_to_chuc')";
                 using (var cmd = new SqlCommand(sqlDuyetDoi, conn))
                 {
                     cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
@@ -72,7 +72,6 @@ namespace DAL
                         {
                             ds.Add(new YeuCauTongHopDTO
                             {
-                                // Kết hợp id giải đấu và mã nhóm để tạo ID duy nhất cho UI xử lý (hoặc dùng THAM_GIA_GIAI không có ID PK riêng, ta sẽ ghép chuỗi)
                                 ma_yeu_cau = r.GetInt32(r.GetOrdinal("ma_giai_dau")) * 100000 + r.GetInt32(r.GetOrdinal("ma_nhom")),
                                 loai_yeu_cau = "dang_ky_tham_gia_giai_dau",
                                 tieu_de = "Đơn đăng ký tham gia giải",
@@ -119,14 +118,46 @@ namespace DAL
                     }
                 }
 
-                // 4. Chủ tịch: Lời mời vào đội / Xin gia nhập đội (Kế thừa từ app-doi cũ)
-                // YEU_CAU_MOI_THANH_VIEN_DOI
-                string sqlLoiMoiDoi = @"
-                    SELECT y.ma_yeu_cau, y.ma_nguoi_gui, y.ma_doi, d.ten_doi, y.mo_ta, y.ngay_tao as thoi_gian_tao
+                // 4. CT/BĐH: Duyệt yêu cầu mời thành viên do Đội trưởng gửi (YEU_CAU_MOI_THANH_VIEN_DOI)
+                string sqlYeuCauMoi = @"
+                    SELECT y.ma_yeu_cau, y.ma_nguoi_gui, u.ten_dang_nhap as ten_nguoi_gui, y.ma_nguoi_duoc_moi, un.ten_dang_nhap as ten_nguoi_nhan, y.ma_doi, d.ten_doi, y.mo_ta, y.ngay_tao as thoi_gian_tao
                     FROM YEU_CAU_MOI_THANH_VIEN_DOI y
                     JOIN DOI d ON y.ma_doi = d.ma_doi
-                    WHERE y.ma_nguoi_duoc_moi = @UserId AND y.trang_thai = 'cho_duyet'";
-                using (var cmd = new SqlCommand(sqlLoiMoiDoi, conn))
+                    LEFT JOIN NGUOI_DUNG u ON y.ma_nguoi_gui = u.ma_nguoi_dung
+                    LEFT JOIN NGUOI_DUNG un ON y.ma_nguoi_duoc_moi = un.ma_nguoi_dung
+                    WHERE y.trang_thai = 'cho_duyet' AND EXISTS (
+                        SELECT 1 FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI nx ON tv.ma_nhom = nx.ma_nhom
+                        WHERE nx.ma_doi = y.ma_doi AND tv.ma_nguoi_dung = @UserId AND tv.vai_tro_noi_bo IN ('chu_tich','ban_dieu_hanh') AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+                    )";
+                using (var cmd = new SqlCommand(sqlYeuCauMoi, conn))
+                {
+                    cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            ds.Add(new YeuCauTongHopDTO
+                            {
+                                ma_yeu_cau = r.GetInt32(r.GetOrdinal("ma_yeu_cau")),
+                                loai_yeu_cau = "yeu_cau_moi",
+                                tieu_de = "Yêu cầu duyệt lời mời vào đội",
+                                noi_dung = $"Đội trưởng {r["ten_nguoi_gui"]} xin phép mời {r["ten_nguoi_nhan"]} vào đội {r["ten_doi"]}.",
+                                ma_doi = r.GetInt32(r.GetOrdinal("ma_doi")),
+                                ten_doi = r["ten_doi"].ToString(),
+                                ngay_tao = Convert.ToDateTime(r["thoi_gian_tao"])
+                            });
+                        }
+                    }
+                }
+
+                // 5. User: Lời mời gia nhập đội (LOI_MOI_GIA_NHAP)
+                string sqlLoiMoiGiaNhap = @"
+                    SELECT lm.ma_loi_moi as ma_yeu_cau, lm.ma_nguoi_gui, u.ten_dang_nhap as ten_nguoi_gui, lm.ma_doi, d.ten_doi, lm.mo_ta, lm.ngay_tao as thoi_gian_tao
+                    FROM LOI_MOI_GIA_NHAP lm
+                    JOIN DOI d ON lm.ma_doi = d.ma_doi
+                    LEFT JOIN NGUOI_DUNG u ON lm.ma_nguoi_gui = u.ma_nguoi_dung
+                    WHERE lm.ma_nguoi_duoc_moi = @UserId AND lm.trang_thai = 'cho_phan_hoi'";
+                using (var cmd = new SqlCommand(sqlLoiMoiGiaNhap, conn))
                 {
                     cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
                     using (var r = cmd.ExecuteReader())
@@ -147,13 +178,16 @@ namespace DAL
                     }
                 }
 
-                // YEU_CAU_THAM_GIA_NHOM
+                // 6. CT/BĐH: Đơn xin gia nhập (XIN_GIA_NHAP)
                 string sqlXinVaoDoi = @"
-                    SELECT y.ma_yeu_cau, y.ma_nguoi_dung as ma_nguoi_gui, u.ten_dang_nhap as ten_nguoi_gui, y.ma_nhom, d.ten_doi, NULL as loi_nhan, y.ngay_tao as thoi_gian_tao
-                    FROM YEU_CAU_THAM_GIA_NHOM y
-                    JOIN DOI d ON y.ma_nhom = d.ma_doi
+                    SELECT y.ma_don_xin as ma_yeu_cau, y.ma_nguoi_dung as ma_nguoi_gui, u.ten_dang_nhap as ten_nguoi_gui, y.ma_nhom, d.ten_doi, NULL as loi_nhan, y.ngay_tao as thoi_gian_tao
+                    FROM XIN_GIA_NHAP y
+                    JOIN DOI d ON y.ma_doi = d.ma_doi
                     JOIN NGUOI_DUNG u ON y.ma_nguoi_dung = u.ma_nguoi_dung
-                    WHERE d.ma_doi_truong = @UserId AND y.trang_thai = 'cho_duyet'";
+                    WHERE y.trang_thai = 'cho_duyet' AND EXISTS (
+                        SELECT 1 FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI nx ON tv.ma_nhom = nx.ma_nhom
+                        WHERE nx.ma_doi = y.ma_doi AND tv.ma_nguoi_dung = @UserId AND tv.vai_tro_noi_bo IN ('chu_tich','ban_dieu_hanh') AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+                    )";
                 using (var cmd = new SqlCommand(sqlXinVaoDoi, conn))
                 {
                     cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
@@ -166,7 +200,7 @@ namespace DAL
                                 ma_yeu_cau = r.GetInt32(r.GetOrdinal("ma_yeu_cau")),
                                 loai_yeu_cau = "xin_gia_nhap",
                                 tieu_de = "Đơn xin gia nhập đội",
-                                noi_dung = $"{r["ten_nguoi_gui"]} xin vào đội {r["ten_doi"]}: {r["loi_nhan"]}",
+                                noi_dung = $"{r["ten_nguoi_gui"]} xin vào đội {r["ten_doi"]}",
                                 ma_nguoi_gui = r.GetInt32(r.GetOrdinal("ma_nguoi_gui")),
                                 ten_nguoi_gui = r["ten_nguoi_gui"].ToString(),
                                 ma_doi = r.GetInt32(r.GetOrdinal("ma_nhom")),
@@ -195,8 +229,7 @@ namespace DAL
                         switch (req.loai_yeu_cau)
                         {
                             case "yeu_cau_tao_giai_dau":
-                                // ma_yeu_cau = ma_giai_dau
-                                string newStatus = req.chap_nhan ? "sap_dien_ra" : "tu_choi";
+                                string newStatus = req.chap_nhan ? "sap_dien_ra" : "bi_tu_choi";
                                 string sqlGiaiDau = "UPDATE GIAI_DAU SET trang_thai = @TrangThai, ly_do_tu_choi = @LyDo WHERE ma_giai_dau = @MaGiaiDau";
                                 using (var cmd = new SqlCommand(sqlGiaiDau, conn, tx))
                                 {
@@ -208,7 +241,6 @@ namespace DAL
                                 break;
 
                             case "dang_ky_tham_gia_giai_dau":
-                                // ma_yeu_cau = ma_giai_dau * 100000 + ma_nhom
                                 int maGiaiDau = req.ma_yeu_cau / 100000;
                                 int maNhom = req.ma_yeu_cau % 100000;
                                 string sqlDuyetDoi = "UPDATE THAM_GIA_GIAI SET trang_thai_duyet = @Status WHERE ma_giai_dau = @MaGiaiDau AND ma_nhom = @MaNhom";
@@ -222,29 +254,26 @@ namespace DAL
                                 break;
 
                             case "loi_moi_tham_gia_giai":
-                                // Get notification to find ma_giai_dau and current user's team
-                                // Actually we need to know the team ID. The notification must have stored the team ID in `noi_dung` or we can find it.
-                                // For simplicity, let's assume team president accepts for their team.
                                 int? maGiaiDauThongBao = null;
                                 using (var cmd = new SqlCommand("SELECT ma_entity FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
-                                    maGiaiDauThongBao = (int?)cmd.ExecuteScalar();
+                                    var res = cmd.ExecuteScalar();
+                                    if(res != DBNull.Value && res != null) maGiaiDauThongBao = Convert.ToInt32(res);
                                 }
                                 
                                 if (req.chap_nhan && maGiaiDauThongBao.HasValue)
                                 {
-                                    // Find team where this user is president
                                     int? maDoi = null;
                                     using (var cmd = new SqlCommand("SELECT ma_doi FROM DOI WHERE ma_doi_truong = @UserId AND is_deleted = 0", conn, tx))
                                     {
                                         cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
-                                        maDoi = (int?)cmd.ExecuteScalar();
+                                        var res = cmd.ExecuteScalar();
+                                        if(res != DBNull.Value && res != null) maDoi = Convert.ToInt32(res);
                                     }
 
                                     if (maDoi.HasValue)
                                     {
-                                        // Insert/Update THAM_GIA_GIAI
                                         string sqlJoin = @"
                                             IF EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @Gd AND ma_nhom = @Nhom)
                                                 UPDATE THAM_GIA_GIAI SET trang_thai_duyet = 'da_duyet' WHERE ma_giai_dau = @Gd AND ma_nhom = @Nhom
@@ -260,10 +289,8 @@ namespace DAL
                                     }
                                 }
 
-                                // Mark notification handled
-                                using (var cmd = new SqlCommand("UPDATE THONG_BAO SET hanh_dong = @Hd, da_doc = 1 WHERE ma_thong_bao = @MaTb", conn, tx))
+                                using (var cmd = new SqlCommand("DELETE FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
-                                    cmd.Parameters.AddWithValue("@Hd", req.chap_nhan ? "accepted" : "declined");
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
                                     cmd.ExecuteNonQuery();
                                 }
@@ -275,7 +302,8 @@ namespace DAL
                                 using (var cmd = new SqlCommand("SELECT ma_entity FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
-                                    maEntity = (int?)cmd.ExecuteScalar();
+                                    var res = cmd.ExecuteScalar();
+                                    if(res != DBNull.Value && res != null) maEntity = Convert.ToInt32(res);
                                 }
 
                                 if (req.chap_nhan && maEntity.HasValue)
@@ -295,33 +323,33 @@ namespace DAL
                                     } catch { /* Ignore duplicates */ }
                                 }
 
-                                using (var cmd = new SqlCommand("UPDATE THONG_BAO SET hanh_dong = @Hd, da_doc = 1 WHERE ma_thong_bao = @MaTb", conn, tx))
+                                using (var cmd = new SqlCommand("DELETE FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
-                                    cmd.Parameters.AddWithValue("@Hd", req.chap_nhan ? "accepted" : "declined");
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
                                     cmd.ExecuteNonQuery();
                                 }
                                 break;
 
-                            case "loi_moi":
-                            case "xin_gia_nhap":
-                                // Cũ từ app-doi
-                                string sqlHandleDoi = req.loai_yeu_cau == "loi_moi"
-                                    ? "UPDATE YEU_CAU_MOI_THANH_VIEN_DOI SET trang_thai = @St WHERE ma_yeu_cau = @Ma"
-                                    : "UPDATE YEU_CAU_THAM_GIA_NHOM SET trang_thai = @St WHERE ma_yeu_cau = @Ma";
+                            case "yeu_cau_moi":
+                                string sqlHandleDoi = "DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @Ma";
                                 using (var cmd = new SqlCommand(sqlHandleDoi, conn, tx))
                                 {
-                                    cmd.Parameters.AddWithValue("@St", req.chap_nhan ? "da_xac_nhan" : "tu_choi");
                                     cmd.Parameters.AddWithValue("@Ma", req.ma_yeu_cau);
                                     cmd.ExecuteNonQuery();
                                 }
 
                                 if (req.chap_nhan)
                                 {
-                                    // Thêm vào đội
-                                    string sqlAddMem = req.loai_yeu_cau == "loi_moi"
-                                        ? "INSERT INTO THANH_VIEN_DOI (ma_doi, ma_nguoi_dung, vai_tro_noi_bo) SELECT ma_doi, ma_nguoi_duoc_moi, 'thanh_vien' FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @Ma"
-                                        : "INSERT INTO THANH_VIEN_DOI (ma_doi, ma_nguoi_dung, vai_tro_noi_bo) SELECT ma_nhom, ma_nguoi_dung, 'thanh_vien' FROM YEU_CAU_THAM_GIA_NHOM WHERE ma_yeu_cau = @Ma";
+                                    string checkMoTa = "SELECT COL_LENGTH('LOI_MOI_GIA_NHAP', 'mo_ta')";
+                                    bool hasMoTa = false;
+                                    using (var cmd = new SqlCommand(checkMoTa, conn, tx))
+                                    {
+                                        var res = cmd.ExecuteScalar();
+                                        hasMoTa = (res != DBNull.Value && res != null);
+                                    }
+                                    string sqlAddMem = hasMoTa ?
+                                        "INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta) SELECT ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @Ma" :
+                                        "INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui) SELECT ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @Ma";
                                     try 
                                     {
                                         using (var cmd = new SqlCommand(sqlAddMem, conn, tx))
@@ -330,6 +358,86 @@ namespace DAL
                                             cmd.ExecuteNonQuery();
                                         }
                                     } catch { /* Ignore */ }
+                                }
+                                break;
+                                
+                            case "loi_moi":
+                                // Read data BEFORE deleting
+                                int? lmNguoiDuocMoi = null, lmMaNhom = null, lmMaViTri = null;
+                                using (var cmdRead = new SqlCommand("SELECT ma_nguoi_duoc_moi, ma_nhom, ma_vi_tri FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @Ma", conn, tx))
+                                {
+                                    cmdRead.Parameters.AddWithValue("@Ma", req.ma_yeu_cau);
+                                    using (var rdr = cmdRead.ExecuteReader())
+                                    {
+                                        if (rdr.Read())
+                                        {
+                                            lmNguoiDuocMoi = rdr.GetInt32(0);
+                                            lmMaNhom = rdr["ma_nhom"] != DBNull.Value ? (int?)rdr.GetInt32(1) : null;
+                                            lmMaViTri = rdr["ma_vi_tri"] != DBNull.Value ? (int?)rdr.GetInt32(2) : null;
+                                        }
+                                    }
+                                }
+
+                                // Delete the invitation
+                                using (var cmd = new SqlCommand("DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @Ma", conn, tx))
+                                {
+                                    cmd.Parameters.AddWithValue("@Ma", req.ma_yeu_cau);
+                                    cmd.ExecuteNonQuery();
+                                }
+
+                                // Insert member if accepted and data was found
+                                if (req.chap_nhan && lmNguoiDuocMoi.HasValue && lmMaNhom.HasValue)
+                                {
+                                    try
+                                    {
+                                        using (var cmd = new SqlCommand("INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, ma_vi_tri, vai_tro_noi_bo, phan_he) VALUES (@Nd, @Nhom, @ViTri, 'thanh_vien', 'TuyenThu')", conn, tx))
+                                        {
+                                            cmd.Parameters.AddWithValue("@Nd", lmNguoiDuocMoi.Value);
+                                            cmd.Parameters.AddWithValue("@Nhom", lmMaNhom.Value);
+                                            cmd.Parameters.AddWithValue("@ViTri", lmMaViTri.HasValue ? (object)lmMaViTri.Value : DBNull.Value);
+                                            cmd.ExecuteNonQuery();
+                                        }
+                                    }
+                                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Insert loi_moi member error: " + ex.Message); }
+                                }
+                                break;
+
+                            case "xin_gia_nhap":
+                                // Read data BEFORE deleting
+                                int? xgMaNhom = null, xgMaNguoiDung = null;
+                                using (var cmdRead = new SqlCommand("SELECT ma_nhom, ma_nguoi_dung FROM XIN_GIA_NHAP WHERE ma_don_xin = @Ma", conn, tx))
+                                {
+                                    cmdRead.Parameters.AddWithValue("@Ma", req.ma_yeu_cau);
+                                    using (var rdr = cmdRead.ExecuteReader())
+                                    {
+                                        if (rdr.Read())
+                                        {
+                                            xgMaNhom = rdr["ma_nhom"] != DBNull.Value ? (int?)rdr.GetInt32(0) : null;
+                                            xgMaNguoiDung = rdr.GetInt32(1);
+                                        }
+                                    }
+                                }
+
+                                // Delete the request
+                                using (var cmd = new SqlCommand("DELETE FROM XIN_GIA_NHAP WHERE ma_don_xin = @Ma", conn, tx))
+                                {
+                                    cmd.Parameters.AddWithValue("@Ma", req.ma_yeu_cau);
+                                    cmd.ExecuteNonQuery();
+                                }
+
+                                // Insert member if accepted and data was found
+                                if (req.chap_nhan && xgMaNhom.HasValue && xgMaNguoiDung.HasValue)
+                                {
+                                    try
+                                    {
+                                        using (var cmd = new SqlCommand("INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, vai_tro_noi_bo, phan_he) VALUES (@Nd, @Nhom, 'thanh_vien', 'TuyenThu')", conn, tx))
+                                        {
+                                            cmd.Parameters.AddWithValue("@Nd", xgMaNguoiDung.Value);
+                                            cmd.Parameters.AddWithValue("@Nhom", xgMaNhom.Value);
+                                            cmd.ExecuteNonQuery();
+                                        }
+                                    }
+                                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Insert xin_gia_nhap member error: " + ex.Message); }
                                 }
                                 break;
                         }

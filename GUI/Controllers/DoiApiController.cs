@@ -29,8 +29,16 @@ namespace GUI.Controllers
         [HttpGet]
         public JsonResult Detail(int maDoi)
         {
-            int? userId = Session["UserId"] as int?;
-            return Json(doiBUS.LayChiTietDoi(maDoi, userId), JsonRequestBehavior.AllowGet);
+            try
+            {
+                int? userId = Session["UserId"] as int?;
+                return Json(doiBUS.LayChiTietDoi(maDoi, userId), JsonRequestBehavior.AllowGet);
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("DoiApi.Detail error: " + ex.ToString());
+                return Json(new ApiResponseDTO { success = false, message = "Lỗi server: " + ex.Message, data = null }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpGet]

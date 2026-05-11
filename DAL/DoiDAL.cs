@@ -74,8 +74,27 @@ namespace DAL
 
         public DoiDTO LayDoi(int maDoi, int? maNguoiDung)
         {
-            List<DoiDTO> items = TimKiemDoi(null, null, maNguoiDung);
-            return items.Find(x => x.ma_doi == maDoi);
+            using (SqlConnection connection = DbConnectionFactory.CreateConnection())
+            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, n.ma_nhom, n.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
+                                                               d.ma_doi_truong, nd.ten_dang_nhap AS ten_chu_tich, d.logo_url, d.slogan, d.mo_ta,
+                                                               d.trang_thai, d.dang_tuyen, d.ngay_tao,
+                                                               (SELECT COUNT(1) FROM THANH_VIEN_DOI tv WHERE tv.ma_nhom = n.ma_nhom AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS so_thanh_vien,
+                                                               (SELECT TOP 1 tv2.vai_tro_noi_bo FROM THANH_VIEN_DOI tv2 WHERE tv2.ma_nhom = n.ma_nhom AND tv2.ma_nguoi_dung = @maNguoiDung AND tv2.trang_thai_duyet = 'da_duyet' AND tv2.trang_thai_hop_dong = 'dang_hieu_luc') AS vai_tro_cua_toi
+                                                        FROM DOI d
+                                                        INNER JOIN NHOM_DOI n ON d.ma_doi = n.ma_doi AND n.ma_tro_choi IS NOT NULL
+                                                        INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
+                                                        INNER JOIN NGUOI_DUNG nd ON d.ma_doi_truong = nd.ma_nguoi_dung
+                                                        WHERE d.ma_doi = @maDoi", connection))
+            {
+                command.Parameters.AddWithValue("@maDoi", maDoi);
+                command.Parameters.AddWithValue("@maNguoiDung", (object)maNguoiDung ?? DBNull.Value);
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    if (reader.Read()) return MapDoi(reader);
+                }
+            }
+            return null;
         }
 
         public int TaoDoi(int maNguoiDung, TaoDoiRequestDTO request)
@@ -476,7 +495,7 @@ namespace DAL
                             thoi_gian_bat_dau = reader["thoi_gian_bat_dau"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["thoi_gian_bat_dau"]),
                             trang_thai = reader["trang_thai"].ToString(),
                             ket_qua = reader["ket_qua"] == DBNull.Value ? null : reader["ket_qua"].ToString(),
-                            diem_so = Convert.ToDouble(reader["diem_so"])
+                            diem_so = reader["diem_so"] == DBNull.Value ? 0 : Convert.ToDouble(reader["diem_so"])
                         });
                     }
                 }
@@ -601,7 +620,7 @@ namespace DAL
                     SELECT @maNhom = ma_nhom, @maViTri = ma_vi_tri FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau AND ma_nguoi_duoc_moi = @maNguoiDung AND trang_thai = 'cho_phan_hoi';
                     IF @maNhom IS NOT NULL
                     BEGIN
-                        UPDATE LOI_MOI_GIA_NHAP SET trang_thai = CASE WHEN @chapNhan = 1 THEN 'chap_nhan' ELSE 'tu_choi' END WHERE ma_loi_moi = @maYeuCau;
+                        DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
                             INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, ma_vi_tri, vai_tro_noi_bo, phan_he)
@@ -612,7 +631,7 @@ namespace DAL
                     SELECT @maNhom = ma_nhom FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau AND ma_nguoi_duoc_moi = @maNguoiDung AND trang_thai = 'cho_phan_hoi';
                     IF @maNhom IS NOT NULL
                     BEGIN
-                        UPDATE LOI_MOI_GIA_NHAP SET trang_thai = CASE WHEN @chapNhan = 1 THEN 'chap_nhan' ELSE 'tu_choi' END WHERE ma_loi_moi = @maYeuCau;
+                        DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
                             INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, vai_tro_noi_bo, phan_he)
@@ -639,9 +658,7 @@ namespace DAL
                     FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau AND trang_thai = 'cho_duyet';
                     IF @maDoi IS NOT NULL
                     BEGIN
-                        UPDATE YEU_CAU_MOI_THANH_VIEN_DOI SET trang_thai = CASE WHEN @chapNhan = 1 THEN 'chap_nhan' ELSE 'tu_choi' END,
-                            ngay_duyet = GETDATE(), ma_nguoi_duyet = @maNguoiDuyet
-                        WHERE ma_yeu_cau = @maYeuCau;
+                        DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
                             INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
@@ -653,9 +670,7 @@ namespace DAL
                     FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau AND trang_thai = 'cho_duyet';
                     IF @maDoi IS NOT NULL
                     BEGIN
-                        UPDATE YEU_CAU_MOI_THANH_VIEN_DOI SET trang_thai = CASE WHEN @chapNhan = 1 THEN 'chap_nhan' ELSE 'tu_choi' END,
-                            ngay_duyet = GETDATE(), ma_nguoi_duyet = @maNguoiDuyet
-                        WHERE ma_yeu_cau = @maYeuCau;
+                        DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
                             INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui)
@@ -692,9 +707,7 @@ namespace DAL
                                                           );
                                                         IF @maDoi IS NOT NULL
                                                         BEGIN
-                                                            UPDATE XIN_GIA_NHAP
-                                                            SET trang_thai = CASE WHEN @chapNhan = 1 THEN 'chap_nhan' ELSE 'tu_choi' END
-                                                            WHERE ma_don_xin = @maDonXin;
+                                                            DELETE FROM XIN_GIA_NHAP WHERE ma_don_xin = @maDonXin;
 
                                                             IF @chapNhan = 1
                                                             BEGIN

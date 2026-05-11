@@ -42,12 +42,12 @@
                     </div>
                     <span>@Session["Username"]</span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" style="background: rgba(5, 6, 15, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(186, 215, 247, 0.12);">
-                    <li>@Html.ActionLink("Xem thông tin cá nhân", "Index", "Profile", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
-                    <li>@Html.ActionLink("Hồ sơ thi đấu", "Index", "HoSoThiDau", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
-                    <li>@Html.ActionLink("Đội của tôi", "Index", "DoiCuaToi", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
-                    <li>@Html.ActionLink("Đóng góp ý kiến", "Index", "DongGopYKien", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
-                    <li><hr class="dropdown-divider" style="border-color: rgba(186, 215, 247, 0.12);" /></li>
+                <ul class="dropdown-menu dropdown-menu-end" style="background: rgba(249, 250, 247, 0.92); backdrop-filter: blur(12px); border: 1px solid var(--color-steel-gray);">
+                    <li>@Html.ActionLink("Xem thông tin cá nhân", "Index", "Profile", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--color-dark-charcoal);" })</li>
+                    <li>@Html.ActionLink("Hồ sơ thi đấu", "Index", "HoSoThiDau", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--color-dark-charcoal);" })</li>
+                    <li>@Html.ActionLink("Đội của tôi", "Index", "DoiCuaToi", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--color-dark-charcoal);" })</li>
+                    <li>@Html.ActionLink("Đóng góp ý kiến", "Index", "DongGopYKien", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--color-dark-charcoal);" })</li>
+                    <li><hr class="dropdown-divider" style="border-color: var(--color-steel-gray);" /></li>
                     <li><button class="dropdown-item" type="button" id="logoutButton" style="color: #fca5a5;">Đăng xuất</button></li>
                 </ul>
             </div>

@@ -1,5 +1,6 @@
-﻿using DAL;
+using DAL;
 using DTO;
+using System;
 using System.Collections.Generic;
 
 namespace BUS
@@ -21,11 +22,34 @@ namespace BUS
 
         public ApiResponseDTO LayChiTietDoi(int maDoi, int? maNguoiDung)
         {
-            DoiDTO doi = doiDAL.LayDoi(maDoi, maNguoiDung);
-            if (doi == null) return Loi("KhÃ´ng tÃ¬m tháº¥y Ä‘á»™i.");
+            DoiDTO doi;
+            try
+            {
+                doi = doiDAL.LayDoi(maDoi, maNguoiDung);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("LayDoi error: " + ex.Message);
+                return Loi("Lỗi khi tải thông tin đội: " + ex.Message);
+            }
+            if (doi == null) return Loi("Không tìm thấy đội.");
 
-            List<DoiTranDauDTO> lichSu = doiDAL.LayTranDau(maDoi, false);
-            List<DoiGiaiDauDTO> giaiDau = doiDAL.LayGiaiDau(maDoi);
+            List<ThanhVienDoiDTO> thanhVien = new List<ThanhVienDoiDTO>();
+            try { thanhVien = doiDAL.LayThanhVien(maDoi); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("LayThanhVien error: " + ex.Message); }
+
+            List<DoiTranDauDTO> lichSu = new List<DoiTranDauDTO>();
+            try { lichSu = doiDAL.LayTranDau(maDoi, false); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("LayTranDau(false) error: " + ex.Message); }
+
+            List<DoiGiaiDauDTO> giaiDau = new List<DoiGiaiDauDTO>();
+            try { giaiDau = doiDAL.LayGiaiDau(maDoi); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("LayGiaiDau error: " + ex.Message); }
+
+            List<DoiTranDauDTO> tranTiep = new List<DoiTranDauDTO>();
+            try { tranTiep = doiDAL.LayTranDau(maDoi, true); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("LayTranDau(true) error: " + ex.Message); }
+
             DoiThongKeDTO thongKe = new DoiThongKeDTO
             {
                 tong_tran = lichSu.Count,
@@ -35,13 +59,13 @@ namespace BUS
                 giai_thuong = new List<string>()
             };
 
-            return ThanhCong("Láº¥y chi tiáº¿t Ä‘á»™i thÃ nh cÃ´ng.", new DoiChiTietDTO
+            return ThanhCong("Lấy chi tiết đội thành công.", new DoiChiTietDTO
             {
                 doi = doi,
-                thanh_vien = doiDAL.LayThanhVien(maDoi),
+                thanh_vien = thanhVien,
                 lich_su_thi_dau = lichSu,
                 giai_dau = giaiDau,
-                tran_dau_tiep_theo = doiDAL.LayTranDau(maDoi, true),
+                tran_dau_tiep_theo = tranTiep,
                 thong_ke = thongKe
             });
         }

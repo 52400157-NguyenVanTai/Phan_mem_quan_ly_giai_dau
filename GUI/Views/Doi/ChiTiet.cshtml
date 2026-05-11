@@ -2,6 +2,19 @@
     ViewBag.Title = "Chi tiết đội";
 }
 
+<style>
+    /* Override cached bundle CSS that hides .tab-content */
+    .team-detail-page .tab-content.team-tab-content {
+        display: block !important;
+    }
+    .team-detail-page .tab-pane {
+        display: none;
+    }
+    .team-detail-page .tab-pane.active {
+        display: block;
+    }
+</style>
+
 <section class="team-page team-detail-page" data-team-detail-page data-team-id="@ViewBag.MaDoi">
     <div id="doiMessage"></div>
 
@@ -87,12 +100,12 @@
         </ul>
 
         <div class="tab-content team-tab-content">
-            <div class="tab-pane fade show active" id="tabAbout"><div id="detailAbout"></div></div>
-            <div class="tab-pane fade" id="tabMembers"><div id="detailMembers"></div></div>
-            <div class="tab-pane fade" id="tabHistory"><div id="detailHistory"></div></div>
-            <div class="tab-pane fade" id="tabTournaments"><div id="detailTournaments"></div></div>
-            <div class="tab-pane fade" id="tabNext"><div id="detailNextMatches"></div></div>
-            <div class="tab-pane fade" id="tabStats"><div id="detailStats"></div></div>
+            <div class="tab-pane show active" id="tabAbout"><div id="detailAbout"></div></div>
+            <div class="tab-pane" id="tabMembers"><div id="detailMembers"></div></div>
+            <div class="tab-pane" id="tabHistory"><div id="detailHistory"></div></div>
+            <div class="tab-pane" id="tabTournaments"><div id="detailTournaments"></div></div>
+            <div class="tab-pane" id="tabNext"><div id="detailNextMatches"></div></div>
+            <div class="tab-pane" id="tabStats"><div id="detailStats"></div></div>
         </div>
     </div>
 </section>
