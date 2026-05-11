@@ -149,6 +149,43 @@
             <div id="rejectMessage" class="form-message"></div>
         </div>
     </div>
+
+    <!-- MODAL LỜI MỜI (CUSTOM AUTOCOMPLETE) -->
+    <div class="modal-overlay" id="inviteModal" style="display:none;">
+        <div class="modal-dialog modal-sm" style="overflow: visible;">
+            <div class="modal-header">
+                <h3 id="inviteModalTitle">Gửi lời mời</h3>
+                <button class="modal-close" id="closeInviteModal">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow: visible;">
+                <div class="form-group" style="position: relative;">
+                    <label id="inviteInputLabel">Tìm kiếm <span class="required">*</span></label>
+                    <div class="search-input-wrapper">
+                        <input type="text" id="inviteSearchInput" class="form-control" placeholder="Gõ để tìm kiếm..." autocomplete="off">
+                        <div id="inviteSearchSpinner" class="search-spinner" style="display: none;"></div>
+                    </div>
+                    <div id="inviteAutocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+                </div>
+                <div id="inviteValidationMessage" style="color: #ef4444; font-size: 0.85rem; margin-top: 4px; display: none;">Vui lòng chọn một mục từ danh sách.</div>
+                
+                <div class="form-group" id="inviteRoleGroup" style="display: none; margin-top: 16px;">
+                    <label>Vai trò / Vị trí</label>
+                    <select id="inviteRoleSelect" class="form-control">
+                        <!-- Options will be populated based on context -->
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Lời nhắn (Tùy chọn)</label>
+                    <textarea id="inviteMessage" class="form-control" rows="2" placeholder="Nhập lời nhắn..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="ak-btn-pill" id="cancelInviteModal">Hủy</button>
+                <button class="ak-btn-primary" id="confirmInviteModal">Xác nhận</button>
+            </div>
+        </div>
+    </div>
 </section>
 
 @section scripts {

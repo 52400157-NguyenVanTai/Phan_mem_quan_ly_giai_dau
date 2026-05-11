@@ -319,7 +319,7 @@
         ? items
             .map(
               (m) =>
-                `<div class="list-row"><b>${m.ten_giai_dau}</b><span>${text(m.vong_dau)} • ${text(m.trang_thai)} • ${m.thoi_gian_bat_dau ? new Date(m.thoi_gian_bat_dau).toLocaleString("vi-VN") : "Chưa có lịch"}</span></div>`,
+                `<div class="list-row"><b>${m.ten_giai_dau}</b><span>${text(m.vong_dau)} • ${text(m.trang_thai)}</span></div>`,
             )
             .join("")
         : `<div class="empty-tab-state"><p>${id === "detailHistory" ? "Chưa có lịch sử thi đấu." : "Chưa có trận đấu nào sắp tới."}</p></div>`;

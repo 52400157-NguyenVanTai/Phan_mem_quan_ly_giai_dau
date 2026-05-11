@@ -61,7 +61,7 @@ namespace DAL
                 cmd.Parameters.AddWithValue("@theThuc", gd.the_thuc);
                 cmd.Parameters.AddWithValue("@thuTu", gd.so_thu_tu);
                 cmd.Parameters.AddWithValue("@soDoi", gd.so_doi > 0 ? gd.so_doi : 0);
-                cmd.Parameters.AddWithValue("@diTiep", (object)gd.so_doi_di_tiep ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@diTiep", gd.so_doi_di_tiep.HasValue ? gd.so_doi_di_tiep.Value : 0);
                 cmd.Parameters.AddWithValue("@matchPoint", (object)gd.nguong_match_point ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@bangDiem", string.IsNullOrWhiteSpace(gd.bang_diem_json) ? (object)DBNull.Value : gd.bang_diem_json);
                 cmd.ExecuteNonQuery();
@@ -135,6 +135,48 @@ namespace DAL
                 cmd.Parameters.AddWithValue("@locked", locked);
                 conn.Open();
                 cmd.ExecuteNonQuery();
+            }
+        }
+
+        // Xoa ban nhap (Hard Delete) — chi cho phep khi trang_thai = 'nhap'
+        // Ban nhap chua duoc public nen duoc xoa that khoi DB
+        public bool XoaBanNhap(int maGiaiDau)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Xoa giai doan truoc (FK)
+                        using (var cmd = new SqlCommand("DELETE FROM GIAI_DOAN WHERE ma_giai_dau=@id", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                            cmd.ExecuteNonQuery();
+                        }
+                        // Xoa quan tri giai dau
+                        using (var cmd = new SqlCommand("DELETE FROM QUAN_TRI_GIAI_DAU WHERE ma_giai_dau=@id", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                            cmd.ExecuteNonQuery();
+                        }
+                        // Xoa ban than giai dau
+                        using (var cmd = new SqlCommand("DELETE FROM GIAI_DAU WHERE ma_giai_dau=@id AND trang_thai='nhap'", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                            int rows = cmd.ExecuteNonQuery();
+                            if (rows == 0) { tx.Rollback(); return false; }
+                        }
+                        tx.Commit();
+                        return true;
+                    }
+                    catch
+                    {
+                        tx.Rollback();
+                        throw;
+                    }
+                }
             }
         }
 
@@ -344,6 +386,14 @@ namespace DAL
             return items;
         }
 
+        // Helper: kiem tra column co ton tai trong reader khong
+        private static bool HasColumn(SqlDataReader r, string colName)
+        {
+            for (int i = 0; i < r.FieldCount; i++)
+                if (r.GetName(i).Equals(colName, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
         private GiaiDauDTO MapGiaiDau(SqlDataReader r)
         {
             return new GiaiDauDTO
@@ -364,10 +414,11 @@ namespace DAL
                 ly_do_tu_choi = r["ly_do_tu_choi"] == DBNull.Value ? null : r["ly_do_tu_choi"].ToString(),
                 is_registration_locked = r["is_registration_locked"] != DBNull.Value && Convert.ToBoolean(r["is_registration_locked"]),
                 dang_mo_dang_ky = r["dang_mo_dang_ky"] != DBNull.Value && Convert.ToBoolean(r["dang_mo_dang_ky"]),
-                ngay_bat_dau = null,
-                ngay_ket_thuc = r["ngay_ket_thuc"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(r["ngay_ket_thuc"]),
                 tong_giai_thuong = r["tong_giai_thuong"] == DBNull.Value ? 0 : Convert.ToDecimal(r["tong_giai_thuong"]),
-                created_at = null,
+                // Đọc ngay_tao an toàn — cột có thể chưa tồn tại trong DB cũ (chưa chạy migration)
+                ngay_tao = HasColumn(r, "ngay_tao") && r["ngay_tao"] != DBNull.Value
+                    ? Convert.ToDateTime(r["ngay_tao"])
+                    : DateTime.Now,
                 so_doi_dang_ky = Convert.ToInt32(r["so_doi_dang_ky"]),
                 so_doi_da_duyet = Convert.ToInt32(r["so_doi_da_duyet"])
             };

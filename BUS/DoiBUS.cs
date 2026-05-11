@@ -15,6 +15,11 @@ namespace BUS
             return ThanhCong("Láº¥y danh sÃ¡ch Ä‘á»™i thÃ nh cÃ´ng.", doiDAL.TimKiemDoi(tuKhoa, maTroChoi, maNguoiDung));
         }
 
+        public ApiResponseDTO TimKiemDoiTuyChon(string keyword)
+        {
+            return ThanhCong("Tìm kiếm đội thành công.", doiDAL.TimKiemDoiTuyChon(keyword));
+        }
+
         public ApiResponseDTO LayDoiCuaToi(int maNguoiDung)
         {
             return ThanhCong("Láº¥y danh sÃ¡ch Ä‘á»™i cá»§a tÃ´i thÃ nh cÃ´ng.", doiDAL.LayDoiCuaToi(maNguoiDung));

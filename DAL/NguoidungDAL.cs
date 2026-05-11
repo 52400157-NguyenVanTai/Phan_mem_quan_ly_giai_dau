@@ -1,4 +1,4 @@
-﻿using DTO;
+using DTO;
 using System;
 using System.Data.SqlClient;
 
@@ -22,6 +22,31 @@ namespace DAL
                     return reader.Read() ? MapUser(reader) : null;
                 }
             }
+        }
+
+        public System.Collections.Generic.List<NguoidungDTO> TimKiemNguoiDung(string keyword)
+        {
+            var result = new System.Collections.Generic.List<NguoidungDTO>();
+            if (string.IsNullOrWhiteSpace(keyword)) return result;
+
+            using (SqlConnection connection = DbConnectionFactory.CreateConnection())
+            using (SqlCommand command = new SqlCommand(@"SELECT TOP 10 ma_nguoi_dung, ten_dang_nhap, email, mat_khau_ma_hoa, vai_tro_he_thong, avatar_url, bio, is_banned, ly_do_ban, thoi_gian_ban, ma_admin_ban, ngay_tao
+                                                        FROM NGUOI_DUNG
+                                                        WHERE ten_dang_nhap LIKE @kw OR email LIKE @kw", connection))
+            {
+                command.CommandTimeout = 120;
+                command.Parameters.AddWithValue("@kw", "%" + keyword + "%");
+                connection.Open();
+
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result.Add(MapUser(reader));
+                    }
+                }
+            }
+            return result;
         }
 
         public NguoidungDTO GetByEmail(string email)

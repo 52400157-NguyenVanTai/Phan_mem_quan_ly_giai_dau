@@ -597,34 +597,37 @@ BEGIN
         so_luong_doi_toi_da    INT            NULL,
         luat_giai              NVARCHAR(MAX)  NULL,
         thong_tin_lien_he      NVARCHAR(250)  NULL,
-        che_do_cong_khai       NVARCHAR(30)   NOT NULL CONSTRAINT DF_GD_CHE_DO_CONG_KHAI DEFAULT 'cong_khai_sau_duyet',        so_doi_toi_thieu       INT            NOT NULL CONSTRAINT DF_GD_DOI_TOI_THIEU DEFAULT 2,
+        che_do_cong_khai       NVARCHAR(30)   NOT NULL CONSTRAINT DF_GD_CHE_DO_CONG_KHAI DEFAULT 'cong_khai_sau_duyet',
+        so_doi_toi_thieu       INT            NOT NULL CONSTRAINT DF_GD_DOI_TOI_THIEU DEFAULT 2,
         so_doi_toi_da          INT            NULL,
         dang_mo_dang_ky        BIT            NOT NULL CONSTRAINT DF_GD_MO_DANG_KY DEFAULT 0,
         tong_giai_thuong       DECIMAL(15,2)  NOT NULL CONSTRAINT DF_GD_GIAILTHUONG DEFAULT 0,
         trang_thai             NVARCHAR(30)   NOT NULL CONSTRAINT DF_GD_TRANGTHAI   DEFAULT 'nhap',
         hien_thi_public        BIT            NOT NULL CONSTRAINT DF_GD_PUBLIC      DEFAULT 1,
         is_deleted             BIT            NOT NULL CONSTRAINT DF_GD_DELETED     DEFAULT 0,
-        thoi_gian_bat_dau_tam_hoan DATETIME   NULL,
-        thoi_gian_ket_thuc_tam_hoan DATETIME  NULL,
-        thoi_gian_tam_hoan_total INT          NULL,
-        thoi_gian_khoa         DATETIME       NULL,
-        ma_nguoi_khoa          INT            NULL,
-        ly_do_khoa             NVARCHAR(500)  NULL,
-        ly_do_tu_choi          NVARCHAR(MAX)  NULL,
-        is_registration_locked BIT            NOT NULL CONSTRAINT DF_GD_REG_LOCKED DEFAULT 0,
+        -- Ghi chú: không lưu ngày bắt đầu/kết thúc — BTC tự chuyển trạng thái thủ công
+        ly_do_tu_choi          NVARCHAR(MAX)  NULL,    -- Admin nhập khi Từ chối
+        is_registration_locked BIT            NOT NULL CONSTRAINT DF_GD_REG_LOCKED DEFAULT 0,  -- Toggle thủ công của BTC
         min_members_per_team   INT            NOT NULL CONSTRAINT DF_GD_MIN_MEMBERS DEFAULT 1,
+        ngay_tao               DATETIME       NOT NULL CONSTRAINT DF_GD_NGAYTAO DEFAULT GETDATE(),
 
-        CONSTRAINT FK_GD_TC        FOREIGN KEY (ma_tro_choi)   REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi),
-        CONSTRAINT FK_GD_NGUOITAO  FOREIGN KEY (ma_nguoi_tao)  REFERENCES NGUOI_DUNG(ma_nguoi_dung),
-        CONSTRAINT FK_GD_NGUOIKHOA FOREIGN KEY (ma_nguoi_khoa) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_GD_TC        FOREIGN KEY (ma_tro_choi)  REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi),
+        CONSTRAINT FK_GD_NGUOITAO  FOREIGN KEY (ma_nguoi_tao) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT CHK_GD_THETHUC  CHECK (the_thuc IN (
             'loai_truc_tiep','nhanh_thang_nhanh_thua',
             'dau_theo_bang','vong_tron_tinh_diem','hon_hop'
         )),
+        -- Trạng thái theo State Machine v5.0 (Manual-Trigger — BTC bấm tay)
         CONSTRAINT CHK_GD_TRANGTHAI CHECK (trang_thai IN (
-            'nhap','cho_xet_duyet','bi_tu_choi','sap_dien_ra',
-            'mo_dang_ky','khoa_dang_ky','dang_dien_ra','ket_thuc',
-            'da_huy','chuan_bi_dien_ra','tong_ket','tam_hoan','khoa'
+            'nhap',              -- Draft: BTC vừa tạo
+            'cho_xet_duyet',    -- Pending_Approval: chờ Admin duyệt
+            'bi_tu_choi',       -- Rejected: Admin từ chối, BTC được sửa lại
+            'sap_dien_ra',      -- Upcoming: đã duyệt, chưa mở đăng ký
+            'mo_dang_ky',       -- Registration_Open: đang nhận đơn đăng ký
+            'khoa_dang_ky',     -- Registration_Closed: đã chốt sổ đăng ký
+            'dang_dien_ra',     -- Live: đang thi đấu
+            'ket_thuc',         -- Completed: kết thúc, dữ liệu đóng băng
+            'da_huy'            -- Cancelled: thay thế Hard Delete
         )),
         CONSTRAINT CHK_GD_KIEU_THAM_GIA CHECK (kieu_tham_gia IN ('theo_doi','ca_nhan')),
         CONSTRAINT CHK_GD_CHE_DO_CONG_KHAI CHECK (che_do_cong_khai IN ('cong_khai_sau_duyet','rieng_tu')),
@@ -674,6 +677,7 @@ GO
 -- ---------------------------------------------------------------
 -- 5.3  YEU_CAU_TAO_GIAI_DAU  (Tournament creation request)
 -- ---------------------------------------------------------------
+-- YEU_CAU_TAO_GIAI_DAU: không dùng ngay_bat_dau/ngay_ket_thuc vì BTC tự chuyển trạng thái thủ công
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'YEU_CAU_TAO_GIAI_DAU')
 BEGIN
     CREATE TABLE YEU_CAU_TAO_GIAI_DAU (
@@ -682,14 +686,11 @@ BEGIN
         ten_giai_dau    NVARCHAR(150)  NOT NULL,
         ma_tro_choi     INT            NULL,
         the_thuc        NVARCHAR(50)   NOT NULL,
-        ngay_bat_dau    DATETIME       NOT NULL,
-        ngay_ket_thuc   DATETIME       NOT NULL,
-        tong_giai_thuong DECIMAL(15,2) NOT NULL,
+        tong_giai_thuong DECIMAL(15,2) NOT NULL CONSTRAINT DF_YCTGD_GIAI_THUONG DEFAULT 0,
         trang_thai      NVARCHAR(20)   NOT NULL CONSTRAINT DF_YCTGD_TRANGTHAI DEFAULT 'cho_duyet',
         ma_admin_duyet  INT            NULL,
         ly_do_huy       NVARCHAR(500)  NULL,
         thoi_gian_gui   DATETIME       NOT NULL CONSTRAINT DF_YCTGD_THOIGIANGUI DEFAULT GETDATE(),
-        thoi_gian_duyet DATETIME       NULL,
 
         CONSTRAINT FK_YCTGD_NGUOIGUI FOREIGN KEY (ma_nguoi_gui)   REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_YCTGD_TC       FOREIGN KEY (ma_tro_choi)    REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi),
@@ -811,6 +812,7 @@ GO
 -- ---------------------------------------------------------------
 -- 7.1  TRAN_DAU  (Match)
 -- ---------------------------------------------------------------
+-- TRAN_DAU: không lưu thời gian cụ thể — BTC bấm nút để bắt đầu/kết thúc trận (Manual-Trigger)
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TRAN_DAU')
 BEGIN
     CREATE TABLE TRAN_DAU (
@@ -824,11 +826,6 @@ BEGIN
         nhanh_dau              NVARCHAR(30)  NULL,    -- winners/losers bracket
         ma_tran_tiep_theo_thang INT          NULL,
         ma_tran_tiep_theo_thua  INT          NULL,
-        thoi_gian_bat_dau      DATETIME      NULL,
-        thoi_gian_ket_thuc     DATETIME      NULL,
-        thoi_gian_nhap_diem    DATETIME      NULL,
-        so_lan_sua             INT           NOT NULL CONSTRAINT DF_TD_SOLANSUA DEFAULT 0,
-        cho_phep_sua_den       DATETIME      NULL,
         id_phong_game          NVARCHAR(50)  NULL,
         mat_khau_phong         NVARCHAR(50)  NULL,
         trang_thai             NVARCHAR(20)  NOT NULL CONSTRAINT DF_TD_TRANGTHAI DEFAULT 'chua_dau',
@@ -1020,10 +1017,34 @@ BEGIN
 END
 GO
 
-IF COL_LENGTH('dbo.TRAN_DAU', 'cho_phep_sua_den') IS NULL
+-- Patch: xóa các cột thời gian và so_lan_sua khỏi TRAN_DAU (BTC bấm nút để bắt đầu/kết thúc trận)
+IF COL_LENGTH('dbo.TRAN_DAU', 'thoi_gian_bat_dau') IS NOT NULL
 BEGIN
-    ALTER TABLE dbo.TRAN_DAU
-    ADD cho_phep_sua_den DATETIME NULL;
+    ALTER TABLE dbo.TRAN_DAU DROP COLUMN thoi_gian_bat_dau;
+END
+GO
+
+IF COL_LENGTH('dbo.TRAN_DAU', 'thoi_gian_ket_thuc') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP COLUMN thoi_gian_ket_thuc;
+END
+GO
+
+IF COL_LENGTH('dbo.TRAN_DAU', 'thoi_gian_nhap_diem') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP COLUMN thoi_gian_nhap_diem;
+END
+GO
+
+IF COL_LENGTH('dbo.TRAN_DAU', 'cho_phep_sua_den') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP COLUMN cho_phep_sua_den;
+END
+GO
+
+IF COL_LENGTH('dbo.TRAN_DAU', 'so_lan_sua') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP COLUMN so_lan_sua;
 END
 GO
 
@@ -1069,38 +1090,66 @@ BEGIN
 END
 GO
 
-IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_bat_dau_tam_hoan') IS NULL
+-- Patch: xóa các cột thời gian dư thừa khỏi GIAI_DAU (không dùng timer/cronjob)
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_bat_dau_tam_hoan') IS NOT NULL
 BEGIN
-    ALTER TABLE dbo.GIAI_DAU
-    ADD thoi_gian_bat_dau_tam_hoan DATETIME NULL;
+    ALTER TABLE dbo.GIAI_DAU DROP COLUMN thoi_gian_bat_dau_tam_hoan;
 END
 GO
 
-IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_ket_thuc_tam_hoan') IS NULL
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_ket_thuc_tam_hoan') IS NOT NULL
 BEGIN
-    ALTER TABLE dbo.GIAI_DAU
-    ADD thoi_gian_ket_thuc_tam_hoan DATETIME NULL;
+    ALTER TABLE dbo.GIAI_DAU DROP COLUMN thoi_gian_ket_thuc_tam_hoan;
 END
 GO
 
-IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_tam_hoan_total') IS NULL
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_tam_hoan_total') IS NOT NULL
 BEGIN
-    ALTER TABLE dbo.GIAI_DAU
-    ADD thoi_gian_tam_hoan_total INT NULL;
+    ALTER TABLE dbo.GIAI_DAU DROP COLUMN thoi_gian_tam_hoan_total;
 END
 GO
 
-IF COL_LENGTH('dbo.GIAI_DOAN', 'ngay_bat_dau') IS NULL
+-- Patch: xóa thoi_gian_khoa, ma_nguoi_khoa, ly_do_khoa (BTC dùng is_registration_locked thủ công)
+IF COL_LENGTH('dbo.GIAI_DAU', 'thoi_gian_khoa') IS NOT NULL
 BEGIN
-    ALTER TABLE dbo.GIAI_DOAN
-    ADD ngay_bat_dau DATETIME NULL;
+    -- Drop FK trước nếu có
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_GD_NGUOIKHOA' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
+        ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT FK_GD_NGUOIKHOA;
+    ALTER TABLE dbo.GIAI_DAU DROP COLUMN thoi_gian_khoa;
 END
 GO
 
-IF COL_LENGTH('dbo.GIAI_DOAN', 'ngay_ket_thuc') IS NULL
+IF COL_LENGTH('dbo.GIAI_DAU', 'ma_nguoi_khoa') IS NOT NULL
 BEGIN
-    ALTER TABLE dbo.GIAI_DOAN
-    ADD ngay_ket_thuc DATETIME NULL;
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_GD_NGUOIKHOA' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
+        ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT FK_GD_NGUOIKHOA;
+    ALTER TABLE dbo.GIAI_DAU DROP COLUMN ma_nguoi_khoa;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DAU', 'ly_do_khoa') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU DROP COLUMN ly_do_khoa;
+END
+GO
+
+-- Patch: xóa ngay_bat_dau/ngay_ket_thuc khỏi GIAI_DOAN (BTC tự chuyển trạng thái)
+IF COL_LENGTH('dbo.GIAI_DOAN', 'ngay_bat_dau') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN DROP COLUMN ngay_bat_dau;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DOAN', 'ngay_ket_thuc') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN DROP COLUMN ngay_ket_thuc;
+END
+GO
+
+-- Patch: thêm ngay_tao vào GIAI_DAU nếu chưa có
+IF COL_LENGTH('dbo.GIAI_DAU', 'ngay_tao') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU ADD ngay_tao DATETIME NOT NULL CONSTRAINT DF_GD_NGAYTAO_PATCH DEFAULT GETDATE();
 END
 GO
 
@@ -1156,17 +1205,23 @@ BEGIN
 END
 GO
 
+-- Migration dữ liệu: chuyển trạng thái cũ sang trạng thái mới theo spec v5.0
 UPDATE dbo.GIAI_DAU
 SET trang_thai = CASE trang_thai
-    WHEN 'ban_nhap' THEN 'nhap'
+    WHEN 'ban_nhap'      THEN 'nhap'
     WHEN 'cho_phe_duyet' THEN 'cho_xet_duyet'
-    WHEN 'mo_dang_ky' THEN 'chuan_bi_dien_ra'
-    WHEN 'sap_dien_ra' THEN 'chuan_bi_dien_ra'
+    WHEN 'sap_dien_ra'   THEN 'sap_dien_ra'   -- giữ nguyên, đã đúng spec
+    WHEN 'mo_dang_ky'    THEN 'mo_dang_ky'    -- giữ nguyên, đã đúng spec
+    WHEN 'chuan_bi_dien_ra' THEN 'sap_dien_ra' -- map sang tên mới
+    WHEN 'tong_ket'      THEN 'ket_thuc'
+    WHEN 'tam_hoan'      THEN 'da_huy'        -- tạm hoãn → hủy (không còn dùng timer)
+    WHEN 'khoa'          THEN 'khoa_dang_ky'  -- map sang tên mới
     ELSE trang_thai
 END
-WHERE trang_thai IN ('ban_nhap', 'cho_phe_duyet', 'mo_dang_ky', 'sap_dien_ra');
+WHERE trang_thai IN ('ban_nhap','cho_phe_duyet','chuan_bi_dien_ra','tong_ket','tam_hoan','khoa');
 GO
 
+-- Cập nhật DEFAULT constraint
 IF EXISTS (SELECT 1 FROM sys.default_constraints WHERE name = 'DF_GD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
 BEGIN
     ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT DF_GD_TRANGTHAI;
@@ -1176,14 +1231,24 @@ GO
 ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT DF_GD_TRANGTHAI DEFAULT 'nhap' FOR trang_thai;
 GO
 
+-- Cập nhật CHECK constraint trạng thái theo State Machine v5.0 (Manual-Trigger)
 IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_GD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
 BEGIN
     ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT CHK_GD_TRANGTHAI;
 END
 GO
 
-ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT CHK_GD_TRANGTHAI
-CHECK (trang_thai IN ('nhap','cho_xet_duyet','chuan_bi_dien_ra','dang_dien_ra','tong_ket','ket_thuc','tam_hoan','khoa'));
+ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT CHK_GD_TRANGTHAI CHECK (trang_thai IN (
+    'nhap',           -- Draft: BTC vừa tạo, chỉ BTC thấy
+    'cho_xet_duyet',  -- Pending_Approval: chờ Admin duyệt
+    'bi_tu_choi',     -- Rejected: Admin từ chối, BTC được sửa lại
+    'sap_dien_ra',    -- Upcoming: đã duyệt, hiện public, chưa mở đăng ký
+    'mo_dang_ky',     -- Registration_Open: đang nhận đơn
+    'khoa_dang_ky',   -- Registration_Closed: đã chốt, BTC đang duyệt đội
+    'dang_dien_ra',   -- Live: đang thi đấu
+    'ket_thuc',       -- Completed: kết thúc, dữ liệu đóng băng (Read-only)
+    'da_huy'          -- Cancelled: thay thế Hard Delete
+));
 GO
 
 IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_TV_VAITRO' AND parent_object_id = OBJECT_ID('dbo.THANH_VIEN_DOI'))
@@ -1392,7 +1457,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TD_GD_GDO_TRANGTHAI' A
 BEGIN
     CREATE INDEX IX_TD_GD_GDO_TRANGTHAI
         ON TRAN_DAU(ma_giai_dau, ma_giai_doan, trang_thai)
-        INCLUDE (thoi_gian_bat_dau, the_thuc_tran);
+        INCLUDE (the_thuc_tran);
 END
 
 -- Fast lookup: player stats per match

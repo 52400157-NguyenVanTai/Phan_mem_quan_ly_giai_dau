@@ -123,8 +123,25 @@ namespace BUS
             if (!isBTC && !isAdmin) return Loi("Bạn không có quyền hủy giải đấu.");
             string tt = dal.LayTrangThai(maGiaiDau);
             if (tt == "ket_thuc" || tt == "da_huy") return Loi("Không thể hủy giải đấu ở trạng thái này.");
+            // Bản nháp chưa public → xóa thật (hard delete)
+            if (tt == "nhap")
+            {
+                bool ok = dal.XoaBanNhap(maGiaiDau);
+                return ok ? Ok("Đã xóa bản nháp thành công.", null) : Loi("Không thể xóa bản nháp này.");
+            }
+            // Các trạng thái đã public → soft delete
             dal.CapNhatTrangThai(maGiaiDau, "da_huy");
             return Ok("Đã hủy giải đấu.", null);
+        }
+
+        // Xoa ban nhap (Hard Delete) — chi khi trang_thai = 'nhap', chua public
+        public ApiResponseDTO XoaBanNhap(int maNguoiDung, int maGiaiDau)
+        {
+            if (!dal.LaBTC(maGiaiDau, maNguoiDung)) return Loi("Bạn không có quyền xóa giải đấu này.");
+            string tt = dal.LayTrangThai(maGiaiDau);
+            if (tt != "nhap") return Loi("Chỉ được xóa bản nháp. Giải đã public thì dùng Hủy giải.");
+            bool ok = dal.XoaBanNhap(maGiaiDau);
+            return ok ? Ok("Đã xóa bản nháp thành công.", null) : Loi("Không thể xóa. Vui lòng thử lại.");
         }
 
         public ApiResponseDTO ToggleKhoaDangKy(int maNguoiDung, int maGiaiDau, bool locked)

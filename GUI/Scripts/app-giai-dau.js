@@ -94,6 +94,8 @@
 
   function addStage() {
     stageIndex++;
+    var maxTeamsInput = document.getElementById("maxTeams");
+    var defaultTeams = (maxTeamsInput && maxTeamsInput.value) ? maxTeamsInput.value : "16";
     var container = document.getElementById("stageContainer");
     var div = document.createElement("div");
     div.className = "stage-card";
@@ -119,7 +121,7 @@
       '</div>' +
       '<div class="form-row">' +
         '<div class="form-group"><label>Số đội</label>' +
-          '<input type="number" class="form-control stage-teams" min="2" value="16"></div>' +
+          '<input type="number" class="form-control stage-teams" min="2" value="' + defaultTeams + '"></div>' +
         '<div class="form-group"><label>Số đội đi tiếp</label>' +
           '<input type="number" class="form-control stage-advance" min="0" placeholder="NULL = cuối"></div>' +
       '</div>';
@@ -206,6 +208,17 @@
       for (var i = 0; i < stages.length; i++) {
         if (!stages[i].ten_giai_doan) { alert("Vui lòng nhập tên cho giai đoạn " + (i + 1)); return; }
         if (!stages[i].the_thuc) { alert("Vui lòng chọn thể thức cho giai đoạn " + (i + 1)); return; }
+        // Giai đoạn cuối (tìm nhà vô địch) → không cần số đội đi tiếp
+        // Các giai đoạn trước bắt buộc phải nhập số đội đi tiếp
+        if (i < stages.length - 1) {
+          if (stages[i].so_doi_di_tiep == null || stages[i].so_doi_di_tiep <= 0) {
+            alert("Giai đoạn " + (i + 1) + " bắt buộc phải nhập số đội đi tiếp (vì không phải giai đoạn cuối).");
+            return;
+          }
+        } else {
+          // Giai đoạn cuối: tự động set null (sẽ thành 0 ở backend)
+          stages[i].so_doi_di_tiep = null;
+        }
       }
       var body = {
         ten_giai_dau: document.getElementById("tenGiaiDau").value,
@@ -282,6 +295,20 @@
     var bannerHtml = t.banner_url
       ? '<div class="card-banner" style="background-image:url(' + esc(t.banner_url) + ')"></div>'
       : '<div class="card-banner card-banner-default"></div>';
+
+    // Nút hành động nhanh ngay trên card (không cần mở modal)
+    var quickActions = '';
+    if (t.trang_thai === 'nhap' || t.trang_thai === 'bi_tu_choi') {
+      quickActions += '<button class="btn btn-primary btn-sm quick-submit-btn" data-id="' + t.ma_giai_dau + '" title="Gửi lên Admin để phê duyệt">📤 Gửi lên Admin</button>';
+    }
+
+
+    // Hiển thị lý do từ chối nếu có
+    var rejectNote = '';
+    if (t.trang_thai === 'bi_tu_choi' && t.ly_do_tu_choi) {
+      rejectNote = '<div class="reject-note"><strong>Lý do từ chối:</strong> ' + esc(t.ly_do_tu_choi) + '</div>';
+    }
+
     return (
       '<div class="tournament-card" data-id="' + t.ma_giai_dau + '">' +
         bannerHtml +
@@ -291,11 +318,15 @@
             '<span class="card-game">' + esc(t.ten_game || "Chưa chọn game") + '</span>' +
           '</div>' +
           '<h3 class="card-title">' + esc(t.ten_giai_dau) + '</h3>' +
+          rejectNote +
           '<div class="card-meta">' +
             '<span>👥 ' + (t.so_doi_da_duyet || 0) + '/' + (t.so_doi_toi_da || "∞") + ' đội</span>' +
             '<span>🎯 Min ' + t.so_doi_toi_thieu + '</span>' +
           '</div>' +
-          '<button class="btn btn-outline-primary btn-sm view-detail-btn" data-id="' + t.ma_giai_dau + '">Xem chi tiết</button>' +
+          '<div class="card-actions">' +
+            quickActions +
+            '<button class="btn btn-outline-primary btn-sm view-detail-btn" data-id="' + t.ma_giai_dau + '">Xem chi tiết</button>' +
+          '</div>' +
         '</div>' +
       '</div>'
     );
@@ -308,6 +339,21 @@
         openDetail(parseInt(btn.getAttribute("data-id")));
       });
     });
+    // Nút Gửi lên Admin nhanh (không cần mở modal)
+    container.querySelectorAll(".quick-submit-btn").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.stopPropagation();
+        var id = parseInt(btn.getAttribute("data-id"));
+        if (!confirm("Gửi giải đấu này lên Admin để phê duyệt?")) return;
+        btn.disabled = true;
+        btn.textContent = "Đang gửi...";
+        var result = await postApi("/GiaiDauApi/Submit", { ma_giai_dau: id });
+        alert(result.message || "Đã xử lý.");
+        if (result.success) loadMyTournaments();
+        else { btn.disabled = false; btn.textContent = "📤 Gửi lên Admin"; }
+      });
+    });
+
   }
 
   // ---- DETAIL MODAL ----
@@ -372,29 +418,35 @@
     // Footer actions based on state
     var footerHtml = '';
     var tt = gd.trang_thai;
-    if (tt === "nhap" || tt === "bi_tu_choi") {
-      footerHtml += '<button class="btn btn-primary action-btn" data-action="submit" data-id="' + id + '">Gửi phê duyệt</button>';
-      footerHtml += '<button class="btn btn-danger action-btn" data-action="cancel" data-id="' + id + '">Hủy giải</button>';
+    if (tt === "nhap") {
+      // Bản nháp chưa public: Gửi duyệt + Xóa hẳn khỏi DB
+      footerHtml += '<button class="btn btn-primary action-btn" onclick="handleAction(\'submit\', ' + id + ')">Gửi phê duyệt</button>';
+      footerHtml += '<button class="btn btn-danger action-btn" onclick="handleAction(\'delete-draft\', ' + id + ')">🗑 Xóa bản nháp</button>';
+    }
+    if (tt === "bi_tu_choi") {
+      // Bị từ chối: Gửi lại + Hủy (soft)
+      footerHtml += '<button class="btn btn-primary action-btn" onclick="handleAction(\'submit\', ' + id + ')">Gửi phê duyệt lại</button>';
+      footerHtml += '<button class="btn btn-danger action-btn" onclick="handleAction(\'cancel\', ' + id + ')">Hủy giải</button>';
     }
     if (tt === "cho_xet_duyet") {
-      footerHtml += '<button class="btn btn-success action-btn" data-action="approve" data-id="' + id + '">Phê duyệt</button>';
+      footerHtml += '<button class="btn btn-success action-btn" onclick="handleAction(\'approve\', ' + id + ')">Phê duyệt</button>';
       footerHtml += '<button class="btn btn-danger reject-btn" data-id="' + id + '">Từ chối</button>';
     }
     if (tt === "sap_dien_ra") {
-      footerHtml += '<button class="btn btn-success action-btn" data-action="open-reg" data-id="' + id + '">Mở đăng ký</button>';
-      footerHtml += '<button class="btn btn-danger action-btn" data-action="cancel" data-id="' + id + '">Hủy giải</button>';
+      footerHtml += '<button class="btn btn-success action-btn" onclick="handleAction(\'open-reg\', ' + id + ')">Mở đăng ký</button>';
+      footerHtml += '<button class="btn btn-danger action-btn" onclick="handleAction(\'cancel\', ' + id + ')">Hủy giải</button>';
     }
     if (tt === "mo_dang_ky") {
-      footerHtml += '<button class="btn btn-warning action-btn" data-action="close-reg" data-id="' + id + '">Chốt sổ đăng ký</button>';
-      footerHtml += '<button class="btn btn-danger action-btn" data-action="cancel" data-id="' + id + '">Hủy giải</button>';
+      footerHtml += '<button class="btn btn-warning action-btn" onclick="handleAction(\'close-reg\', ' + id + ')">Chốt sổ đăng ký</button>';
+      footerHtml += '<button class="btn btn-danger action-btn" onclick="handleAction(\'cancel\', ' + id + ')">Hủy giải</button>';
     }
     if (tt === "khoa_dang_ky") {
-      footerHtml += '<button class="btn btn-success action-btn" data-action="start" data-id="' + id + '">Khởi tranh</button>';
-      footerHtml += '<button class="btn btn-outline-primary action-btn" data-action="reopen-reg" data-id="' + id + '">Mở lại đăng ký</button>';
-      footerHtml += '<button class="btn btn-danger action-btn" data-action="cancel" data-id="' + id + '">Hủy giải</button>';
+      footerHtml += '<button class="btn btn-success action-btn" onclick="handleAction(\'start\', ' + id + ')">Khởi tranh</button>';
+      footerHtml += '<button class="btn btn-outline-primary action-btn" onclick="handleAction(\'reopen-reg\', ' + id + ')">Mở lại đăng ký</button>';
+      footerHtml += '<button class="btn btn-danger action-btn" onclick="handleAction(\'cancel\', ' + id + ')">Hủy giải</button>';
     }
     if (tt === "dang_dien_ra") {
-      footerHtml += '<button class="btn btn-primary action-btn" data-action="complete" data-id="' + id + '">Bế mạc giải</button>';
+      footerHtml += '<button class="btn btn-primary action-btn" onclick="handleAction(\'complete\', ' + id + ')">Bế mạc giải</button>';
     }
     
     // Nút "Đăng ký tham gia" nếu đang mở đăng ký
@@ -411,10 +463,7 @@
     
     document.getElementById("detailFooter").innerHTML = footerHtml;
 
-    // Attach action events
-    document.querySelectorAll("#detailFooter .action-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () { handleAction(btn.getAttribute("data-action"), parseInt(btn.getAttribute("data-id"))); });
-    });
+    // Attach reject btn event
     document.querySelectorAll("#detailFooter .reject-btn").forEach(function (btn) {
       btn.addEventListener("click", function () { openRejectModal(parseInt(btn.getAttribute("data-id"))); });
     });
@@ -430,25 +479,34 @@
     "start": "/GiaiDauApi/Start",
     "complete": "/GiaiDauApi/Complete",
     "cancel": "/GiaiDauApi/Cancel",
+    "delete-draft": "/GiaiDauApi/DeleteDraft",   // Hard delete bản nháp
   };
 
-  async function handleAction(action, id) {
-    var confirmMessages = {
-      "submit": "Gửi yêu cầu phê duyệt?",
-      "approve": "Phê duyệt giải đấu này?",
-      "cancel": "Hủy giải đấu? Hành động này không thể hoàn tác.",
-      "start": "Khởi tranh giải đấu?",
-      "complete": "Bế mạc giải đấu? Hành động này không thể hoàn tác.",
-    };
-    if (confirmMessages[action] && !confirm(confirmMessages[action])) return;
-    var url = ACTION_ENDPOINTS[action];
-    if (!url) return;
-    var result = await postApi(url, { ma_giai_dau: id });
-    alert(result.message || "Đã xử lý.");
-    if (result.success) {
-      document.getElementById("tournamentDetailModal").style.display = "none";
-      loadMyTournaments();
-      if (document.getElementById("tab-pending")) loadPendingTournaments();
+  window.handleAction = async function (action, id) {
+    try {
+      var confirmMessages = {
+        "submit": "Gửi yêu cầu phê duyệt?",
+        "approve": "Phê duyệt giải đấu này?",
+        "cancel": "Hủy giải đấu? Hành động này không thể hoàn tác.",
+        "delete-draft": "Xóa bản nháp? Giải đấu sẽ bị xóa hoàn toàn khỏi database!",
+        "start": "Khởi tranh giải đấu?",
+        "complete": "Bế mạc giải đấu? Hành động này không thể hoàn tác.",
+      };
+      if (confirmMessages[action] && !confirm(confirmMessages[action])) return;
+      var url = ACTION_ENDPOINTS[action];
+      if (!url) {
+        alert("Thao tác không hợp lệ.");
+        return;
+      }
+      var result = await postApi(url, { ma_giai_dau: id });
+      alert(result.message || "Đã xử lý.");
+      if (result.success) {
+        document.getElementById("tournamentDetailModal").style.display = "none";
+        loadMyTournaments();
+        if (document.getElementById("tab-pending")) loadPendingTournaments();
+      }
+    } catch (e) {
+      alert("Lỗi: " + e.message);
     }
   }
 
@@ -500,21 +558,201 @@
       }
   };
 
+  // ---- CUSTOM AUTOCOMPLETE MODAL VARIABLES ----
+  var currentInviteContext = {
+      maGiaiDau: null,
+      loai: null,
+      selectedId: null
+  };
+  var inviteDebounceTimer = null;
+  var inviteModal = document.getElementById("inviteModal");
+  var inviteSearchInput = document.getElementById("inviteSearchInput");
+  var inviteSearchSpinner = document.getElementById("inviteSearchSpinner");
+  var inviteAutocompleteDropdown = document.getElementById("inviteAutocompleteDropdown");
+  var inviteValidationMessage = document.getElementById("inviteValidationMessage");
+  var inviteMessage = document.getElementById("inviteMessage");
+  var inviteRoleGroup = document.getElementById("inviteRoleGroup");
+  var inviteRoleSelect = document.getElementById("inviteRoleSelect");
+
   window.openInviteModal = function(maGiaiDau, loai) {
+      currentInviteContext.maGiaiDau = maGiaiDau;
+      currentInviteContext.loai = loai;
+      currentInviteContext.selectedId = null;
+
+      // Reset UI
+      inviteSearchInput.value = "";
+      inviteAutocompleteDropdown.style.display = "none";
+      inviteAutocompleteDropdown.innerHTML = "";
+      inviteValidationMessage.style.display = "none";
+      inviteMessage.value = "";
+
+      var title = "Gửi lời mời";
       if (loai === 'doi') {
-          var maDoi = prompt("Nhập mã Đội bạn muốn mời:");
-          if (maDoi) {
-              postApi("/GiaiDauApi/InviteTeam", { ma_giai_dau: maGiaiDau, ma_doi: parseInt(maDoi), loi_nhan: "Xin mời tham gia giải đấu" })
-                  .then(res => alert(res.message));
-          }
+          title = "Mời Đội tham gia";
+          document.getElementById("inviteInputLabel").innerHTML = "Tìm kiếm Đội <span class='required'>*</span>";
+          inviteSearchInput.placeholder = "Gõ tên đội hoặc tên viết tắt...";
+          inviteRoleGroup.style.display = "none";
       } else {
-          var user = prompt("Nhập Username hoặc Email của người muốn mời làm " + (loai === "btc" ? "BTC" : "Trọng tài") + ":");
-          if (user) {
-              postApi("/GiaiDauApi/InviteNhanSu", { ma_giai_dau: maGiaiDau, username_or_email: user, vai_tro: loai, loi_nhan: "Mời hợp tác giải đấu" })
-                  .then(res => alert(res.message));
+          title = loai === 'btc' ? "Mời Ban Tổ Chức" : "Mời Trọng Tài";
+          document.getElementById("inviteInputLabel").innerHTML = "Tìm kiếm Người dùng <span class='required'>*</span>";
+          inviteSearchInput.placeholder = "Gõ username, email hoặc tên...";
+          inviteRoleGroup.style.display = "block";
+          
+          inviteRoleSelect.innerHTML = "";
+          if (loai === 'btc') {
+              inviteRoleSelect.innerHTML = '<option value="btc">Ban Tổ Chức</option>';
+          } else {
+              inviteRoleSelect.innerHTML = '<option value="trong_tai">Trọng Tài</option><option value="trong_tai_chinh">Trọng Tài Chính</option>';
           }
       }
+      
+      document.getElementById("inviteModalTitle").innerText = title;
+      inviteModal.style.display = "flex";
+      setTimeout(() => inviteSearchInput.focus(), 100);
   };
+
+  // Handle Close
+  var closeInviteModalBtn = document.getElementById("closeInviteModal");
+  var cancelInviteModalBtn = document.getElementById("cancelInviteModal");
+  function closeInvite() { inviteModal.style.display = "none"; }
+  if (closeInviteModalBtn) closeInviteModalBtn.addEventListener("click", closeInvite);
+  if (cancelInviteModalBtn) cancelInviteModalBtn.addEventListener("click", closeInvite);
+  if (inviteModal) inviteModal.addEventListener("click", function(e) { if (e.target === inviteModal) closeInvite(); });
+
+  // Handle Search Input (Debounce)
+  if (inviteSearchInput) {
+      inviteSearchInput.addEventListener("input", function() {
+          var val = this.value.trim();
+          currentInviteContext.selectedId = null; // reset selection on typing
+          inviteValidationMessage.style.display = "none";
+
+          clearTimeout(inviteDebounceTimer);
+          
+          if (val.length < 2) {
+              inviteAutocompleteDropdown.style.display = "none";
+              inviteSearchSpinner.style.display = "none";
+              return;
+          }
+
+          inviteSearchSpinner.style.display = "block";
+          inviteDebounceTimer = setTimeout(function() {
+              var url = currentInviteContext.loai === 'doi' 
+                  ? "/DoiApi/Search?keyword=" + encodeURIComponent(val)
+                  : "/AuthApi/Search?keyword=" + encodeURIComponent(val);
+
+              fetch(url)
+                  .then(res => res.json())
+                  .then(res => {
+                      inviteSearchSpinner.style.display = "none";
+                      renderAutocomplete(res.data || res);
+                  })
+                  .catch(err => {
+                      inviteSearchSpinner.style.display = "none";
+                      console.error(err);
+                  });
+          }, 400);
+      });
+  }
+
+  function renderAutocomplete(data) {
+      inviteAutocompleteDropdown.innerHTML = "";
+      if (!data || data.length === 0) {
+          inviteAutocompleteDropdown.innerHTML = '<div class="autocomplete-empty">Không tìm thấy dữ liệu phù hợp</div>';
+          inviteAutocompleteDropdown.style.display = "block";
+          return;
+      }
+
+      data.forEach(item => {
+          var isDoi = currentInviteContext.loai === 'doi';
+          var id = isDoi ? item.ma_doi : item.ma_nguoi_dung;
+          var name = isDoi ? item.ten_doi : item.ten_dang_nhap;
+          var sub = isDoi ? (item.ten_viet_tat || "Không có tag") : (item.email || "Không có email");
+          var avatar = isDoi ? item.logo_url : item.avatar_url;
+          
+          var initial = name ? name.charAt(0).toUpperCase() : '?';
+          var avatarHtml = avatar 
+              ? `<img src="${esc(avatar)}" alt="Avatar">` 
+              : `<span>${esc(initial)}</span>`;
+
+          var div = document.createElement("div");
+          div.className = "autocomplete-item";
+          div.innerHTML = `
+              <div class="autocomplete-avatar">${avatarHtml}</div>
+              <div class="autocomplete-info">
+                  <span class="autocomplete-name">${esc(name)}</span>
+                  <span class="autocomplete-sub">${esc(sub)}</span>
+              </div>
+          `;
+          
+          div.addEventListener("click", function() {
+              currentInviteContext.selectedId = id;
+              inviteSearchInput.value = name;
+              inviteAutocompleteDropdown.style.display = "none";
+              inviteValidationMessage.style.display = "none";
+          });
+          
+          inviteAutocompleteDropdown.appendChild(div);
+      });
+      inviteAutocompleteDropdown.style.display = "block";
+  }
+
+  // Handle Submit
+  var confirmInviteModalBtn = document.getElementById("confirmInviteModal");
+  if (confirmInviteModalBtn) {
+      confirmInviteModalBtn.addEventListener("click", function() {
+          if (!currentInviteContext.selectedId) {
+              inviteValidationMessage.style.display = "block";
+              return;
+          }
+
+          var msg = inviteMessage.value.trim();
+          var payload;
+          var endpoint;
+
+          if (currentInviteContext.loai === 'doi') {
+              endpoint = "/GiaiDauApi/InviteTeam";
+              payload = {
+                  ma_giai_dau: currentInviteContext.maGiaiDau,
+                  ma_doi: currentInviteContext.selectedId,
+                  loi_nhan: msg || "Xin mời tham gia giải đấu"
+              };
+          } else {
+              endpoint = "/GiaiDauApi/InviteNhanSu";
+              // We need to pass the username or email. But we have ID.
+              // Wait, the API requires username_or_email.
+              // Let's pass the input value which is the username!
+              var username = inviteSearchInput.value.trim();
+              payload = {
+                  ma_giai_dau: currentInviteContext.maGiaiDau,
+                  username_or_email: username,
+                  vai_tro: currentInviteContext.loai === 'btc' ? "btc" : inviteRoleSelect.value,
+                  loi_nhan: msg || "Mời hợp tác giải đấu"
+              };
+          }
+
+          // Disable button to prevent double submit
+          confirmInviteModalBtn.disabled = true;
+          confirmInviteModalBtn.innerHTML = "Đang gửi...";
+
+          postApi(endpoint, payload)
+              .then(res => {
+                  confirmInviteModalBtn.disabled = false;
+                  confirmInviteModalBtn.innerHTML = "Xác nhận";
+                  if (res.success) {
+                      alert("Đã gửi lời mời thành công!");
+                      closeInvite();
+                  } else {
+                      alert("Lỗi: " + res.message);
+                  }
+              })
+              .catch(err => {
+                  confirmInviteModalBtn.disabled = false;
+                  confirmInviteModalBtn.innerHTML = "Xác nhận";
+                  alert("Đã xảy ra lỗi khi gửi lời mời.");
+                  console.error(err);
+              });
+      });
+  }
 
   // ---- INIT ----
   loadMyTournaments();

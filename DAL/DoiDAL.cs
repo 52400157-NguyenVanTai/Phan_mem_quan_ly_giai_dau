@@ -41,6 +41,36 @@ namespace DAL
             return items;
         }
 
+        public List<DoiDTO> TimKiemDoiTuyChon(string keyword)
+        {
+            List<DoiDTO> items = new List<DoiDTO>();
+            if (string.IsNullOrWhiteSpace(keyword)) return items;
+
+            using (SqlConnection connection = DbConnectionFactory.CreateConnection())
+            using (SqlCommand command = new SqlCommand(@"SELECT TOP 10 ma_doi, ten_doi, ten_viet_tat, logo_url
+                                                        FROM DOI
+                                                        WHERE trang_thai = 'dang_hoat_dong'
+                                                          AND (ten_doi LIKE @kw OR ten_viet_tat LIKE @kw)", connection))
+            {
+                command.Parameters.AddWithValue("@kw", "%" + keyword.Trim() + "%");
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        items.Add(new DoiDTO
+                        {
+                            ma_doi = Convert.ToInt32(reader["ma_doi"]),
+                            ten_doi = reader["ten_doi"].ToString(),
+                            ten_viet_tat = reader["ten_viet_tat"] == DBNull.Value ? null : reader["ten_viet_tat"].ToString(),
+                            logo_url = reader["logo_url"] == DBNull.Value ? null : reader["logo_url"].ToString()
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
         public List<DoiDTO> LayDoiCuaToi(int maNguoiDung)
         {
             List<DoiDTO> items = new List<DoiDTO>();

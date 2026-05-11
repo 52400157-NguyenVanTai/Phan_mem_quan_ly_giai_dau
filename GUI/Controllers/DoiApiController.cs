@@ -12,6 +12,12 @@ namespace GUI.Controllers
         private readonly DoiBUS doiBUS = new DoiBUS();
 
         [HttpGet]
+        public JsonResult Search(string keyword)
+        {
+            return Json(doiBUS.TimKiemDoiTuyChon(keyword), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
         public JsonResult All(string q, int? maTroChoi)
         {
             int? userId = Session["UserId"] as int?;

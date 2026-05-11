@@ -23,10 +23,8 @@ namespace DTO
         public string ly_do_tu_choi { get; set; }
         public bool is_registration_locked { get; set; }
         public bool dang_mo_dang_ky { get; set; }
-        public DateTime? ngay_bat_dau { get; set; }
-        public DateTime? ngay_ket_thuc { get; set; }
         public decimal tong_giai_thuong { get; set; }
-        public DateTime? created_at { get; set; }
+        public DateTime ngay_tao { get; set; }   // thời điểm tạo bản ghi
         public int so_doi_dang_ky { get; set; }
         public int so_doi_da_duyet { get; set; }
     }
@@ -140,7 +138,7 @@ namespace DTO
         public string trang_thai { get; set; }
         public string id_phong_game { get; set; }
         public string mat_khau_phong { get; set; }
-        public DateTime? thoi_gian_bat_dau { get; set; }
+        // Không lưu thời gian — BTC bấm nút để bắt đầu/kết thúc trận (Manual-Trigger)
         public List<ChiTietTranDauDTO> chi_tiet { get; set; }
     }
 

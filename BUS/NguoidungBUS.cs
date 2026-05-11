@@ -9,6 +9,11 @@ namespace BUS
     {
         private readonly NguoidungDAL nguoidungDAL = new NguoidungDAL();
 
+        public ApiResponseDTO TimKiemNguoiDung(string keyword)
+        {
+            return ThanhCong("Tìm kiếm người dùng thành công", nguoidungDAL.TimKiemNguoiDung(keyword));
+        }
+
         public ApiResponseDTO DangNhap(LoginRequestDTO request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.ten_dang_nhap_hoac_email) || string.IsNullOrWhiteSpace(request.mat_khau))

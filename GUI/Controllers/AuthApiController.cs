@@ -11,6 +11,12 @@ namespace GUI.Controllers
         private readonly NguoidungBUS nguoidungBUS = new NguoidungBUS();
 
         [HttpGet]
+        public JsonResult Search(string keyword)
+        {
+            return Json(nguoidungBUS.TimKiemNguoiDung(keyword), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpGet]
         public JsonResult CurrentUser()
         {
             int? userId = Session["UserId"] as int?;

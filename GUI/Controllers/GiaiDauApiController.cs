@@ -99,6 +99,16 @@ namespace GUI.Controllers
             return Json(bus.HuyGiaiDau(userId.Value, request.ma_giai_dau));
         }
 
+        // Xoa han (Hard Delete) — chi danh cho ban nhap (trang_thai = 'nhap')
+        // Bản nháp chưa public nên được phép xóa thật khỏi DB
+        [HttpPost]
+        public JsonResult DeleteDraft(GiaiDauActionRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            return Json(bus.XoaBanNhap(userId.Value, request.ma_giai_dau));
+        }
+
         [HttpGet]
         public JsonResult Mine()
         {
