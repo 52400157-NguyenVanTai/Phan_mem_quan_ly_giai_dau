@@ -1,0 +1,30 @@
+@{
+    ViewBag.Title = "Đăng nhập";
+}
+
+<main class="auth-page">
+    <section class="auth-card auth-card-centered">
+        <p class="eyebrow">ĐĂNG NHẬP</p>
+        <h1>Chào mừng bạn quay lại</h1>
+        <p class="text-muted">Đăng nhập để vào dashboard quản lý hệ thống esport.</p>
+
+        <form id="loginForm">
+            <div class="mb-3">
+                <label class="form-label">Tên đăng nhập hoặc email</label>
+                <input class="form-control" name="ten_dang_nhap_hoac_email" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Mật khẩu</label>
+                <input class="form-control" type="password" name="mat_khau" required />
+            </div>
+            <div id="loginMessage" class="form-message"></div>
+            <button class="ak-btn-primary w-100" type="submit" style="padding: 0.75rem;">Đăng nhập</button>
+        </form>
+
+        <div class="auth-links">
+            <a href="@Url.Action("QuenMatKhau", "Home")">Quên mật khẩu?</a>
+            <span>Chưa có tài khoản?</span>
+            <a href="@Url.Action("DangKy", "Home")">Đăng ký ngay</a>
+        </div>
+    </section>
+</main>

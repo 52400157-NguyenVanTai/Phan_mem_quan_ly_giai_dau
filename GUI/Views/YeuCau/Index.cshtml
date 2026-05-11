@@ -1,0 +1,52 @@
+@{
+    ViewBag.Title = "Quản lý yêu cầu";
+}
+
+<section class="team-page">
+    <div id="yeuCauMessage"></div>
+    <div class="team-hero">
+        <div>
+            <p class="eyebrow">YÊU CẦU & LỜI MỜI</p>
+            <h1>Trung tâm thông báo</h1>
+            <p class="text-muted">Quản lý tất cả lời mời tham gia, xét duyệt giải đấu và đơn xin gia nhập.</p>
+        </div>
+    </div>
+    
+    <div class="request-filters mb-4">
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="ak-btn-pill active" data-filter="all">Tất cả</button>
+            <button type="button" class="ak-btn-pill" data-filter="giai_dau">Giải đấu</button>
+            <button type="button" class="ak-btn-pill" data-filter="doi">Đội / Nhóm</button>
+        </div>
+    </div>
+
+    <div id="requestList" class="request-list">
+        <!-- JS render -->
+    </div>
+</section>
+
+<!-- Modal Chi tiết Giải đấu (Dành cho Admin duyệt) -->
+<div class="modal fade" id="modalTournamentDetail" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background-color: var(--ak-midnight-abyss); color: var(--ak-comet); border: 1px solid rgba(186, 215, 247, 0.12); border-radius: var(--ak-radius-card);">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title">Chi tiết giải đấu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="tournamentDetailBody">
+                <!-- Nội dung giải đấu load động -->
+            </div>
+            <div class="modal-footer border-top-0" id="tournamentDetailFooter">
+                <button type="button" class="ak-btn-pill" data-bs-dismiss="modal">Đóng</button>
+                <div class="admin-actions d-none">
+                    <button type="button" class="ak-btn-pill" style="color: #ef4444; border-color: #ef4444;" id="btnRejectTournament">Từ chối</button>
+                    <button type="button" class="ak-btn-primary" id="btnApproveTournament">Phê duyệt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/app-yeucau.js"></script>
+}

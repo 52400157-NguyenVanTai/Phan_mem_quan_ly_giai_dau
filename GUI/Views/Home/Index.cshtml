@@ -1,0 +1,17 @@
+@{
+    ViewBag.Title = "Trang chủ";
+}
+
+<main class="landing-page">
+    <section class="landing-hero">
+        <div>
+            <p class="eyebrow">QUẢN LÝ GIẢI ĐẤU ESPORT</p>
+            <h1>Kết nối cộng đồng esport, tạo giải đấu và quản lý đội tuyển dễ dàng.</h1>
+            <p class="lead">Bắt đầu bằng cách đăng nhập hoặc tạo tài khoản mới để sử dụng hệ thống.</p>
+            <div class="hero-actions" style="display: flex; gap: 1rem;">
+                <a href="@Url.Action("DangNhap", "Home")" class="ak-btn-primary" style="padding: 0.75rem 2rem; font-size: 1.125rem;">Đăng nhập</a>
+                <a href="@Url.Action("DangKy", "Home")" class="ak-btn-pill" style="padding: 0.75rem 2rem; font-size: 1.125rem;">Đăng ký</a>
+            </div>
+        </div>
+    </section>
+</main>

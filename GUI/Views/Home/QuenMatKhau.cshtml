@@ -1,0 +1,32 @@
+@{
+    ViewBag.Title = "Quên mật khẩu";
+}
+
+<main class="auth-page">
+    <section class="auth-card auth-card-centered">
+        <p class="eyebrow">QUÊN MẬT KHẨU</p>
+        <h1>Đặt lại mật khẩu</h1>
+        <p class="text-muted">Nhập email tài khoản và mật khẩu mới để đặt lại mật khẩu.</p>
+
+        <form id="forgotPasswordForm">
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input class="form-control" type="email" name="email" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Mật khẩu mới</label>
+                <input class="form-control" type="password" name="mat_khau_moi" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Xác nhận mật khẩu mới</label>
+                <input class="form-control" type="password" name="xac_nhan_mat_khau_moi" required />
+            </div>
+            <div id="forgotPasswordMessage" class="form-message"></div>
+            <button class="ak-btn-primary w-100" type="submit" style="padding: 0.75rem;">Đặt lại mật khẩu</button>
+        </form>
+
+        <div class="auth-links">
+            <a href="@Url.Action("DangNhap", "Home")">Quay lại đăng nhập</a>
+        </div>
+    </section>
+</main>

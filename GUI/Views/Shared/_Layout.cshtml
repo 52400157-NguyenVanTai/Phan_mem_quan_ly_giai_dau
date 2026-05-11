@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - Esport Manager</title>
+    
+    <!-- Google Fonts for AuthKit Design -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    @Styles.Render("~/Content/css")
+    
+    <!-- AuthKit Custom CSS with Cache Busting -->
+    <link rel="stylesheet" href="~/Content/authkit.css?v=@DateTime.Now.Ticks" />
+    
+    @Scripts.Render("~/bundles/modernizr")
+</head>
+<body class="ak-theme">
+    <div class="ak-glow-bg"></div>
+
+    @if (Session["UserId"] != null)
+    {
+        <nav class="ak-navbar">
+            <a href="@Url.Action("Index", "Dashboard")" class="ak-nav-brand">Esport Manager</a>
+            
+            <ul class="ak-nav-menu">
+                <li>@Html.ActionLink("Trang chủ", "Index", "Dashboard", new { area = "" }, new { @class = "ak-nav-link" })</li>
+                <li>@Html.ActionLink("Giải đấu", "Index", "GiaiDau", new { area = "" }, new { @class = "ak-nav-link" })</li>
+                <li>@Html.ActionLink("Đội", "Index", "Doi", new { area = "" }, new { @class = "ak-nav-link" })</li>
+                <li>@Html.ActionLink("Yêu cầu", "Index", "YeuCau", new { area = "" }, new { @class = "ak-nav-link" })</li>
+                <li>@Html.ActionLink("Thông báo", "Index", "ThongBao", new { area = "" }, new { @class = "ak-nav-link" })</li>
+                <li>@Html.ActionLink("Trung tâm trọng tài", "Index", "TrongTai", new { area = "" }, new { @class = "ak-nav-link" })</li>
+            </ul>
+            
+            <div class="dropdown">
+                <button class="ak-btn-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.25rem 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 24px; height: 24px; background: var(--ak-neon-violet); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">
+                        @Session["Username"].ToString().Substring(0, 1).ToUpper()
+                    </div>
+                    <span>@Session["Username"]</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="background: rgba(5, 6, 15, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(186, 215, 247, 0.12);">
+                    <li>@Html.ActionLink("Xem thông tin cá nhân", "Index", "Profile", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
+                    <li>@Html.ActionLink("Hồ sơ thi đấu", "Index", "HoSoThiDau", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
+                    <li>@Html.ActionLink("Đội của tôi", "Index", "DoiCuaToi", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
+                    <li>@Html.ActionLink("Đóng góp ý kiến", "Index", "DongGopYKien", new { area = "" }, new { @class = "dropdown-item", style = "color: var(--ak-comet);" })</li>
+                    <li><hr class="dropdown-divider" style="border-color: rgba(186, 215, 247, 0.12);" /></li>
+                    <li><button class="dropdown-item" type="button" id="logoutButton" style="color: #fca5a5;">Đăng xuất</button></li>
+                </ul>
+            </div>
+        </nav>
+    }
+    
+    <main class="ak-container">
+        @RenderBody()
+    </main>
+    
+    <footer style="text-align: center; padding: 2rem; color: var(--ak-interstellar-gray); font-size: 0.875rem; border-top: 1px solid rgba(186, 215, 247, 0.05); margin-top: 2rem;">
+        <p>&copy; @DateTime.Now.Year - Esport Manager Command Center</p>
+    </footer>
+
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+    <script src="~/Scripts/app-auth.js"></script>
+    @RenderSection("scripts", required: false)
+</body>
+</html>

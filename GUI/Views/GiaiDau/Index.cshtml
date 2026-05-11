@@ -1,0 +1,156 @@
+@{
+    ViewBag.Title = "Giải đấu";
+    var isAdmin = Session["Role"] != null && Session["Role"].ToString() == "admin";
+}
+
+<section class="tournament-page" id="tournamentPage">
+
+    <!-- TAB NAVIGATION -->
+    <div class="tournament-tabs">
+        <button class="tab-btn active" data-tab="tab-my" id="tabMyBtn">Giải đấu của tôi</button>
+        <button class="tab-btn" data-tab="tab-create" id="tabCreateBtn">+ Tạo giải đấu</button>
+        <button class="tab-btn" data-tab="tab-public" id="tabPublicBtn">Giải đấu công khai</button>
+        @if (isAdmin)
+        {
+            <button class="tab-btn tab-admin" data-tab="tab-pending" id="tabPendingBtn">
+                Chờ phê duyệt <span class="pending-badge" id="pendingCount"></span>
+            </button>
+        }
+    </div>
+
+    <!-- TAB: GIAI DAU CUA TOI -->
+    <div class="tab-content active" id="tab-my">
+        <h2 class="section-title">Giải đấu của tôi</h2>
+        <div id="myTournamentList" class="tournament-grid"></div>
+        <p class="text-muted" id="myTournamentEmpty" style="display:none;">Bạn chưa tạo giải đấu nào.</p>
+    </div>
+
+    <!-- TAB: TAO GIAI DAU (WIZARD 3 BUOC) -->
+    <div class="tab-content" id="tab-create">
+        <h2 class="section-title">Tạo giải đấu mới</h2>
+        <div class="wizard-stepper">
+            <div class="step active" data-step="1"><span class="step-num">1</span> Thông tin cơ bản</div>
+            <div class="step" data-step="2"><span class="step-num">2</span> Game & Đội</div>
+            <div class="step" data-step="3"><span class="step-num">3</span> Giai đoạn thi đấu</div>
+        </div>
+
+        <form id="createTournamentForm">
+            <!-- STEP 1 -->
+            <div class="wizard-panel active" id="wizardStep1">
+                <div class="form-group">
+                    <label for="tenGiaiDau">Tên giải đấu <span class="required">*</span></label>
+                    <input type="text" id="tenGiaiDau" name="ten_giai_dau" class="form-control" required maxlength="255" placeholder="VD: VCS Mùa Xuân 2026">
+                </div>
+                <div class="form-group">
+                    <label>Banner giải đấu <span class="required">*</span></label>
+                    <input type="file" id="bannerFileInput" accept=".jpg,.jpeg,.png,.webp" class="form-control">
+                    <input type="hidden" id="bannerUrl" name="banner_url">
+                    <img id="bannerPreview" class="banner-preview" style="display:none;" alt="Banner preview">
+                </div>
+                <div class="form-group">
+                    <label for="moTa">Mô tả / Thể lệ</label>
+                    <textarea id="moTa" name="mo_ta" class="form-control" rows="4" placeholder="Luật lệ, thể lệ giải đấu..."></textarea>
+                </div>
+                <div class="wizard-actions">
+                    <button type="button" class="ak-btn-primary" id="toStep2">Tiếp theo →</button>
+                </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="wizard-panel" id="wizardStep2">
+                <div class="form-group">
+                    <label for="maTroChoi">Tựa Game <span class="required">*</span></label>
+                    <select id="maTroChoi" name="ma_tro_choi" class="form-control">
+                        <option value="">Chọn game...</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="minTeams">Số đội tối thiểu <span class="required">*</span></label>
+                        <input type="number" id="minTeams" name="so_doi_toi_thieu" class="form-control" min="2" value="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxTeams">Số đội tối đa</label>
+                        <input type="number" id="maxTeams" name="so_doi_toi_da" class="form-control" min="2" value="32">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="minMembers">Số thành viên tối thiểu mỗi đội</label>
+                    <input type="number" id="minMembers" name="min_members_per_team" class="form-control" min="1" value="5">
+                </div>
+                <div class="wizard-actions">
+                    <button type="button" class="ak-btn-pill" id="backStep1">← Quay lại</button>
+                    <button type="button" class="ak-btn-primary" id="toStep3">Tiếp theo →</button>
+                </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="wizard-panel" id="wizardStep3">
+                <div class="stage-header">
+                    <h3>Cấu hình giai đoạn thi đấu</h3>
+                    <button type="button" class="ak-btn-pill" id="addStageBtn">+ Thêm giai đoạn</button>
+                </div>
+                <div id="stageContainer"></div>
+                <div class="wizard-actions">
+                    <button type="button" class="ak-btn-pill" id="backStep2">← Quay lại</button>
+                    <button type="submit" class="ak-btn-primary" id="submitCreateBtn">Lưu bản nháp</button>
+                </div>
+            </div>
+        </form>
+        <div id="createMessage" class="form-message"></div>
+    </div>
+
+    <!-- TAB: GIAI DAU PUBLIC -->
+    <div class="tab-content" id="tab-public">
+        <h2 class="section-title">Giải đấu công khai</h2>
+        <div id="publicTournamentList" class="tournament-grid"></div>
+        <p class="text-muted" id="publicTournamentEmpty" style="display:none;">Chưa có giải đấu nào.</p>
+    </div>
+
+    <!-- TAB: CHO PHE DUYET (Admin) -->
+    @if (isAdmin)
+    {
+        <div class="tab-content" id="tab-pending">
+            <h2 class="section-title">Giải đấu chờ phê duyệt</h2>
+            <div id="pendingTournamentList" class="tournament-grid"></div>
+            <p class="text-muted" id="pendingTournamentEmpty" style="display:none;">Không có giải đấu nào chờ duyệt.</p>
+        </div>
+    }
+
+    <!-- MODAL CHI TIET GIAI DAU -->
+    <div class="modal-overlay" id="tournamentDetailModal" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="detailTitle"></h3>
+                <button class="modal-close" id="closeDetailModal">&times;</button>
+            </div>
+            <div class="modal-body" id="detailBody"></div>
+            <div class="modal-footer" id="detailFooter"></div>
+        </div>
+    </div>
+
+    <!-- MODAL TU CHOI -->
+    <div class="modal-overlay" id="rejectModal" style="display:none;">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-header">
+                <h3>Từ chối giải đấu</h3>
+                <button class="modal-close" id="closeRejectModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Lý do từ chối <span class="required">*</span></label>
+                    <textarea id="rejectReason" class="form-control" rows="3" placeholder="Nhập lý do từ chối..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="ak-btn-pill" id="cancelReject">Hủy</button>
+                <button class="ak-btn-pill" style="color: #ef4444; border-color: #ef4444;" id="confirmReject">Từ chối</button>
+            </div>
+            <div id="rejectMessage" class="form-message"></div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script src="~/Scripts/app-giai-dau.js"></script>
+}

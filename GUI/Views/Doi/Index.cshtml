@@ -1,0 +1,41 @@
+@{
+    ViewBag.Title = "Đội";
+}
+
+<section class="team-page">
+    <div id="doiMessage"></div>
+    <div class="team-hero">
+        <div>
+            <p class="eyebrow">ĐỘI TUYỂN</p>
+            <h1>Danh sách đội trong hệ thống</h1>
+            <p class="text-muted">Tìm kiếm đội theo tên, lọc theo game và xem thông tin chi tiết của từng đội.</p>
+        </div>
+        <button class="ak-btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#createTeamBox">Tạo đội</button>
+    </div>
+
+    <div class="team-toolbar">
+        <input class="form-control" id="teamSearch" placeholder="Tìm theo tên đội hoặc tên viết tắt" />
+        <select class="form-select" id="gameFilter" data-game-select></select>
+    </div>
+
+    <div class="collapse" id="createTeamBox">
+        <form id="createTeamForm" class="team-form-card ak-glass-card">
+            <h3>Tạo đội mới</h3>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Tên đội</label><input class="form-control" id="createName" required /></div>
+                <div class="col-md-3"><label class="form-label">Tên viết tắt</label><input class="form-control" id="createShortName" maxlength="20" /></div>
+                <div class="col-md-3"><label class="form-label">Game</label><select class="form-select" id="createGame" required></select></div>
+                <div class="col-md-6"><label class="form-label">Logo</label><input class="form-control" id="createLogo" type="file" accept="image/*" /></div>
+                <div class="col-md-6"><label class="form-label">Slogan</label><input class="form-control" id="createSlogan" /></div>
+                <div class="col-12"><label class="form-label">Mô tả</label><textarea class="form-control" id="createDescription" rows="3"></textarea></div>
+            </div>
+            <button class="ak-btn-primary mt-3" type="submit">Lưu đội</button>
+        </form>
+    </div>
+
+    <div id="teamList" class="team-grid"></div>
+</section>
+
+@section scripts {
+    <script src="~/Scripts/app-doi.js"></script>
+}

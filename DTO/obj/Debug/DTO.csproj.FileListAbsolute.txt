@@ -1,0 +1,6 @@
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\DTO\bin\Debug\DTO.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\DTO\bin\Debug\DTO.pdb
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\DTO\obj\Debug\DTO.csproj.AssemblyReference.cache
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\DTO\obj\Debug\DTO.csproj.CoreCompileInputs.cache
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\DTO\obj\Debug\DTO.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\DTO\obj\Debug\DTO.pdb

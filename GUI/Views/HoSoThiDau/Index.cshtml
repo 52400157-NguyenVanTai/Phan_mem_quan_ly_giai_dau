@@ -1,0 +1,78 @@
+@using DTO
+@using System.Collections.Generic
+@{
+    ViewBag.Title = "Hồ sơ thi đấu";
+    List<TroChoiDTO> troChois = ViewBag.TroChoi as List<TroChoiDTO> ?? new List<TroChoiDTO>();
+}
+
+<section class="profile-page">
+    <div class="page-header">
+        <p class="eyebrow">HỒ SƠ THI ĐẤU</p>
+        <h1>Hồ sơ thi đấu</h1>
+        <p class="text-muted">Cập nhật thông tin thi đấu cá nhân để dùng khi tham gia đội và giải đấu.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="ak-glass-card">
+                <h3>Thông tin hồ sơ</h3>
+                <form id="hoSoThiDauForm"
+                      data-tro-choi-url="@Url.Action("TroChoi", "HoSoThiDauApi")"
+                      data-vi-tri-url="@Url.Action("ViTri", "HoSoThiDauApi")"
+                      data-current-url="@Url.Action("Current", "HoSoThiDauApi")"
+                      data-all-url="@Url.Action("All", "HoSoThiDauApi")"
+                      data-save-url="@Url.Action("Save", "HoSoThiDauApi")"
+                      data-delete-url="@Url.Action("Delete", "HoSoThiDauApi")">
+                    <div class="mb-3">
+                        <label class="form-label">Trò chơi</label>
+                        <select class="form-select" name="ma_tro_choi" id="maTroChoiSelect" required>
+                            <option value="">Chọn trò chơi</option>
+                            @foreach (TroChoiDTO troChoi in troChois)
+                            {
+                                <option value="@troChoi.ma_tro_choi">@troChoi.ten_game</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ID trong game</label>
+                        <input class="form-control" name="in_game_id" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tên trong game</label>
+                        <input class="form-control" name="in_game_name" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Loại vị trí</label>
+                        <select class="form-select" name="loai_vi_tri" id="loaiViTriSelect" required>
+                            <option value="">Chọn loại vị trí</option>
+                            <option value="TuyenThu">Tuyển thủ</option>
+                            <option value="HuanLuyen">Huấn luyện / quản lý</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vị trí</label>
+                        <select class="form-select" name="ma_vi_tri_so_truong" id="maViTriSelect" required>
+                            <option value="">Chọn vị trí</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Thành tích</label>
+                        <textarea class="form-control" name="thanh_tich" rows="5" placeholder="Có thể để trống. Ví dụ: Top 1 giải nội bộ, đội trưởng mùa 2025..."></textarea>
+                    </div>
+                    <div id="hoSoThiDauMessage" class="form-message"></div>
+                    <div class="d-flex gap-2">
+                        <button class="ak-btn-primary" type="submit">Lưu hồ sơ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="ak-glass-card">
+                <h3>Hồ sơ hiện tại</h3>
+                <div id="hoSoThiDauPreview" class="profile-summary">
+                    <p class="text-muted">Bạn chưa có hồ sơ thi đấu.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,128 @@
+@{
+
+    ViewBag.Title = "Hồ sơ cá nhân";
+
+}
+
+
+
+<section class="profile-page">
+
+    <div class="page-header">
+
+        <p class="eyebrow">TÀI KHOẢN</p>
+
+        <h1>Hồ sơ cá nhân</h1>
+
+        <p class="text-muted">Cập nhật thông tin cá nhân và thay đổi mật khẩu.</p>
+
+    </div>
+
+
+
+    <div class="row g-4">
+
+        <div class="col-lg-7">
+
+            <div class="ak-glass-card">
+
+                <h3>Thông tin cá nhân</h3>
+
+                <form id="profileForm">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Tên đăng nhập</label>
+
+                        <input class="form-control" name="ten_dang_nhap" required />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Email</label>
+
+                        <input class="form-control" type="email" name="email" required />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Avatar URL</label>
+
+                        <input class="form-control" name="avatar_url" />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Giới thiệu</label>
+
+                        <textarea class="form-control" name="bio" rows="4"></textarea>
+
+                    </div>
+
+                    <div id="profileMessage" class="form-message"></div>
+
+                    <button class="ak-btn-primary" type="submit">Lưu hồ sơ</button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-5">
+
+            <div class="ak-glass-card">
+
+                <h3>Đổi mật khẩu</h3>
+
+                <form id="changePasswordForm">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Mật khẩu cũ</label>
+
+                        <input class="form-control" type="password" name="mat_khau_cu" required />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Mật khẩu mới</label>
+
+                        <input class="form-control" type="password" name="mat_khau_moi" required />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Xác nhận mật khẩu mới</label>
+
+                        <input class="form-control" type="password" name="xac_nhan_mat_khau_moi" required />
+
+                    </div>
+
+                    <div id="changePasswordMessage" class="form-message"></div>
+
+                    <button class="ak-btn-pill" type="submit">Đổi mật khẩu</button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+@section scripts {
+
+    <script src="~/Scripts/app-auth.js"></script>
+
+}
+

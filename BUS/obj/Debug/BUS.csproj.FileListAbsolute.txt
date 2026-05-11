@@ -1,0 +1,13 @@
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\obj\Debug\BUS.csproj.AssemblyReference.cache
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\obj\Debug\BUS.csproj.CoreCompileInputs.cache
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\BUS.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\BUS.pdb
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\DAL.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\DTO.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\BCrypt.Net-Next.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\DAL.pdb
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\DTO.pdb
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\bin\Debug\BCrypt.Net-Next.xml
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\obj\Debug\BUS.csproj.Up2Date
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\obj\Debug\BUS.dll
+C:\Users\ACER\Desktop\esport\esport_du_an\GUI\BUS\obj\Debug\BUS.pdb

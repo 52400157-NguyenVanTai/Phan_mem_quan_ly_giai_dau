@@ -1,0 +1,46 @@
+<div class="modal fade" id="teamDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content team-detail-modal" style="background-color: var(--ak-midnight-abyss); color: var(--ak-comet); border: 1px solid rgba(186, 215, 247, 0.12);">
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="team-logo team-logo-large" id="detailLogo"></div>
+                    <div>
+                        <h2 class="modal-title" id="detailTitle">Chi tiết đội</h2>
+                        <p class="text-muted mb-0" id="detailSubtitle"></p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailActions" class="team-actions"></div>
+                <div id="invitePanel" class="team-form-card ak-glass-card d-none">
+                    <form id="inviteForm">
+                        <h4>Mời thành viên</h4>
+                        <div class="row g-3">
+                            <div class="col-md-4"><input class="form-control" id="inviteUser" placeholder="Username hoặc email" required /></div>
+                            <div class="col-md-4"><select class="form-select" id="invitePosition"><option value="">Chọn vị trí nếu có</option></select></div>
+                            <div class="col-md-4"><input class="form-control" id="inviteNote" placeholder="Mô tả lời mời" /></div>
+                        </div>
+                        <button class="ak-btn-primary mt-3" type="submit">Gửi lời mời</button>
+                    </form>
+                </div>
+                <ul class="nav nav-pills team-tabs" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabAbout" type="button">Thông tin</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabMembers" type="button">Thành viên</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabHistory" type="button">Lịch sử thi đấu</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabTournaments" type="button">Giải đấu</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabNext" type="button">Trận đấu</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabStats" type="button">Thống kê</button></li>
+                </ul>
+                <div class="tab-content team-tab-content">
+                    <div class="tab-pane fade show active" id="tabAbout"><div id="detailAbout"></div></div>
+                    <div class="tab-pane fade" id="tabMembers"><div id="detailMembers"></div></div>
+                    <div class="tab-pane fade" id="tabHistory"><div id="detailHistory"></div></div>
+                    <div class="tab-pane fade" id="tabTournaments"><div id="detailTournaments"></div></div>
+                    <div class="tab-pane fade" id="tabNext"><div id="detailNextMatches"></div></div>
+                    <div class="tab-pane fade" id="tabStats"><div id="detailStats"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,102 @@
+@{
+    ViewBag.Title = "Chi tiết đội";
+}
+
+<section class="team-page team-detail-page" data-team-detail-page data-team-id="@ViewBag.MaDoi">
+    <div id="doiMessage"></div>
+
+    <div class="team-hero team-detail-hero">
+        <div class="d-flex align-items-center gap-3">
+            <div class="team-logo team-logo-large" id="detailLogo"></div>
+            <div>
+                <p class="eyebrow">TRANG ĐỘI</p>
+                <h1 id="detailTitle">Đang tải thông tin đội...</h1>
+                <p class="text-muted mb-0" id="detailSubtitle"></p>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            @Html.ActionLink("Quay lại danh sách", "Index", "Doi", null, new { @class = "ak-btn-pill" })
+            @Html.ActionLink("Đội của tôi", "Index", "DoiCuaToi", null, new { @class = "ak-btn-primary" })
+        </div>
+    </div>
+
+    <div id="detailActions" class="team-actions"></div>
+
+    <div id="invitePanel" class="team-form-card ak-glass-card d-none">
+        <form id="inviteForm">
+            <h4>Mời thành viên</h4>
+            <div class="row g-3">
+                <div class="col-md-4"><input class="form-control" id="inviteUser" placeholder="Username hoặc email" required /></div>
+                <div class="col-md-4"><select class="form-select" id="invitePosition"><option value="">Chọn vị trí nếu có</option></select></div>
+                <div class="col-md-4"><input class="form-control" id="inviteNote" placeholder="Mô tả lời mời" /></div>
+            </div>
+            <button class="ak-btn-primary mt-3" type="submit">Gửi lời mời</button>
+        </form>
+    </div>
+
+    <div id="editTeamPanel" class="team-form-card ak-glass-card d-none">
+        <form id="editTeamForm">
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <h4 class="mb-0">Sửa thông tin đội</h4>
+                <button class="ak-btn-pill" id="closeEditTeam" type="button">Đóng</button>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="editTeamName">Tên đội</label>
+                    <input class="form-control" id="editTeamName" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="editTeamShortName">Tên viết tắt</label>
+                    <input class="form-control" id="editTeamShortName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="editTeamLogoUrl">Logo URL</label>
+                    <input class="form-control" id="editTeamLogoUrl" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="editTeamLogo">Tải logo mới</label>
+                    <input class="form-control" id="editTeamLogo" type="file" accept="image/*" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="editTeamSlogan">Slogan</label>
+                    <input class="form-control" id="editTeamSlogan" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" id="editTeamRecruiting" type="checkbox" />
+                        <label class="form-check-label" for="editTeamRecruiting">Đang tuyển dụng</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="editTeamDescription">Mô tả</label>
+                    <textarea class="form-control" id="editTeamDescription" rows="4"></textarea>
+                </div>
+            </div>
+            <button class="ak-btn-primary mt-3" type="submit">Lưu thông tin đội</button>
+        </form>
+    </div>
+
+    <div class="team-form-card ak-glass-card">
+        <ul class="nav nav-pills team-tabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabAbout" type="button">Thông tin</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabMembers" type="button">Thành viên</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabHistory" type="button">Lịch sử thi đấu</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabTournaments" type="button">Giải đấu</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabNext" type="button">Trận đấu</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabStats" type="button">Thống kê</button></li>
+        </ul>
+
+        <div class="tab-content team-tab-content">
+            <div class="tab-pane fade show active" id="tabAbout"><div id="detailAbout"></div></div>
+            <div class="tab-pane fade" id="tabMembers"><div id="detailMembers"></div></div>
+            <div class="tab-pane fade" id="tabHistory"><div id="detailHistory"></div></div>
+            <div class="tab-pane fade" id="tabTournaments"><div id="detailTournaments"></div></div>
+            <div class="tab-pane fade" id="tabNext"><div id="detailNextMatches"></div></div>
+            <div class="tab-pane fade" id="tabStats"><div id="detailStats"></div></div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script src="~/Scripts/app-doi.js"></script>
+}
