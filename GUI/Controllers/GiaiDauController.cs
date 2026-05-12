@@ -13,5 +13,16 @@ namespace GUI.Controllers
 
             return View();
         }
+
+        public ActionResult ChiTiet(int id)
+        {
+            if (Session["UserId"] == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.MaGiaiDau = id;
+            return View();
+        }
     }
 }

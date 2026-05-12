@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -12,6 +12,12 @@ namespace GUI
         public static void RegisterRoutes(RouteCollection routes)
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+
+            routes.MapRoute(
+                name: "TournamentDetail",
+                url: "tournaments/{id}",
+                defaults: new { controller = "GiaiDau", action = "ChiTiet" }
+            );
 
             routes.MapRoute(
                 name: "Default",

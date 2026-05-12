@@ -22,6 +22,22 @@ namespace BUS
                 if (string.IsNullOrWhiteSpace(gd.the_thuc))
                     return Loi("Vui lòng chọn thể thức cho giai đoạn: " + gd.ten_giai_doan);
             }
+            if (req.tong_giai_thuong < 0) return Loi("Tổng giải thưởng không được âm.");
+            if (req.danh_sach_giai_thuong != null)
+            {
+                decimal tongPrizes = 0;
+                foreach(var gt in req.danh_sach_giai_thuong)
+                {
+                    if (string.IsNullOrWhiteSpace(gt.ten_giai)) return Loi("Vui lòng nhập tên cho tất cả hạng mục giải thưởng.");
+                    if (gt.gia_tri < 0) return Loi("Giá trị giải thưởng không được âm.");
+                    tongPrizes += gt.gia_tri;
+                }
+                if (tongPrizes > req.tong_giai_thuong)
+                {
+                    return Loi("Tổng giá trị các giải thưởng chi tiết đang vượt quá Tổng ngân sách công bố!");
+                }
+            }
+
             int id = dal.TaoGiaiDau(maNguoiDung, req);
             return Ok("Tạo giải đấu thành công.", dal.LayGiaiDau(id));
         }
@@ -34,6 +50,22 @@ namespace BUS
             string tt = dal.LayTrangThai(req.ma_giai_dau);
             if (tt != "nhap" && tt != "bi_tu_choi") return Loi("Chỉ được chỉnh sửa khi giải ở trạng thái Bản nháp hoặc Bị từ chối.");
             if (req.giai_doan == null || req.giai_doan.Count == 0) return Loi("Vui lòng thêm ít nhất 1 giai đoạn.");
+            if (req.tong_giai_thuong < 0) return Loi("Tổng giải thưởng không được âm.");
+            if (req.danh_sach_giai_thuong != null)
+            {
+                decimal tongPrizes = 0;
+                foreach(var gt in req.danh_sach_giai_thuong)
+                {
+                    if (string.IsNullOrWhiteSpace(gt.ten_giai)) return Loi("Vui lòng nhập tên cho tất cả hạng mục giải thưởng.");
+                    if (gt.gia_tri < 0) return Loi("Giá trị giải thưởng không được âm.");
+                    tongPrizes += gt.gia_tri;
+                }
+                if (tongPrizes > req.tong_giai_thuong)
+                {
+                    return Loi("Tổng giá trị các giải thưởng chi tiết đang vượt quá Tổng ngân sách công bố!");
+                }
+            }
+
             dal.CapNhatGiaiDau(req);
             return Ok("Cập nhật giải đấu thành công.", dal.LayGiaiDau(req.ma_giai_dau));
         }
@@ -166,7 +198,8 @@ namespace BUS
             {
                 giai_dau = gd,
                 giai_doan = dal.LayGiaiDoan(maGiaiDau),
-                doi_tham_gia = dal.LayDoiThamGia(maGiaiDau)
+                doi_tham_gia = dal.LayDoiThamGia(maGiaiDau),
+                danh_sach_giai_thuong = dal.LayDanhSachGiaiThuong(maGiaiDau)
             });
         }
 

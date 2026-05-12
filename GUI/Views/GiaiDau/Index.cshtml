@@ -51,6 +51,24 @@
                     <label for="moTa">Mô tả / Thể lệ</label>
                     <textarea id="moTa" name="mo_ta" class="form-control" rows="4" placeholder="Luật lệ, thể lệ giải đấu..."></textarea>
                 </div>
+                
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 24px 0;" />
+                
+                <div class="form-group">
+                    <label for="tongGiaiThuong">Tổng ngân sách giải thưởng (VNĐ) <span class="required">*</span></label>
+                    <input type="text" id="tongGiaiThuong" class="form-control price-input" value="0" placeholder="VD: 30,000,000">
+                </div>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <label style="margin: 0;">Cấu hình giải thưởng chi tiết</label>
+                        <button type="button" class="ak-btn-pill" id="addPrizeBtn" style="padding: 6px 12px; font-size: 0.85rem;">+ Thêm hạng mục</button>
+                    </div>
+                    <div id="prizeListContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Prize rows injected here via JS -->
+                    </div>
+                    <div id="prizeValidationMsg" style="color: #ef4444; font-size: 0.85rem; margin-top: 8px; display: none;">Tổng giá trị các giải thưởng chi tiết đang vượt quá Tổng ngân sách công bố!</div>
+                </div>
+
                 <div class="wizard-actions">
                     <button type="button" class="ak-btn-primary" id="toStep2">Tiếp theo →</button>
                 </div>
@@ -189,5 +207,5 @@
 </section>
 
 @section scripts {
-    <script src="~/Scripts/app-giai-dau.js"></script>
+    <script src="~/Scripts/app-giai-dau.js?v=@DateTime.Now.Ticks"></script>
 }

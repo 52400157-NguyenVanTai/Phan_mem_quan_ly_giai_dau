@@ -1,0 +1,163 @@
+@{
+    ViewBag.Title = "Tournament Hub";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var maGiaiDau = ViewBag.MaGiaiDau;
+}
+
+<div class="tournament-hub" id="tournamentHub" data-id="@maGiaiDau">
+    <!-- AREA 1: GLOBAL HEADER -->
+    <header class="hub-header">
+        <div class="hub-banner" id="hubBanner"></div>
+        <div class="hub-header-content">
+            <div class="hub-identity">
+                <div class="hub-logo" id="hubLogo">
+                    <img src="" alt="Logo" id="hubLogoImg" style="display:none;">
+                    <div class="logo-placeholder"><i class="fas fa-trophy"></i></div>
+                </div>
+                <div class="hub-title-area">
+                    <div class="hub-badges" id="hubBadges">
+                        <!-- Badges: Game, Format, Status -->
+                    </div>
+                    <h1 class="hub-title" id="hubTitle">LOADING...</h1>
+                    <div class="hub-meta">
+                        <span id="hubViews"><i class="far fa-eye"></i> -- lượt xem</span>
+                        <span id="hubRegion"><i class="fas fa-globe"></i> Việt Nam</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- AREA 2: PRIZE POOL BANNER -->
+    <div class="prize-banner">
+        <div class="prize-total">
+            <span class="prize-label">TỔNG GIẢI THƯỞNG</span>
+            <h2 class="prize-value" id="prizeTotal">--</h2>
+        </div>
+        <div class="prize-scroll-container" id="prizeList">
+            <!-- Dynamic prize cards injected via JS -->
+        </div>
+    </div>
+
+    <!-- AREA 3: BODY CONTENT (70/30) -->
+    <div class="hub-body">
+        <!-- LEFT COLUMN (70%) -->
+        <main class="hub-main">
+            <nav class="hub-tabs">
+                <button class="hub-tab-btn active" data-tab="info">THÔNG TIN</button>
+                <button class="hub-tab-btn" data-tab="teams">ĐỘI THAM GIA</button>
+                <button class="hub-tab-btn" data-tab="schedule">LỊCH THI ĐẤU</button>
+                <button class="hub-tab-btn" data-tab="bracket">CÂY ĐẤU</button>
+                <button class="hub-tab-btn" data-tab="rules">THỂ LỆ</button>
+            </nav>
+
+            <div class="hub-tab-content-wrapper">
+                <div class="hub-tab-pane active" id="pane-info">
+                    <div class="info-list" id="infoList">
+                        <!-- Dynamic list -->
+                    </div>
+                </div>
+                <div class="hub-tab-pane" id="pane-teams">
+                    <div class="teams-grid" id="teamsGrid">
+                        <!-- Dynamic teams -->
+                    </div>
+                </div>
+                <div class="hub-tab-pane" id="pane-schedule">
+                    <div class="empty-state">Lịch thi đấu đang được cập nhật...</div>
+                </div>
+                <div class="hub-tab-pane" id="pane-bracket">
+                    <div class="empty-state">Cây đấu sẽ hiển thị khi giải đấu bắt đầu.</div>
+                </div>
+                <div class="hub-tab-pane" id="pane-rules">
+                    <div class="rules-content" id="rulesContent">
+                        <!-- Description/Rules -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT COLUMN (30%) -->
+        <aside class="hub-sidebar">
+            <div class="sticky-sidebar">
+                <!-- ACTION BLOCK -->
+                <div class="sidebar-block action-block">
+                    <div class="slot-progress">
+                        <div class="slot-info">
+                            <span>SỐ LƯỢNG ĐỘI</span>
+                            <span id="slotCount">--/--</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="slotBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="hubActions" class="hub-actions">
+                        <!-- Dynamic buttons based on role -->
+                    </div>
+                </div>
+
+                <!-- QUICK STATS BLOCK -->
+                <div class="sidebar-block stats-block">
+                    <h3 class="block-title">THỐNG KÊ NHANH</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="statTeams">--</span>
+                            <span class="stat-label">Đội tham gia</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="statMatches">0</span>
+                            <span class="stat-label">Trận đã đấu</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="statSlots">--</span>
+                            <span class="stat-label">Tổng Slot</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="statStages">--</span>
+                            <span class="stat-label">Giai đoạn</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- MODAL LỜI MỜI (SHARED FROM INDEX OR RE-IMPLEMENTED) -->
+<div class="modal-overlay" id="inviteModal" style="display:none;">
+    <div class="modal-dialog modal-sm" style="overflow: visible;">
+        <div class="modal-header">
+            <h3 id="inviteModalTitle">Gửi lời mời</h3>
+            <button class="modal-close" id="closeInviteModal">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow: visible;">
+            <div class="form-group" style="position: relative;">
+                <label id="inviteInputLabel">Tìm kiếm <span class="required">*</span></label>
+                <div class="search-input-wrapper">
+                    <input type="text" id="inviteSearchInput" class="form-control" placeholder="Gõ để tìm kiếm..." autocomplete="off">
+                    <div id="inviteSearchSpinner" class="search-spinner" style="display: none;"></div>
+                </div>
+                <div id="inviteAutocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+            </div>
+            <div id="inviteValidationMessage" style="color: #ef4444; font-size: 0.85rem; margin-top: 4px; display: none;">Vui lòng chọn một mục từ danh sách.</div>
+            
+            <div class="form-group" id="inviteRoleGroup" style="display: none; margin-top: 16px;">
+                <label>Vai trò / Vị trí</label>
+                <select id="inviteRoleSelect" class="form-control">
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Lời nhắn (Tùy chọn)</label>
+                <textarea id="inviteMessage" class="form-control" rows="2" placeholder="Nhập lời nhắn..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="ak-btn-pill" id="cancelInviteModal">Hủy</button>
+            <button class="ak-btn-primary" id="confirmInviteModal">Xác nhận</button>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/app-giai-dau-chi-tiet.js?v=@DateTime.Now.Ticks"></script>
+}

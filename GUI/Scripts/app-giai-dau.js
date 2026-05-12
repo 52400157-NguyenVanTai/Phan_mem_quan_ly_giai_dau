@@ -77,8 +77,91 @@
   var backStep2Btn = document.getElementById("backStep2");
   if (toStep2Btn) toStep2Btn.addEventListener("click", function () {
     if (!document.getElementById("tenGiaiDau").value.trim()) { alert("Vui lòng nhập tên giải đấu."); return; }
+    if (!validatePrizes()) { alert("Tổng giá trị các giải thưởng chi tiết đang vượt quá Tổng ngân sách công bố!"); return; }
     showStep(2);
   });
+
+  // --- PRIZE LOGIC ---
+  var tongGiaiThuongInput = document.getElementById("tongGiaiThuong");
+  var addPrizeBtn = document.getElementById("addPrizeBtn");
+  var prizeListContainer = document.getElementById("prizeListContainer");
+  var prizeValidationMsg = document.getElementById("prizeValidationMsg");
+
+  function unformatPrice(val) {
+    if (!val) return 0;
+    return parseInt(val.toString().replace(/,/g, "")) || 0;
+  }
+  function formatPrice(val) {
+    return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  if (tongGiaiThuongInput) {
+    tongGiaiThuongInput.addEventListener("input", function(e) {
+      var raw = unformatPrice(e.target.value);
+      e.target.value = formatPrice(raw);
+      validatePrizes();
+    });
+  }
+
+  if (addPrizeBtn) {
+    addPrizeBtn.addEventListener("click", function() {
+      var row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "8px";
+      row.innerHTML = `
+        <input type="text" class="form-control prize-name" placeholder="Tên giải (VD: Á Quân)" style="flex: 1;" required>
+        <input type="text" class="form-control price-input prize-val" placeholder="Giá trị (VNĐ)" style="width: 150px;" required>
+        <button type="button" class="ak-btn-pill remove-prize-btn" style="color: #ef4444; border-color: #ef4444; padding: 0 10px;">🗑️</button>
+      `;
+      prizeListContainer.appendChild(row);
+
+      var valInput = row.querySelector(".prize-val");
+      valInput.addEventListener("input", function(e) {
+        var raw = unformatPrice(e.target.value);
+        e.target.value = formatPrice(raw);
+        validatePrizes();
+      });
+
+      var removeBtn = row.querySelector(".remove-prize-btn");
+      removeBtn.addEventListener("click", function() {
+        row.remove();
+        validatePrizes();
+      });
+    });
+  }
+
+  function validatePrizes() {
+    if (!tongGiaiThuongInput) return true;
+    var totalBudget = unformatPrice(tongGiaiThuongInput.value);
+    var currentSum = 0;
+    var vals = document.querySelectorAll(".prize-val");
+    vals.forEach(function(el) {
+      currentSum += unformatPrice(el.value);
+    });
+
+    if (currentSum > totalBudget) {
+      if (prizeValidationMsg) prizeValidationMsg.style.display = "block";
+      if (toStep2Btn) toStep2Btn.disabled = true;
+      return false;
+    } else {
+      if (prizeValidationMsg) prizeValidationMsg.style.display = "none";
+      if (toStep2Btn) toStep2Btn.disabled = false;
+      return true;
+    }
+  }
+
+  function collectPrizes() {
+    var prizes = [];
+    var rows = document.querySelectorAll("#prizeListContainer > div");
+    rows.forEach(function(row) {
+      var name = row.querySelector(".prize-name").value;
+      var val = unformatPrice(row.querySelector(".prize-val").value);
+      if (name && val >= 0) {
+        prizes.push({ ten_giai: name, gia_tri: val });
+      }
+    });
+    return prizes;
+  }
   if (toStep3Btn) toStep3Btn.addEventListener("click", function () {
     if (!document.getElementById("maTroChoi").value) { alert("Vui lòng chọn game."); return; }
     showStep(3);
@@ -224,6 +307,8 @@
         ten_giai_dau: document.getElementById("tenGiaiDau").value,
         banner_url: document.getElementById("bannerUrl").value,
         mo_ta: document.getElementById("moTa").value,
+        tong_giai_thuong: tongGiaiThuongInput ? unformatPrice(tongGiaiThuongInput.value) : 0,
+        danh_sach_giai_thuong: typeof collectPrizes === "function" ? collectPrizes() : [],
         ma_tro_choi: parseInt(document.getElementById("maTroChoi").value) || null,
         so_doi_toi_thieu: parseInt(document.getElementById("minTeams").value) || 2,
         so_doi_toi_da: parseInt(document.getElementById("maxTeams").value) || null,
@@ -235,6 +320,7 @@
       if (result.success) {
         createForm.reset();
         document.getElementById("stageContainer").innerHTML = "";
+        if (prizeListContainer) prizeListContainer.innerHTML = "";
         stageIndex = 0;
         var preview = document.getElementById("bannerPreview");
         if (preview) preview.style.display = "none";
@@ -333,12 +419,17 @@
   }
 
   function attachCardEvents(container) {
-    container.querySelectorAll(".view-detail-btn").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        openDetail(parseInt(btn.getAttribute("data-id")));
+    // Click vào toàn bộ card để xem chi tiết (Redirect hoặc Modal tùy trạng thái)
+    container.querySelectorAll(".tournament-card").forEach(function (card) {
+      card.addEventListener("click", function (e) {
+        // Nếu click vào nút hành động nhanh thì bỏ qua card click
+        if (e.target.closest(".quick-submit-btn")) return;
+        
+        var id = parseInt(card.getAttribute("data-id"));
+        openDetail(id);
       });
     });
+
     // Nút Gửi lên Admin nhanh (không cần mở modal)
     container.querySelectorAll(".quick-submit-btn").forEach(function (btn) {
       btn.addEventListener("click", async function (e) {
@@ -353,23 +444,39 @@
         else { btn.disabled = false; btn.textContent = "📤 Gửi lên Admin"; }
       });
     });
-
   }
 
   // ---- DETAIL MODAL ----
   async function openDetail(id) {
+    // DEBUG: console.log để tester kiểm tra trạng thái thực tế từ API
+    console.log("[Tournament] Opening detail for ID:", id);
+    
+    var result = await getApi("/GiaiDauApi/Detail?maGiaiDau=" + id);
+    if (!result.success && !result.Success) {
+      alert(result.message || "Không tải được thông tin giải đấu.");
+      return;
+    }
+    
+    var detail = result.data || result.Data;
+    var gd = detail.giai_dau;
+    var currentStatus = (gd.trang_thai || "").toLowerCase();
+    
+    console.log("[Tournament] Current Status:", currentStatus);
+    
+    // IF NOT DRAFT (nhap) -> REDIRECT TO FULL PAGE
+    if (currentStatus !== 'nhap') {
+      console.log("[Tournament] Redirecting to hub...");
+      window.location.href = "/tournaments/" + id;
+      return;
+    }
+
+    // IF DRAFT -> OPEN MODAL (Logic cũ)
+    console.log("[Tournament] Opening modal for Draft...");
     var modal = document.getElementById("tournamentDetailModal");
     modal.style.display = "flex";
     document.getElementById("detailTitle").textContent = "Đang tải...";
     document.getElementById("detailBody").innerHTML = "";
     document.getElementById("detailFooter").innerHTML = "";
-
-    var result = await getApi("/GiaiDauApi/Detail?maGiaiDau=" + id);
-    if (!result.success && !result.Success) {
-      document.getElementById("detailTitle").textContent = "Lỗi";
-      document.getElementById("detailBody").innerHTML = '<p class="text-muted">' + esc(result.message || "Không tải được.") + '</p>';
-      return;
-    }
     var detail = result.data || result.Data;
     var gd = detail.giai_dau;
     var stages = detail.giai_doan || [];

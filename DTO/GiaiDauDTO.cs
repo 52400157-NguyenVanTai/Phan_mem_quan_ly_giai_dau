@@ -35,6 +35,7 @@ namespace DTO
         public GiaiDauDTO giai_dau { get; set; }
         public List<GiaiDoanDTO> giai_doan { get; set; }
         public List<DoiThamGiaDTO> doi_tham_gia { get; set; }
+        public List<GiaiThuongDTO> danh_sach_giai_thuong { get; set; }
     }
 
     // DTO cho giai doan thi dau
@@ -64,6 +65,20 @@ namespace DTO
         public string trang_thai_tham_gia { get; set; }
     }
 
+    // Giai thuong
+    public class GiaiThuongDTO
+    {
+        public int ma_giai_thuong { get; set; }
+        public string ten_giai { get; set; }
+        public decimal gia_tri { get; set; }
+    }
+
+    public class GiaiThuongRequestDTO
+    {
+        public string ten_giai { get; set; }
+        public decimal gia_tri { get; set; }
+    }
+
     // Request DTO: Tao giai dau (Buoc 1 + 2 + 3)
     public class TaoGiaiDauRequestDTO
     {
@@ -71,6 +86,8 @@ namespace DTO
         public string ten_giai_dau { get; set; }
         public string banner_url { get; set; }
         public string mo_ta { get; set; }
+        public decimal tong_giai_thuong { get; set; }
+        public List<GiaiThuongRequestDTO> danh_sach_giai_thuong { get; set; }
 
         // Buoc 2: Tua game & rang buoc doi
         public int? ma_tro_choi { get; set; }
@@ -101,6 +118,8 @@ namespace DTO
         public string ten_giai_dau { get; set; }
         public string banner_url { get; set; }
         public string mo_ta { get; set; }
+        public decimal tong_giai_thuong { get; set; }
+        public List<GiaiThuongRequestDTO> danh_sach_giai_thuong { get; set; }
         public int? ma_tro_choi { get; set; }
         public int so_doi_toi_thieu { get; set; }
         public int? so_doi_toi_da { get; set; }

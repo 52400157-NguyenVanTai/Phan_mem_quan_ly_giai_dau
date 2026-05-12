@@ -32,7 +32,7 @@ namespace DAL
                         FROM GIAI_DAU g
                         LEFT JOIN NGUOI_DUNG u ON g.ma_nguoi_tao = u.ma_nguoi_dung
                         LEFT JOIN DANH_MUC_TRO_CHOI t ON g.ma_tro_choi = t.ma_tro_choi
-                        WHERE g.trang_thai = 'cho_xet_duyet' AND g.is_deleted = 0";
+                        WHERE g.trang_thai = 'cho_xet_duyet'";
                     using (var cmd = new SqlCommand(sqlDuyetGiai, conn))
                     using (var r = cmd.ExecuteReader())
                     {
@@ -60,7 +60,8 @@ namespace DAL
                     SELECT t.ma_giai_dau, t.ma_nhom, GETDATE() as ngay_dang_ky, g.ten_giai_dau, d.ten_doi, d.ma_doi_truong, u.ten_dang_nhap as ten_chu_tich
                     FROM THAM_GIA_GIAI t
                     JOIN GIAI_DAU g ON t.ma_giai_dau = g.ma_giai_dau
-                    JOIN DOI d ON t.ma_nhom = d.ma_doi
+                    INNER JOIN NHOM_DOI n ON t.ma_nhom = n.ma_nhom
+                    INNER JOIN DOI d ON n.ma_doi = d.ma_doi
                     LEFT JOIN NGUOI_DUNG u ON d.ma_doi_truong = u.ma_nguoi_dung
                     WHERE t.trang_thai_duyet = 'cho_duyet' AND EXISTS (SELECT 1 FROM QUAN_TRI_GIAI_DAU qt WHERE qt.ma_giai_dau = g.ma_giai_dau AND qt.ma_nguoi_dung = @UserId AND qt.vai_tro_giai = 'ban_to_chuc')";
                 using (var cmd = new SqlCommand(sqlDuyetDoi, conn))
@@ -265,7 +266,7 @@ namespace DAL
                                 if (req.chap_nhan && maGiaiDauThongBao.HasValue)
                                 {
                                     int? maDoi = null;
-                                    using (var cmd = new SqlCommand("SELECT ma_doi FROM DOI WHERE ma_doi_truong = @UserId AND is_deleted = 0", conn, tx))
+                                    using (var cmd = new SqlCommand("SELECT ma_doi FROM DOI WHERE ma_doi_truong = @UserId", conn, tx))
                                     {
                                         cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
                                         var res = cmd.ExecuteScalar();
@@ -309,8 +310,8 @@ namespace DAL
                                 if (req.chap_nhan && maEntity.HasValue)
                                 {
                                     string roleSql = req.loai_yeu_cau == "loi_moi_trong_tai" 
-                                        ? "INSERT INTO TRONG_TAI_GIAI_DAU(ma_giai_dau, ma_nguoi_dung) VALUES(@Gd, @Nd)"
-                                        : "INSERT INTO QUAN_TRI_GIAI_DAU(ma_giai_dau, ma_nguoi_quan_tri, vai_tro) VALUES(@Gd, @Nd, 'btc')";
+                                        ? "INSERT INTO TRONG_TAI_GIAI_DAU(ma_giai_dau, ma_nguoi_dung, trang_thai) VALUES(@Gd, @Nd, 'da_chap_nhan')"
+                                        : "INSERT INTO QUAN_TRI_GIAI_DAU(ma_giai_dau, ma_nguoi_dung, vai_tro_giai) VALUES(@Gd, @Nd, 'ban_to_chuc')";
                                         
                                     try 
                                     {

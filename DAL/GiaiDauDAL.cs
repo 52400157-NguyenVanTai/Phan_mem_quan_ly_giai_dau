@@ -14,9 +14,9 @@ namespace DAL
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(@"INSERT INTO GIAI_DAU (ten_giai_dau, ma_tro_choi, ma_nguoi_tao, the_thuc, banner_url, mo_ta,
-                    so_doi_toi_thieu, so_doi_toi_da, min_members_per_team, trang_thai)
+                    so_doi_toi_thieu, so_doi_toi_da, min_members_per_team, tong_giai_thuong, trang_thai)
                     VALUES (@ten, @game, @nguoiTao, 'loai_truc_tiep', @banner, @moTa,
-                    @minTeams, @maxTeams, @minMembers, 'nhap');
+                    @minTeams, @maxTeams, @minMembers, @tongGiaiThuong, 'nhap');
                     SELECT SCOPE_IDENTITY();", conn))
                 {
                     cmd.Parameters.AddWithValue("@ten", req.ten_giai_dau.Trim());
@@ -27,6 +27,7 @@ namespace DAL
                     cmd.Parameters.AddWithValue("@minTeams", req.so_doi_toi_thieu > 0 ? req.so_doi_toi_thieu : 2);
                     cmd.Parameters.AddWithValue("@maxTeams", (object)req.so_doi_toi_da ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@minMembers", req.min_members_per_team > 0 ? req.min_members_per_team : 1);
+                    cmd.Parameters.AddWithValue("@tongGiaiThuong", req.tong_giai_thuong);
                     maGiaiDau = Convert.ToInt32(cmd.ExecuteScalar());
                 }
 
@@ -45,6 +46,15 @@ namespace DAL
                     foreach (var gd in req.giai_doan)
                     {
                         ThemGiaiDoan(conn, maGiaiDau, gd);
+                    }
+                }
+
+                // Insert prizes
+                if (req.danh_sach_giai_thuong != null)
+                {
+                    foreach (var gt in req.danh_sach_giai_thuong)
+                    {
+                        ThemGiaiThuong(conn, maGiaiDau, gt);
                     }
                 }
             }
@@ -68,13 +78,26 @@ namespace DAL
             }
         }
 
+        private void ThemGiaiThuong(SqlConnection conn, int maGiaiDau, GiaiThuongRequestDTO gt)
+        {
+            using (var cmd = new SqlCommand(@"INSERT INTO GIAI_THUONG (ma_giai_dau, ten_giai, gia_tri, so_luong)
+                VALUES (@gd, @ten, @giaTri, 1)", conn))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                cmd.Parameters.AddWithValue("@ten", gt.ten_giai.Trim());
+                cmd.Parameters.AddWithValue("@giaTri", gt.gia_tri);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
         public void CapNhatGiaiDau(CapNhatGiaiDauRequestDTO req)
         {
             using (var conn = DbConnectionFactory.CreateConnection())
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(@"UPDATE GIAI_DAU SET ten_giai_dau=@ten, banner_url=@banner, mo_ta=@moTa,
-                    ma_tro_choi=@game, so_doi_toi_thieu=@minTeams, so_doi_toi_da=@maxTeams, min_members_per_team=@minMembers
+                    ma_tro_choi=@game, so_doi_toi_thieu=@minTeams, so_doi_toi_da=@maxTeams, min_members_per_team=@minMembers,
+                    tong_giai_thuong=@tongGiaiThuong
                     WHERE ma_giai_dau=@id", conn))
                 {
                     cmd.Parameters.AddWithValue("@id", req.ma_giai_dau);
@@ -85,6 +108,7 @@ namespace DAL
                     cmd.Parameters.AddWithValue("@minTeams", req.so_doi_toi_thieu > 0 ? req.so_doi_toi_thieu : 2);
                     cmd.Parameters.AddWithValue("@maxTeams", (object)req.so_doi_toi_da ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@minMembers", req.min_members_per_team > 0 ? req.min_members_per_team : 1);
+                    cmd.Parameters.AddWithValue("@tongGiaiThuong", req.tong_giai_thuong);
                     cmd.ExecuteNonQuery();
                 }
 
@@ -98,6 +122,18 @@ namespace DAL
                 {
                     foreach (var gd in req.giai_doan)
                         ThemGiaiDoan(conn, req.ma_giai_dau, gd);
+                }
+
+                // Replace prizes
+                using (var cmd = new SqlCommand("DELETE FROM GIAI_THUONG WHERE ma_giai_dau=@id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", req.ma_giai_dau);
+                    cmd.ExecuteNonQuery();
+                }
+                if (req.danh_sach_giai_thuong != null)
+                {
+                    foreach (var gt in req.danh_sach_giai_thuong)
+                        ThemGiaiThuong(conn, req.ma_giai_dau, gt);
                 }
             }
         }
@@ -352,6 +388,30 @@ namespace DAL
             return items;
         }
 
+        public List<GiaiThuongDTO> LayDanhSachGiaiThuong(int maGiaiDau)
+        {
+            var items = new List<GiaiThuongDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"SELECT * FROM GIAI_THUONG WHERE ma_giai_dau=@id ORDER BY gia_tri DESC", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new GiaiThuongDTO
+                        {
+                            ma_giai_thuong = Convert.ToInt32(r["ma_giai_thuong"]),
+                            ten_giai = r["ten_giai"].ToString(),
+                            gia_tri = Convert.ToDecimal(r["gia_tri"])
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
         public List<DoiThamGiaDTO> LayDoiThamGia(int maGiaiDau)
         {
             var items = new List<DoiThamGiaDTO>();
@@ -450,7 +510,7 @@ namespace DAL
                 conn.Open();
                 // Get team president
                 int? chuTich = null;
-                using (var cmd = new SqlCommand("SELECT ma_doi_truong FROM DOI WHERE ma_doi = @nhom AND is_deleted = 0", conn))
+                using (var cmd = new SqlCommand("SELECT ma_doi_truong FROM DOI WHERE ma_doi = @nhom", conn))
                 {
                     cmd.Parameters.AddWithValue("@nhom", maDoi);
                     var res = cmd.ExecuteScalar();
