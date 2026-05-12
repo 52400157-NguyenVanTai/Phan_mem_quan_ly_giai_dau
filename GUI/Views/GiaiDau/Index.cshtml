@@ -35,6 +35,7 @@
         </div>
 
         <form id="createTournamentForm">
+            <div id="editRejectAlert" class="reject-reason" style="display:none;"></div>
             <!-- STEP 1 -->
             <div class="wizard-panel active" id="wizardStep1">
                 <div class="form-group">
@@ -112,6 +113,8 @@
                 <div class="wizard-actions">
                     <button type="button" class="ak-btn-pill" id="backStep2">← Quay lại</button>
                     <button type="submit" class="ak-btn-primary" id="submitCreateBtn">Lưu bản nháp</button>
+                    <button type="button" class="ak-btn-primary" id="resubmitEditBtn" style="display:none;">Gửi phê duyệt lại</button>
+                    <button type="button" class="ak-btn-pill" id="cancelEditBtn" style="display:none;">Hủy chỉnh sửa</button>
                 </div>
             </div>
         </form>

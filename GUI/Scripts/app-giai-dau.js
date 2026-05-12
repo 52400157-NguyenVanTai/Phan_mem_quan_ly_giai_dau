@@ -1,4 +1,4 @@
-// ========================================================
+﻿// ========================================================
 // app-giai-dau.js — Tournament Engine Frontend (Phase 1)
 // ========================================================
 
@@ -39,6 +39,9 @@
   };
 
   var currentRejectId = null;
+  var editTournamentId = null;
+  var editTournamentStatus = null;
+  var editTournamentDetail = null;
 
   // ---- TABS ----
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
@@ -75,6 +78,10 @@
   var toStep3Btn = document.getElementById("toStep3");
   var backStep1Btn = document.getElementById("backStep1");
   var backStep2Btn = document.getElementById("backStep2");
+  var submitCreateBtn = document.getElementById("submitCreateBtn");
+  var resubmitEditBtn = document.getElementById("resubmitEditBtn");
+  var cancelEditBtn = document.getElementById("cancelEditBtn");
+  var editRejectAlert = document.getElementById("editRejectAlert");
   if (toStep2Btn) toStep2Btn.addEventListener("click", function () {
     if (!document.getElementById("tenGiaiDau").value.trim()) { alert("Vui lòng nhập tên giải đấu."); return; }
     if (!validatePrizes()) { alert("Tổng giá trị các giải thưởng chi tiết đang vượt quá Tổng ngân sách công bố!"); return; }
@@ -128,6 +135,30 @@
         validatePrizes();
       });
     });
+  }
+
+  function appendPrizeRow(name, value) {
+    var row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.gap = "8px";
+    row.innerHTML =
+      '<input type="text" class="form-control prize-name" placeholder="Ten giai" style="flex: 1;" required>' +
+      '<input type="text" class="form-control price-input prize-val" placeholder="Gia tri" style="width: 150px;" required>' +
+      '<button type="button" class="ak-btn-pill remove-prize-btn" style="color: #ef4444; border-color: #ef4444; padding: 0 10px;">Xoa</button>';
+    prizeListContainer.appendChild(row);
+    row.querySelector(".prize-name").value = name || "";
+    row.querySelector(".prize-val").value = formatPrice(parseInt(value || 0));
+    row.querySelector(".prize-val").addEventListener("input", function(e) {
+      var raw = unformatPrice(e.target.value);
+      e.target.value = formatPrice(raw);
+      validatePrizes();
+    });
+    row.querySelector(".remove-prize-btn").addEventListener("click", function() {
+      row.remove();
+      validatePrizes();
+    });
+    validatePrizes();
+    return row;
   }
 
   function validatePrizes() {
@@ -242,6 +273,128 @@
     return stages;
   }
 
+  function setCreateTabActive() {
+    var btn = document.querySelector('.tab-btn[data-tab="tab-create"]');
+    if (btn) btn.click();
+  }
+
+  function resetTournamentForm() {
+    editTournamentId = null;
+    editTournamentStatus = null;
+    editTournamentDetail = null;
+    if (createForm) createForm.reset();
+    if (tongGiaiThuongInput) tongGiaiThuongInput.value = "0";
+    if (prizeListContainer) prizeListContainer.innerHTML = "";
+    var stageContainer = document.getElementById("stageContainer");
+    if (stageContainer) stageContainer.innerHTML = "";
+    stageIndex = 0;
+    var preview = document.getElementById("bannerPreview");
+    if (preview) {
+      preview.src = "";
+      preview.style.display = "none";
+    }
+    if (editRejectAlert) {
+      editRejectAlert.innerHTML = "";
+      editRejectAlert.style.display = "none";
+    }
+    var title = document.querySelector("#tab-create .section-title");
+    if (title) title.textContent = "Tạo giải đấu mới";
+    if (submitCreateBtn) submitCreateBtn.textContent = "Lưu bản nháp";
+    if (resubmitEditBtn) resubmitEditBtn.style.display = "none";
+    if (cancelEditBtn) cancelEditBtn.style.display = "none";
+    showStep(1);
+  }
+
+  function fillStage(stage) {
+    addStage();
+    var cards = document.querySelectorAll("#stageContainer .stage-card");
+    var card = cards[cards.length - 1];
+    if (!card) return;
+    card.querySelector(".stage-name").value = stage.ten_giai_doan || "";
+    card.querySelector(".stage-format").value = stage.the_thuc || "";
+    card.querySelector(".stage-teams").value = stage.so_doi || "";
+    card.querySelector(".stage-advance").value = stage.so_doi_di_tiep != null ? stage.so_doi_di_tiep : "";
+  }
+
+  async function openEditTournament(detail) {
+    var gd = detail.giai_dau;
+    await loadGamesDropdown();
+    resetTournamentForm();
+    editTournamentId = gd.ma_giai_dau;
+    editTournamentStatus = gd.trang_thai;
+    editTournamentDetail = detail;
+    setCreateTabActive();
+    var title = document.querySelector("#tab-create .section-title");
+    if (title) title.textContent = "Chỉnh sửa giải đấu";
+
+    document.getElementById("tenGiaiDau").value = gd.ten_giai_dau || "";
+    document.getElementById("bannerUrl").value = gd.banner_url || "";
+    document.getElementById("moTa").value = gd.mo_ta || "";
+    if (tongGiaiThuongInput) tongGiaiThuongInput.value = formatPrice(parseInt(gd.tong_giai_thuong || 0));
+    document.getElementById("maTroChoi").value = gd.ma_tro_choi || "";
+    document.getElementById("minTeams").value = gd.so_doi_toi_thieu || 2;
+    document.getElementById("maxTeams").value = gd.so_doi_toi_da || "";
+    document.getElementById("minMembers").value = gd.min_members_per_team || 1;
+
+    var preview = document.getElementById("bannerPreview");
+    if (preview && gd.banner_url) {
+      preview.src = gd.banner_url;
+      preview.style.display = "block";
+    }
+
+    (detail.danh_sach_giai_thuong || []).forEach(function (p) {
+      appendPrizeRow(p.ten_giai, p.gia_tri);
+    });
+    (detail.giai_doan || []).forEach(fillStage);
+    if (!document.getElementById("stageContainer").children.length) addStage();
+
+    if (gd.trang_thai === "bi_tu_choi" && gd.ly_do_tu_choi && editRejectAlert) {
+      editRejectAlert.innerHTML = "<strong>Giải đấu bị từ chối do:</strong> " + esc(gd.ly_do_tu_choi) + ". Vui lòng sửa lại.";
+      editRejectAlert.style.display = "block";
+    }
+    if (submitCreateBtn) submitCreateBtn.textContent = "Lưu bản nháp";
+    if (resubmitEditBtn) resubmitEditBtn.style.display = "inline-block";
+    if (cancelEditBtn) cancelEditBtn.style.display = "inline-block";
+    validatePrizes();
+    showStep(1);
+  }
+
+  function validateStages(stages) {
+    if (stages.length === 0) { alert("Vui lòng thêm ít nhất 1 giai đoạn."); return false; }
+    for (var i = 0; i < stages.length; i++) {
+      if (!stages[i].ten_giai_doan) { alert("Vui lòng nhập tên cho giai đoạn " + (i + 1)); return false; }
+      if (!stages[i].the_thuc) { alert("Vui lòng chọn thể thức cho giai đoạn " + (i + 1)); return false; }
+      if (i < stages.length - 1) {
+        if (stages[i].so_doi_di_tiep == null || stages[i].so_doi_di_tiep <= 0) {
+          alert("Giai đoạn " + (i + 1) + " bắt buộc phải nhập số đội đi tiếp.");
+          return false;
+        }
+      } else {
+        stages[i].so_doi_di_tiep = null;
+      }
+    }
+    return true;
+  }
+
+  function buildTournamentRequest() {
+    var stages = collectStages();
+    if (!validateStages(stages)) return null;
+    var body = {
+      ten_giai_dau: document.getElementById("tenGiaiDau").value,
+      banner_url: document.getElementById("bannerUrl").value,
+      mo_ta: document.getElementById("moTa").value,
+      tong_giai_thuong: tongGiaiThuongInput ? unformatPrice(tongGiaiThuongInput.value) : 0,
+      danh_sach_giai_thuong: collectPrizes(),
+      ma_tro_choi: parseInt(document.getElementById("maTroChoi").value) || null,
+      so_doi_toi_thieu: parseInt(document.getElementById("minTeams").value) || 2,
+      so_doi_toi_da: parseInt(document.getElementById("maxTeams").value) || null,
+      min_members_per_team: parseInt(document.getElementById("minMembers").value) || 1,
+      giai_doan: stages,
+    };
+    if (editTournamentId) body.ma_giai_dau = editTournamentId;
+    return body;
+  }
+
   // ---- BANNER UPLOAD ----
   var bannerInput = document.getElementById("bannerFileInput");
   if (bannerInput) {
@@ -286,6 +439,17 @@
   if (createForm) {
     createForm.addEventListener("submit", async function (e) {
       e.preventDefault();
+      var requestBody = buildTournamentRequest();
+      if (!requestBody) return;
+      var saveResult = editTournamentId
+        ? await postApi("/GiaiDauApi/SaveDraft", requestBody)
+        : await postApi("/GiaiDauApi/Create", requestBody);
+      showMessage("createMessage", saveResult);
+      if (saveResult.success) {
+        resetTournamentForm();
+        document.querySelector('.tab-btn[data-tab="tab-my"]').click();
+      }
+      return;
       var stages = collectStages();
       if (stages.length === 0) { alert("Vui lòng thêm ít nhất 1 giai đoạn."); return; }
       for (var i = 0; i < stages.length; i++) {
@@ -328,6 +492,32 @@
         // Switch to my tab
         document.querySelector('.tab-btn[data-tab="tab-my"]').click();
       }
+    });
+  }
+
+  if (resubmitEditBtn) {
+    resubmitEditBtn.addEventListener("click", async function () {
+      if (!editTournamentId) return;
+      var requestBody = buildTournamentRequest();
+      if (!requestBody) return;
+      var updateResult = await postApi("/GiaiDauApi/Update", requestBody);
+      if (!updateResult.success) {
+        showMessage("createMessage", updateResult);
+        return;
+      }
+      var submitResult = await postApi("/GiaiDauApi/Submit", { ma_giai_dau: editTournamentId });
+      showMessage("createMessage", submitResult);
+      if (submitResult.success) {
+        resetTournamentForm();
+        document.querySelector('.tab-btn[data-tab="tab-my"]').click();
+      }
+    });
+  }
+
+  if (cancelEditBtn) {
+    cancelEditBtn.addEventListener("click", function () {
+      resetTournamentForm();
+      document.querySelector('.tab-btn[data-tab="tab-my"]').click();
     });
   }
 
@@ -385,7 +575,8 @@
     // Nút hành động nhanh ngay trên card (không cần mở modal)
     var quickActions = '';
     if (t.trang_thai === 'nhap' || t.trang_thai === 'bi_tu_choi') {
-      quickActions += '<button class="btn btn-primary btn-sm quick-submit-btn" data-id="' + t.ma_giai_dau + '" title="Gửi lên Admin để phê duyệt">📤 Gửi lên Admin</button>';
+      quickActions += '<button class="btn btn-outline-primary btn-sm quick-edit-btn" data-id="' + t.ma_giai_dau + '">Chỉnh sửa</button>';
+      if (t.trang_thai === 'nhap') quickActions += '<button class="btn btn-primary btn-sm quick-submit-btn" data-id="' + t.ma_giai_dau + '" title="Gửi lên Admin để phê duyệt">📤 Gửi lên Admin</button>';
     }
 
 
@@ -396,7 +587,7 @@
     }
 
     return (
-      '<div class="tournament-card" data-id="' + t.ma_giai_dau + '">' +
+      '<div class="tournament-card" data-id="' + t.ma_giai_dau + '" data-status="' + esc(t.trang_thai) + '">' +
         bannerHtml +
         '<div class="card-body">' +
           '<div class="card-top-row">' +
@@ -421,9 +612,16 @@
   function attachCardEvents(container) {
     // Click vào toàn bộ card để xem chi tiết (Redirect hoặc Modal tùy trạng thái)
     container.querySelectorAll(".tournament-card").forEach(function (card) {
+      var status = card.getAttribute("data-status");
+      var detailBtn = card.querySelector(".view-detail-btn");
+      if (status === "nhap" && detailBtn) {
+        detailBtn.classList.remove("btn-outline-primary", "view-detail-btn");
+        detailBtn.classList.add("btn-danger", "quick-delete-draft-btn");
+        detailBtn.textContent = "Xóa bản nháp";
+      }
       card.addEventListener("click", function (e) {
         // Nếu click vào nút hành động nhanh thì bỏ qua card click
-        if (e.target.closest(".quick-submit-btn")) return;
+        if (e.target.closest(".quick-submit-btn") || e.target.closest(".quick-edit-btn") || e.target.closest(".quick-delete-draft-btn")) return;
         
         var id = parseInt(card.getAttribute("data-id"));
         openDetail(id);
@@ -431,6 +629,13 @@
     });
 
     // Nút Gửi lên Admin nhanh (không cần mở modal)
+    container.querySelectorAll(".quick-edit-btn").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        openDetail(parseInt(btn.getAttribute("data-id")));
+      });
+    });
+
     container.querySelectorAll(".quick-submit-btn").forEach(function (btn) {
       btn.addEventListener("click", async function (e) {
         e.stopPropagation();
@@ -444,31 +649,68 @@
         else { btn.disabled = false; btn.textContent = "📤 Gửi lên Admin"; }
       });
     });
+
+    container.querySelectorAll(".quick-delete-draft-btn").forEach(function (btn) {
+      btn.addEventListener("click", async function (e) {
+        e.stopPropagation();
+        var id = parseInt(btn.getAttribute("data-id"));
+        if (!confirm("Bạn có chắc chắn muốn xóa bản nháp này không?")) return;
+        btn.disabled = true;
+        btn.textContent = "Đang xóa...";
+        var result = await postApi("/GiaiDauApi/DeleteDraft", { ma_giai_dau: id });
+        alert(result.message || "Đã xử lý.");
+        if (result.success) loadMyTournaments();
+        else { btn.disabled = false; btn.textContent = "Xóa bản nháp"; }
+      });
+    });
+  }
+
+  function setTournamentCardLoading(id, isLoading) {
+    var card = document.querySelector('.tournament-card[data-id="' + id + '"]');
+    if (!card) return;
+    card.setAttribute("aria-busy", isLoading ? "true" : "false");
+    card.style.opacity = isLoading ? "0.65" : "";
+    card.style.pointerEvents = isLoading ? "none" : "";
+    card.querySelectorAll("button").forEach(function (btn) {
+      btn.disabled = isLoading;
+    });
   }
 
   // ---- DETAIL MODAL ----
   async function openDetail(id) {
     // DEBUG: console.log để tester kiểm tra trạng thái thực tế từ API
     console.log("[Tournament] Opening detail for ID:", id);
-    
-    var result = await getApi("/GiaiDauApi/Detail?maGiaiDau=" + id);
-    if (!result.success && !result.Success) {
-      alert(result.message || "Không tải được thông tin giải đấu.");
-      return;
-    }
-    
-    var detail = result.data || result.Data;
-    var gd = detail.giai_dau;
-    var currentStatus = (gd.trang_thai || "").toLowerCase();
-    
-    console.log("[Tournament] Current Status:", currentStatus);
-    
-    // IF NOT DRAFT (nhap) -> REDIRECT TO FULL PAGE
-    if (currentStatus !== 'nhap') {
-      console.log("[Tournament] Redirecting to hub...");
-      window.location.href = "/tournaments/" + id;
-      return;
-    }
+
+    setTournamentCardLoading(id, true);
+    try {
+      var result = await getApi("/GiaiDauApi/Detail?maGiaiDau=" + id);
+      if (!result.success && !result.Success) {
+        alert(result.message || "Không thể tải dữ liệu giải đấu lúc này, vui lòng thử lại sau!");
+        return;
+      }
+
+      var detail = result.data || result.Data;
+      if (!detail || !detail.giai_dau) {
+        alert("Không thể tải dữ liệu giải đấu lúc này, vui lòng thử lại sau!");
+        return;
+      }
+      var gd = detail.giai_dau;
+      var currentStatus = (gd.trang_thai || "").toLowerCase();
+
+      console.log("[Tournament] Current Status:", currentStatus);
+
+      // IF NOT DRAFT (nhap) -> REDIRECT TO FULL PAGE
+      if (currentStatus === "nhap" || currentStatus === "bi_tu_choi") {
+        console.log("[Tournament] Opening edit wizard...");
+        await openEditTournament(detail);
+        return;
+      }
+
+      if (["sap_dien_ra", "mo_dang_ky", "khoa_dang_ky", "dang_dien_ra", "ket_thuc", "da_huy"].indexOf(currentStatus) >= 0) {
+        console.log("[Tournament] Redirecting to hub...");
+        window.location.href = "/tournaments/" + id;
+        return;
+      }
 
     // IF DRAFT -> OPEN MODAL (Logic cũ)
     console.log("[Tournament] Opening modal for Draft...");
@@ -574,6 +816,12 @@
     document.querySelectorAll("#detailFooter .reject-btn").forEach(function (btn) {
       btn.addEventListener("click", function () { openRejectModal(parseInt(btn.getAttribute("data-id"))); });
     });
+    } catch (e) {
+      console.error("[Tournament] Detail load failed:", e);
+      alert("Không thể tải dữ liệu giải đấu lúc này, vui lòng thử lại sau!");
+    } finally {
+      setTournamentCardLoading(id, false);
+    }
   }
 
   // ---- ACTIONS ----
@@ -862,3 +1110,6 @@
   loadMyTournaments();
   if (document.getElementById("tab-pending")) loadPendingTournaments();
 })();
+
+
+

@@ -42,7 +42,7 @@
         try {
             const result = await getApi(`/GiaiDauApi/Detail?maGiaiDau=${maGiaiDau}`);
             if (!isResponseSuccess(result)) {
-                document.getElementById("hubTitle").textContent = "LỖI TẢI DỮ LIỆU";
+                showLoadError(result && result.message);
                 return;
             }
 
@@ -53,7 +53,24 @@
             renderActiveTab();
         } catch (e) {
             console.error("Error loading detail:", e);
+            showLoadError();
         }
+    }
+
+    function showLoadError(message) {
+        const title = document.getElementById("hubTitle");
+        const actions = document.getElementById("hubActions");
+        const info = document.getElementById("infoList");
+        const teams = document.getElementById("teamsGrid");
+        const text = message || "Không thể tải dữ liệu giải đấu lúc này, vui lòng thử lại sau!";
+        if (title) title.textContent = "Không thể tải giải đấu";
+        if (actions) {
+            actions.innerHTML = `<button class="hub-btn-outline" type="button" id="retryLoadTournament">Thử lại</button>`;
+            const retry = document.getElementById("retryLoadTournament");
+            if (retry) retry.onclick = loadTournamentDetail;
+        }
+        if (info) info.innerHTML = `<div class="empty-state">${escapeHtml(text)}</div>`;
+        if (teams) teams.innerHTML = "";
     }
 
     function renderHeader() {
@@ -294,11 +311,15 @@
             "open-reg": "Bạn muốn mở đăng ký cho giải đấu này?",
             "cancel": "Hủy giải đấu? Hành động này không thể hoàn tác.",
         };
+        if (action === "cancel" && tournamentData && tournamentData.giai_dau && tournamentData.giai_dau.trang_thai === "sap_dien_ra") {
+            confirmMessages.cancel = "Hủy giải đấu sắp diễn ra? Giải đấu sẽ bị xóa hoàn toàn khỏi database.";
+        }
         if (confirmMessages[action] && !confirm(confirmMessages[action])) return;
 
         const endpoints = {
             "close-reg": "/GiaiDauApi/CloseRegistration",
             "open-reg": "/GiaiDauApi/OpenRegistration",
+            "cancel": "/GiaiDauApi/Cancel",
         };
 
         if (!endpoints[action]) return;
@@ -307,6 +328,10 @@
         alert(result.message);
         
         if (result.success) {
+            if (action === "cancel") {
+                window.location.href = "/GiaiDau";
+                return;
+            }
             if (action === "open-reg") {
                 tournamentData.giai_dau.dang_mo_dang_ky = true;
                 tournamentData.giai_dau.trang_thai = "mo_dang_ky";
@@ -387,6 +412,11 @@
                 fetch(url).then(res => res.json()).then(res => {
                     inviteSearchSpinner.style.display = "none";
                     renderAutocomplete(res.data || res);
+                }).catch(err => {
+                    inviteSearchSpinner.style.display = "none";
+                    console.error("Invite search failed:", err);
+                    inviteAutocompleteDropdown.innerHTML = '<div class="autocomplete-empty">Không thể tìm kiếm lúc này.</div>';
+                    inviteAutocompleteDropdown.style.display = "block";
                 });
             }, 400);
         };
@@ -436,9 +466,14 @@
                 loi_nhan: inviteMessage.value || "Mời hợp tác"
             };
 
-            const result = await postApi(endpoint, payload);
-            alert(result.message);
-            if (result.success) closeInvite();
+            try {
+                const result = await postApi(endpoint, payload);
+                alert(result.message || "Đã xử lý.");
+                if (result.success) closeInvite();
+            } catch (err) {
+                console.error("Invite failed:", err);
+                alert("Không thể gửi lời mời lúc này, vui lòng thử lại sau!");
+            }
         };
     }
 

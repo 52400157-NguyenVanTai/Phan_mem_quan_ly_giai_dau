@@ -7,6 +7,16 @@ namespace DAL
 {
     public class YeuCauDAL
     {
+        private void DamBaoCotThongBaoMaDoi(SqlConnection conn)
+        {
+            using (var cmd = new SqlCommand(@"
+                IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
+                    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;", conn))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
         // Lấy tất cả yêu cầu cho User hiện tại
         public List<YeuCauTongHopDTO> LayDanhSachYeuCau(int maNguoiDung)
         {
@@ -14,6 +24,7 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             {
                 conn.Open();
+                DamBaoCotThongBaoMaDoi(conn);
                 
                 // 1. ADMIN: Lấy yêu cầu duyệt giải đấu
                 bool isAdmin = false;
@@ -223,6 +234,7 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             {
                 conn.Open();
+                DamBaoCotThongBaoMaDoi(conn);
                 using (var tx = conn.BeginTransaction())
                 {
                     try

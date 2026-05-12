@@ -7,6 +7,16 @@ namespace DAL
 {
     public class DoiDAL
     {
+        private void DamBaoCotThongBaoMaDoi(SqlConnection connection)
+        {
+            using (SqlCommand command = new SqlCommand(@"
+                IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
+                    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;", connection))
+            {
+                command.ExecuteNonQuery();
+            }
+        }
+
         public List<DoiDTO> TimKiemDoi(string tuKhoa, int? maTroChoi, int? maNguoiDung)
         {
             List<DoiDTO> items = new List<DoiDTO>();
@@ -94,6 +104,7 @@ namespace DAL
             {
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
                 connection.Open();
+                DamBaoCotThongBaoMaDoi(connection);
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read()) items.Add(MapDoi(reader));
@@ -627,6 +638,7 @@ namespace DAL
             {
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
                 connection.Open();
+                DamBaoCotThongBaoMaDoi(connection);
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())

@@ -28,6 +28,14 @@ namespace GUI.Controllers
         }
 
         [HttpPost]
+        public JsonResult SaveDraft(CapNhatGiaiDauRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            return Json(bus.LuuBanNhap(userId.Value, request));
+        }
+
+        [HttpPost]
         public JsonResult Submit(GiaiDauActionRequestDTO request)
         {
             int? userId = Session["UserId"] as int?;

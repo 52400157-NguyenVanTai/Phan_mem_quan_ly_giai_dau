@@ -150,6 +150,47 @@ namespace DAL
             }
         }
 
+        private void DamBaoCotThongBaoMaDoi(SqlConnection conn)
+        {
+            using (var cmd = new SqlCommand(@"
+                IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
+                    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;", conn))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private bool TableExists(SqlConnection conn, string tableName)
+        {
+            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM sys.tables WHERE name=@table", conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private bool ColumnExists(SqlConnection conn, string tableName, string columnName)
+        {
+            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM sys.columns WHERE object_id = OBJECT_ID(@table) AND name=@column", conn))
+            {
+                cmd.Parameters.AddWithValue("@table", "dbo." + tableName);
+                cmd.Parameters.AddWithValue("@column", columnName);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        public void CapNhatTrangThaiVaXoaLyDoTuChoi(int maGiaiDau, string trangThai)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand("UPDATE GIAI_DAU SET trang_thai=@tt, ly_do_tu_choi=NULL WHERE ma_giai_dau=@id", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                cmd.Parameters.AddWithValue("@tt", trangThai);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
         public void TuChoi(int maGiaiDau, string lyDo)
         {
             using (var conn = DbConnectionFactory.CreateConnection())
@@ -174,9 +215,22 @@ namespace DAL
             }
         }
 
-        // Xoa ban nhap (Hard Delete) — chi cho phep khi trang_thai = 'nhap'
-        // Ban nhap chua duoc public nen duoc xoa that khoi DB
-        public bool XoaBanNhap(int maGiaiDau)
+        private void ExecuteIfTableExists(SqlConnection conn, SqlTransaction tx, string tableName, string sql, int maGiaiDau)
+        {
+            using (var existsCmd = new SqlCommand("SELECT COUNT(1) FROM sys.tables WHERE name=@table", conn, tx))
+            {
+                existsCmd.Parameters.AddWithValue("@table", tableName);
+                if (Convert.ToInt32(existsCmd.ExecuteScalar()) == 0) return;
+            }
+
+            using (var cmd = new SqlCommand(sql, conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public bool XoaGiaiDauCascade(int maGiaiDau, string trangThaiBatBuoc)
         {
             using (var conn = DbConnectionFactory.CreateConnection())
             {
@@ -185,22 +239,51 @@ namespace DAL
                 {
                     try
                     {
-                        // Xoa giai doan truoc (FK)
-                        using (var cmd = new SqlCommand("DELETE FROM GIAI_DOAN WHERE ma_giai_dau=@id", conn, tx))
+                        ExecuteIfTableExists(conn, tx, "THONG_BAO", "DELETE FROM THONG_BAO WHERE loai_entity='giai_dau' AND ma_entity=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "TUONG_TAC_GIAI_DAU", "DELETE FROM TUONG_TAC_GIAI_DAU WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "BANG_XEP_HANG_CA_NHAN", "DELETE FROM BANG_XEP_HANG_CA_NHAN WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "BANG_XEP_HANG", "DELETE FROM BANG_XEP_HANG WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "DOI_HINH_THI_DAU", "DELETE FROM DOI_HINH_THI_DAU WHERE ma_giai_dau=@id", maGiaiDau);
+
+                        ExecuteIfTableExists(conn, tx, "YEU_CAU_MO_KHOA_KET_QUA", @"DELETE y
+                            FROM YEU_CAU_MO_KHOA_KET_QUA y
+                            INNER JOIN TRAN_DAU td ON y.ma_tran=td.ma_tran
+                            WHERE td.ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "KHIEU_NAI_KET_QUA", @"DELETE k
+                            FROM KHIEU_NAI_KET_QUA k
+                            INNER JOIN TRAN_DAU td ON k.ma_tran=td.ma_tran
+                            WHERE td.ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "LICH_SU_SUA_KET_QUA", "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name='TRG_LSSKQ_IMMUTABLE') DISABLE TRIGGER TRG_LSSKQ_IMMUTABLE ON LICH_SU_SUA_KET_QUA", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "LICH_SU_SUA_KET_QUA", @"DELETE l
+                            FROM LICH_SU_SUA_KET_QUA l
+                            INNER JOIN TRAN_DAU td ON l.ma_tran=td.ma_tran
+                            WHERE td.ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "LICH_SU_SUA_KET_QUA", "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name='TRG_LSSKQ_IMMUTABLE') ENABLE TRIGGER TRG_LSSKQ_IMMUTABLE ON LICH_SU_SUA_KET_QUA", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "KET_QUA_TRAN", @"DELETE k
+                            FROM KET_QUA_TRAN k
+                            INNER JOIN TRAN_DAU td ON k.ma_tran=td.ma_tran
+                            WHERE td.ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "CHI_TIET_NGUOI_CHOI_TRAN", @"DELETE c
+                            FROM CHI_TIET_NGUOI_CHOI_TRAN c
+                            INNER JOIN TRAN_DAU td ON c.ma_tran=td.ma_tran
+                            WHERE td.ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "CHI_TIET_TRAN_DAU", @"DELETE c
+                            FROM CHI_TIET_TRAN_DAU c
+                            INNER JOIN TRAN_DAU td ON c.ma_tran=td.ma_tran
+                            WHERE td.ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "TRAN_DAU", "UPDATE TRAN_DAU SET ma_tran_tiep_theo_thang=NULL, ma_tran_tiep_theo_thua=NULL WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "TRAN_DAU", "DELETE FROM TRAN_DAU WHERE ma_giai_dau=@id", maGiaiDau);
+
+                        ExecuteIfTableExists(conn, tx, "THAM_GIA_GIAI", "DELETE FROM THAM_GIA_GIAI WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "GIAI_THUONG", "DELETE FROM GIAI_THUONG WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "GIAI_DOAN", "DELETE FROM GIAI_DOAN WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "TRONG_TAI_GIAI_DAU", "DELETE FROM TRONG_TAI_GIAI_DAU WHERE ma_giai_dau=@id", maGiaiDau);
+                        ExecuteIfTableExists(conn, tx, "QUAN_TRI_GIAI_DAU", "DELETE FROM QUAN_TRI_GIAI_DAU WHERE ma_giai_dau=@id", maGiaiDau);
+
+                        using (var cmd = new SqlCommand("DELETE FROM GIAI_DAU WHERE ma_giai_dau=@id AND trang_thai=@tt", conn, tx))
                         {
                             cmd.Parameters.AddWithValue("@id", maGiaiDau);
-                            cmd.ExecuteNonQuery();
-                        }
-                        // Xoa quan tri giai dau
-                        using (var cmd = new SqlCommand("DELETE FROM QUAN_TRI_GIAI_DAU WHERE ma_giai_dau=@id", conn, tx))
-                        {
-                            cmd.Parameters.AddWithValue("@id", maGiaiDau);
-                            cmd.ExecuteNonQuery();
-                        }
-                        // Xoa ban than giai dau
-                        using (var cmd = new SqlCommand("DELETE FROM GIAI_DAU WHERE ma_giai_dau=@id AND trang_thai='nhap'", conn, tx))
-                        {
-                            cmd.Parameters.AddWithValue("@id", maGiaiDau);
+                            cmd.Parameters.AddWithValue("@tt", trangThaiBatBuoc);
                             int rows = cmd.ExecuteNonQuery();
                             if (rows == 0) { tx.Rollback(); return false; }
                         }
@@ -209,11 +292,23 @@ namespace DAL
                     }
                     catch
                     {
+                        try
+                        {
+                            ExecuteIfTableExists(conn, tx, "LICH_SU_SUA_KET_QUA", "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name='TRG_LSSKQ_IMMUTABLE') ENABLE TRIGGER TRG_LSSKQ_IMMUTABLE ON LICH_SU_SUA_KET_QUA", maGiaiDau);
+                        }
+                        catch { }
                         tx.Rollback();
                         throw;
                     }
                 }
             }
+        }
+
+        // Xoa ban nhap (Hard Delete) — chi cho phep khi trang_thai = 'nhap'
+        // Ban nhap chua duoc public nen duoc xoa that khoi DB
+        public bool XoaBanNhap(int maGiaiDau)
+        {
+            return XoaGiaiDauCascade(maGiaiDau, "nhap");
         }
 
         public string LayTrangThai(int maGiaiDau)
@@ -286,6 +381,7 @@ namespace DAL
                 LEFT JOIN NGUOI_DUNG nd ON gd.ma_nguoi_tao=nd.ma_nguoi_dung
                 WHERE gd.ma_giai_dau=@id", conn))
             {
+                cmd.CommandTimeout = 10;
                 cmd.Parameters.AddWithValue("@id", maGiaiDau);
                 conn.Open();
                 using (var r = cmd.ExecuteReader())
@@ -363,6 +459,7 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             using (var cmd = new SqlCommand(@"SELECT * FROM GIAI_DOAN WHERE ma_giai_dau=@id ORDER BY thu_tu", conn))
             {
+                cmd.CommandTimeout = 10;
                 cmd.Parameters.AddWithValue("@id", maGiaiDau);
                 conn.Open();
                 using (var r = cmd.ExecuteReader())
@@ -394,6 +491,7 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             using (var cmd = new SqlCommand(@"SELECT * FROM GIAI_THUONG WHERE ma_giai_dau=@id ORDER BY gia_tri DESC", conn))
             {
+                cmd.CommandTimeout = 10;
                 cmd.Parameters.AddWithValue("@id", maGiaiDau);
                 conn.Open();
                 using (var r = cmd.ExecuteReader())
@@ -416,30 +514,73 @@ namespace DAL
         {
             var items = new List<DoiThamGiaDTO>();
             using (var conn = DbConnectionFactory.CreateConnection())
-            using (var cmd = new SqlCommand(@"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.logo_url, tc.ten_game,
-                tg.trang_thai_duyet, tg.trang_thai_tham_gia
-                FROM THAM_GIA_GIAI tg
-                INNER JOIN NHOM_DOI n ON tg.ma_nhom=n.ma_nhom
-                INNER JOIN DOI d ON n.ma_doi=d.ma_doi
-                LEFT JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi=tc.ma_tro_choi
-                WHERE tg.ma_giai_dau=@id ORDER BY tg.ma_tham_gia", conn))
             {
-                cmd.Parameters.AddWithValue("@id", maGiaiDau);
                 conn.Open();
-                using (var r = cmd.ExecuteReader())
+
+                bool tggHasMaDoi = ColumnExists(conn, "THAM_GIA_GIAI", "ma_doi");
+                bool tggHasMaNhom = ColumnExists(conn, "THAM_GIA_GIAI", "ma_nhom");
+                bool doiHasMaTroChoi = ColumnExists(conn, "DOI", "ma_tro_choi");
+                bool nhomDoiExists = TableExists(conn, "NHOM_DOI");
+
+                string sql;
+                if (tggHasMaDoi)
                 {
-                    while (r.Read())
+                    string maNhomExpr = "tg.ma_doi";
+                    string gameSelect = doiHasMaTroChoi ? "tc.ten_game" : "CAST(NULL AS NVARCHAR(255)) AS ten_game";
+                    string gameJoin = doiHasMaTroChoi ? "LEFT JOIN DANH_MUC_TRO_CHOI tc ON d.ma_tro_choi=tc.ma_tro_choi" : "";
+                    sql = @"SELECT tg.ma_tham_gia, " + maNhomExpr + @" AS ma_nhom, d.ten_doi, d.logo_url, " + gameSelect + @",
+                        tg.trang_thai_duyet, tg.trang_thai_tham_gia
+                        FROM THAM_GIA_GIAI tg
+                        INNER JOIN DOI d ON tg.ma_doi=d.ma_doi
+                        " + gameJoin + @"
+                        WHERE tg.ma_giai_dau=@id
+                        ORDER BY tg.ma_tham_gia";
+                }
+                else if (tggHasMaNhom && nhomDoiExists)
+                {
+                    sql = @"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.logo_url, tc.ten_game,
+                        tg.trang_thai_duyet, tg.trang_thai_tham_gia
+                        FROM THAM_GIA_GIAI tg
+                        INNER JOIN NHOM_DOI n ON tg.ma_nhom=n.ma_nhom
+                        INNER JOIN DOI d ON n.ma_doi=d.ma_doi
+                        LEFT JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi=tc.ma_tro_choi
+                        WHERE tg.ma_giai_dau=@id
+                        ORDER BY tg.ma_tham_gia";
+                }
+                else if (tggHasMaNhom)
+                {
+                    sql = @"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.logo_url, CAST(NULL AS NVARCHAR(255)) AS ten_game,
+                        tg.trang_thai_duyet, tg.trang_thai_tham_gia
+                        FROM THAM_GIA_GIAI tg
+                        INNER JOIN DOI d ON tg.ma_nhom=d.ma_doi
+                        WHERE tg.ma_giai_dau=@id
+                        ORDER BY tg.ma_tham_gia";
+                }
+                else
+                {
+                    return items;
+                }
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.CommandTimeout = 10;
+                    cmd.Parameters.AddWithValue("@id", maGiaiDau);
+
+                    using (var r = cmd.ExecuteReader())
                     {
-                        items.Add(new DoiThamGiaDTO
+                        while (r.Read())
                         {
-                            ma_tham_gia = Convert.ToInt32(r["ma_tham_gia"]),
-                            ma_nhom = Convert.ToInt32(r["ma_nhom"]),
-                            ten_doi = r["ten_doi"].ToString(),
-                            logo_url = r["logo_url"] == DBNull.Value ? null : r["logo_url"].ToString(),
-                            ten_game = r["ten_game"] == DBNull.Value ? null : r["ten_game"].ToString(),
-                            trang_thai_duyet = r["trang_thai_duyet"].ToString(),
-                            trang_thai_tham_gia = r["trang_thai_tham_gia"].ToString()
-                        });
+                            items.Add(new DoiThamGiaDTO
+                            {
+                                ma_tham_gia = Convert.ToInt32(r["ma_tham_gia"]),
+                                ma_nhom = Convert.ToInt32(r["ma_nhom"]),
+                                ten_doi = r["ten_doi"].ToString(),
+                                logo_url = r["logo_url"] == DBNull.Value ? null : r["logo_url"].ToString(),
+                                ten_game = r["ten_game"] == DBNull.Value ? null : r["ten_game"].ToString(),
+                                trang_thai_duyet = r["trang_thai_duyet"].ToString(),
+                                trang_thai_tham_gia = r["trang_thai_tham_gia"].ToString()
+                            });
+                        }
                     }
                 }
             }
@@ -508,6 +649,7 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             {
                 conn.Open();
+                DamBaoCotThongBaoMaDoi(conn);
                 
                 // Get all captains for the team (both DOI.ma_doi_truong and THANH_VIEN_DOI with captain roles)
                 var captains = new HashSet<int>();

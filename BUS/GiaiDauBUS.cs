@@ -47,7 +47,7 @@ namespace BUS
         {
             if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
             if (string.IsNullOrWhiteSpace(req.ten_giai_dau)) return Loi("Vui lòng nhập tên giải đấu.");
-            if (!dal.LaBTC(req.ma_giai_dau, maNguoiDung)) return Loi("Bạn không có quyền chỉnh sửa giải đấu này.");
+            if (!dal.LaBTC(req.ma_giai_dau, maNguoiDung) && !dal.LaAdmin(maNguoiDung)) return Loi("Bạn không có quyền chỉnh sửa giải đấu này.");
             string tt = dal.LayTrangThai(req.ma_giai_dau);
             if (tt != "nhap" && tt != "bi_tu_choi") return Loi("Chỉ được chỉnh sửa khi giải ở trạng thái Bản nháp hoặc Bị từ chối.");
             if (req.giai_doan == null || req.giai_doan.Count == 0) return Loi("Vui lòng thêm ít nhất 1 giai đoạn.");
@@ -71,12 +71,20 @@ namespace BUS
             return Ok("Cập nhật giải đấu thành công.", dal.LayGiaiDau(req.ma_giai_dau));
         }
 
+        public ApiResponseDTO LuuBanNhap(int maNguoiDung, CapNhatGiaiDauRequestDTO req)
+        {
+            var res = CapNhatGiaiDau(maNguoiDung, req);
+            if (!res.success) return res;
+            dal.CapNhatTrangThaiVaXoaLyDoTuChoi(req.ma_giai_dau, "nhap");
+            return Ok("Đã lưu bản nháp.", dal.LayGiaiDau(req.ma_giai_dau));
+        }
+
         public ApiResponseDTO GuiPheDuyet(int maNguoiDung, int maGiaiDau)
         {
             if (!dal.LaBTC(maGiaiDau, maNguoiDung)) return Loi("Bạn không có quyền.");
             string tt = dal.LayTrangThai(maGiaiDau);
             if (tt != "nhap" && tt != "bi_tu_choi") return Loi("Chỉ gửi phê duyệt từ trạng thái Bản nháp hoặc Bị từ chối.");
-            dal.CapNhatTrangThai(maGiaiDau, "cho_xet_duyet");
+            dal.CapNhatTrangThaiVaXoaLyDoTuChoi(maGiaiDau, "cho_xet_duyet");
             return Ok("Đã gửi yêu cầu phê duyệt.", null);
         }
 
@@ -161,6 +169,12 @@ namespace BUS
             {
                 bool ok = dal.XoaBanNhap(maGiaiDau);
                 return ok ? Ok("Đã xóa bản nháp thành công.", null) : Loi("Không thể xóa bản nháp này.");
+            }
+            if (tt == "sap_dien_ra")
+            {
+                if (!isBTC) return Loi("Chỉ Ban tổ chức của giải mới được hủy giải sắp diễn ra.");
+                bool ok = dal.XoaGiaiDauCascade(maGiaiDau, "sap_dien_ra");
+                return ok ? Ok("Đã hủy và xóa giải đấu sắp diễn ra.", null) : Loi("Không thể hủy giải đấu này.");
             }
             // Các trạng thái đã public → soft delete
             dal.CapNhatTrangThai(maGiaiDau, "da_huy");

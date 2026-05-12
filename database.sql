@@ -1357,6 +1357,7 @@ BEGIN
         loai_thong_bao NVARCHAR(50) NULL,
         loai_entity   NVARCHAR(50) NULL,     -- 'loi_moi','xin_gia_nhap','giai_dau','doi'
         ma_entity     INT           NULL,    -- FK-free; entity may vary
+        ma_doi        INT           NULL,    -- Team attached to tournament invitation notifications
         hanh_dong     NVARCHAR(50) NULL,     -- 'accept','decline', etc.
         da_doc        BIT           NOT NULL CONSTRAINT DF_TB_DADOC DEFAULT 0,
         ngay_tao      DATETIME      NOT NULL CONSTRAINT DF_TB_NGAYTAO DEFAULT GETDATE(),
@@ -1401,7 +1402,7 @@ SELECT
     (SELECT COUNT(1) FROM NGUOI_DUNG     WHERE is_banned   = 0)                                         AS tong_user_active,
     (SELECT COUNT(1) FROM NGUOI_DUNG     WHERE is_banned   = 1)                                         AS tong_user_bi_ban,
     (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai  = 'dang_dien_ra' AND is_deleted = 0)         AS giai_dang_chay,
-    (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai IN ('chuan_bi_dien_ra','dang_dien_ra') AND is_deleted = 0) AS giai_dang_hoat_dong,
+    (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai IN ('sap_dien_ra','mo_dang_ky','khoa_dang_ky','dang_dien_ra') AND is_deleted = 0) AS giai_dang_hoat_dong,
     (SELECT COUNT(1) FROM DOI            WHERE trang_thai  = 'dang_hoat_dong')                          AS tong_doi_hoat_dong,
     (SELECT COUNT(1) FROM KHIEU_NAI_KET_QUA WHERE trang_thai = 'cho_xu_ly')                            AS khieu_nai_cho_xu_ly,
     (SELECT COUNT(1) FROM GIAI_DAU       WHERE trang_thai  = 'cho_xet_duyet' AND is_deleted = 0)        AS giai_cho_duyet,
