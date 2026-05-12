@@ -658,11 +658,8 @@
 
   // ---- MỜI & ĐĂNG KÝ ----
   window.openRegisterTeamModal = function(maGiaiDau) {
-      var maDoi = prompt("Nhập mã Đội của bạn để đăng ký tham gia giải:");
-      if (maDoi) {
-          postApi("/GiaiDauApi/RegisterTeam", { ma_giai_dau: maGiaiDau, ma_doi: parseInt(maDoi) })
-              .then(res => alert(res.message));
-      }
+      postApi("/GiaiDauApi/RegisterTeam", { ma_giai_dau: maGiaiDau, ma_doi: 0 })
+          .then(res => alert(res.message));
   };
 
   // ---- CUSTOM AUTOCOMPLETE MODAL VARIABLES ----

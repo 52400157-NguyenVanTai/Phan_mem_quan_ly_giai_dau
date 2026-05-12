@@ -606,6 +606,21 @@ namespace DAL
                           AND tv.trang_thai_duyet = 'da_duyet'
                           AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
                     )";
+            sql += @" UNION ALL
+                    SELECT tb.ma_thong_bao AS ma_yeu_cau, 'loi_moi_tham_gia_giai' AS loai_yeu_cau, 
+                           tb.ma_doi, d.ten_doi, g.ten_giai_dau AS ten_game,
+                           g.ma_nguoi_tao AS ma_nguoi_gui, u.ten_dang_nhap AS ten_nguoi_gui,
+                           tb.ma_nguoi_nhan, nn.ten_dang_nhap AS ten_nguoi_nhan,
+                           CAST(NULL AS NVARCHAR(100)) AS vi_tri, tb.noi_dung AS mo_ta, 
+                           'cho_phan_hoi' AS trang_thai, tb.ngay_tao,
+                           CAST(NULL AS NVARCHAR(100)) AS ho_so_in_game_id, CAST(NULL AS NVARCHAR(100)) AS ho_so_in_game_name,
+                           CAST(NULL AS NVARCHAR(100)) AS ho_so_vi_tri, CAST(NULL AS NVARCHAR(500)) AS ho_so_thanh_tich
+                    FROM THONG_BAO tb
+                    INNER JOIN GIAI_DAU g ON tb.ma_entity = g.ma_giai_dau AND tb.loai_entity = 'giai_dau'
+                    INNER JOIN DOI d ON tb.ma_doi = d.ma_doi
+                    LEFT JOIN NGUOI_DUNG u ON g.ma_nguoi_tao = u.ma_nguoi_dung
+                    INNER JOIN NGUOI_DUNG nn ON tb.ma_nguoi_nhan = nn.ma_nguoi_dung
+                    WHERE tb.ma_nguoi_nhan = @maNguoiDung AND tb.loai_thong_bao = 'loi_moi_tham_gia_giai' AND tb.hanh_dong = 'pending'";
             sql += " ORDER BY ngay_tao DESC";
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(sql, connection))

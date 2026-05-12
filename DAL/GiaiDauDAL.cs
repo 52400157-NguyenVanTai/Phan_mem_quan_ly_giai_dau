@@ -508,24 +508,44 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             {
                 conn.Open();
-                // Get team president
-                int? chuTich = null;
+                
+                // Get all captains for the team (both DOI.ma_doi_truong and THANH_VIEN_DOI with captain roles)
+                var captains = new HashSet<int>();
+                
                 using (var cmd = new SqlCommand("SELECT ma_doi_truong FROM DOI WHERE ma_doi = @nhom", conn))
                 {
                     cmd.Parameters.AddWithValue("@nhom", maDoi);
                     var res = cmd.ExecuteScalar();
-                    if (res != null && res != DBNull.Value) chuTich = Convert.ToInt32(res);
+                    if (res != null && res != DBNull.Value) captains.Add(Convert.ToInt32(res));
                 }
 
-                if (chuTich.HasValue)
+                using (var cmd = new SqlCommand(@"
+                    SELECT tv.ma_nguoi_dung 
+                    FROM THANH_VIEN_DOI tv 
+                    INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom 
+                    WHERE n.ma_doi = @nhom AND tv.vai_tro_noi_bo IN ('chu_tich', 'doi_truong', 'ban_dieu_hanh')
+                ", conn))
+                {
+                    cmd.Parameters.AddWithValue("@nhom", maDoi);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            captains.Add(reader.GetInt32(0));
+                        }
+                    }
+                }
+
+                foreach (var captain in captains)
                 {
                     using (var cmd = new SqlCommand(@"
-                        INSERT INTO THONG_BAO(ma_nguoi_nhan, tieu_de, noi_dung, loai_thong_bao, loai_entity, ma_entity, hanh_dong)
-                        VALUES(@nn, 'Lời mời tham gia giải đấu', @nd, 'loi_moi_tham_gia_giai', 'giai_dau', @gd, 'pending')", conn))
+                        INSERT INTO THONG_BAO(ma_nguoi_nhan, tieu_de, noi_dung, loai_thong_bao, loai_entity, ma_entity, hanh_dong, ma_doi)
+                        VALUES(@nn, 'Lời mời tham gia giải đấu', @nd, 'loi_moi_tham_gia_giai', 'giai_dau', @gd, 'pending', @md)", conn))
                     {
-                        cmd.Parameters.AddWithValue("@nn", chuTich.Value);
+                        cmd.Parameters.AddWithValue("@nn", captain);
                         cmd.Parameters.AddWithValue("@nd", loiNhan ?? "Đội của bạn được mời tham gia giải đấu.");
                         cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                        cmd.Parameters.AddWithValue("@md", maDoi);
                         cmd.ExecuteNonQuery();
                     }
                 }

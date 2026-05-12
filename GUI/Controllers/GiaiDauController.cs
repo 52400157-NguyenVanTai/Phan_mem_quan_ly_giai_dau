@@ -22,6 +22,7 @@ namespace GUI.Controllers
             }
 
             ViewBag.MaGiaiDau = id;
+            ViewBag.UserId = Session["UserId"];
             return View();
         }
     }

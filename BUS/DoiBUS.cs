@@ -193,6 +193,12 @@ namespace BUS
             if (request.loai_yeu_cau == "loi_moi") doiDAL.XuLyLoiMoi(request.ma_yeu_cau, maNguoiDung, request.chap_nhan);
             else if (request.loai_yeu_cau == "yeu_cau_moi") doiDAL.XuLyYeuCauMoi(request.ma_yeu_cau, maNguoiDung, request.chap_nhan);
             else if (request.loai_yeu_cau == "xin_gia_nhap") doiDAL.XuLyDonXinGiaNhap(request.ma_yeu_cau, maNguoiDung, request.chap_nhan);
+            else if (request.loai_yeu_cau == "loi_moi_tham_gia_giai")
+            {
+                var yDal = new YeuCauDAL();
+                var req = new XuLyYeuCauRequestDTO { ma_yeu_cau = request.ma_yeu_cau, loai_yeu_cau = request.loai_yeu_cau, chap_nhan = request.chap_nhan };
+                yDal.XuLyYeuCau(maNguoiDung, req);
+            }
             else return Loi("Loáº¡i yÃªu cáº§u khÃ´ng há»£p lá»‡.");
             return ThanhCong("Xá»­ lÃ½ yÃªu cáº§u thÃ nh cÃ´ng.", null);
         }

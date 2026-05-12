@@ -347,7 +347,7 @@
     );
     const canJoin = !d.vai_tro_cua_toi && d.dang_tuyen;
     const canLeave = !!d.vai_tro_cua_toi && d.vai_tro_cua_toi !== "chu_tich";
-    actions.innerHTML = `${canJoin ? '<button class="btn btn-success" id="joinTeam">Xin gia nhập</button>' : ""}${canInvite ? '<button class="btn btn-primary" id="openInviteForm">Mời thành viên</button>' : ""}${canLeave ? '<button class="btn btn-outline-danger" id="leaveTeam">Rời đội</button>' : ""}${canPresident ? `<button class="btn btn-outline-primary" id="toggleRecruiting">${d.dang_tuyen ? "Tắt tuyển dụng" : "Bật tuyển dụng"}</button><button class="btn btn-outline-secondary" id="fillEditTeam">Sửa thông tin</button><button class="btn btn-outline-success" disabled>Đăng kí giải đấu</button><button class="btn btn-outline-danger" id="deleteTeam">Xóa đội</button>` : ""}`;
+    actions.innerHTML = `${canJoin ? '<button class="btn btn-success" id="joinTeam">Xin gia nhập</button>' : ""}${canInvite ? '<button class="btn btn-primary" id="openInviteForm">Mời thành viên</button>' : ""}${canLeave ? '<button class="btn btn-outline-danger" id="leaveTeam">Rời đội</button>' : ""}${canPresident ? `<button class="btn btn-outline-primary" id="toggleRecruiting">${d.dang_tuyen ? "Tắt tuyển dụng" : "Bật tuyển dụng"}</button><button class="btn btn-outline-secondary" id="fillEditTeam">Sửa thông tin</button><button class="btn btn-outline-success" id="registerTournamentBtn">Đăng ký giải đấu</button><button class="btn btn-outline-danger" id="deleteTeam">Xóa đội</button>` : ""}`;
     if ($("joinTeam"))
       $("joinTeam").onclick = () =>
         post(api.join, { ma_doi: d.ma_doi }).then((res) =>
@@ -378,6 +378,11 @@
             location.reload();
           });
       };
+    if ($("registerTournamentBtn")) {
+      $("registerTournamentBtn").onclick = () => {
+        window.location.href = `/GiaiDau/Index?gameId=${d.ma_tro_choi || ""}`;
+      };
+    }
   }
 
   function openEditTeam(d) {
@@ -563,6 +568,7 @@
   function requestLabel(type) {
     if (type === "loi_moi") return "Lời mời vào đội";
     if (type === "xin_gia_nhap") return "Đơn xin gia nhập";
+    if (type === "loi_moi_tham_gia_giai") return "Lời mời tham gia giải đấu";
     return "Yêu cầu mời thành viên";
   }
 

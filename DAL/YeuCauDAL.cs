@@ -256,36 +256,66 @@ namespace DAL
 
                             case "loi_moi_tham_gia_giai":
                                 int? maGiaiDauThongBao = null;
-                                using (var cmd = new SqlCommand("SELECT ma_entity FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
+                                int? maDoiThongBao = null;
+                                using (var cmd = new SqlCommand("SELECT ma_entity, ma_doi FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
-                                    var res = cmd.ExecuteScalar();
-                                    if(res != DBNull.Value && res != null) maGiaiDauThongBao = Convert.ToInt32(res);
+                                    using (var r = cmd.ExecuteReader())
+                                    {
+                                        if (r.Read())
+                                        {
+                                            if (r["ma_entity"] != DBNull.Value) maGiaiDauThongBao = Convert.ToInt32(r["ma_entity"]);
+                                            if (r["ma_doi"] != DBNull.Value) maDoiThongBao = Convert.ToInt32(r["ma_doi"]);
+                                        }
+                                    }
                                 }
                                 
-                                if (req.chap_nhan && maGiaiDauThongBao.HasValue)
+                                if (req.chap_nhan && maGiaiDauThongBao.HasValue && maDoiThongBao.HasValue)
                                 {
-                                    int? maDoi = null;
-                                    using (var cmd = new SqlCommand("SELECT ma_doi FROM DOI WHERE ma_doi_truong = @UserId", conn, tx))
+                                    // Verify user is actually a captain of this specific team
+                                    bool isCaptain = false;
+                                    using (var cmd = new SqlCommand(@"
+                                        SELECT 1 FROM DOI WHERE ma_doi = @Doi AND ma_doi_truong = @UserId
+                                        UNION
+                                        SELECT 1 FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom 
+                                        WHERE n.ma_doi = @Doi AND tv.ma_nguoi_dung = @UserId AND tv.vai_tro_noi_bo IN ('chu_tich', 'doi_truong', 'ban_dieu_hanh')
+                                    ", conn, tx))
                                     {
+                                        cmd.Parameters.AddWithValue("@Doi", maDoiThongBao.Value);
                                         cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
                                         var res = cmd.ExecuteScalar();
-                                        if(res != DBNull.Value && res != null) maDoi = Convert.ToInt32(res);
+                                        isCaptain = (res != null);
                                     }
 
-                                    if (maDoi.HasValue)
+                                    if (isCaptain)
                                     {
-                                        string sqlJoin = @"
-                                            IF EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @Gd AND ma_nhom = @Nhom)
-                                                UPDATE THAM_GIA_GIAI SET trang_thai_duyet = 'da_duyet' WHERE ma_giai_dau = @Gd AND ma_nhom = @Nhom
-                                            ELSE
-                                                INSERT INTO THAM_GIA_GIAI(ma_giai_dau, ma_nhom, trang_thai_duyet, trang_thai_tham_gia)
-                                                VALUES(@Gd, @Nhom, 'da_duyet', 'dang_thi_dau')";
-                                        using (var cmd = new SqlCommand(sqlJoin, conn, tx))
+                                        int? maNhomThamGia = null;
+                                        using(var cmd = new SqlCommand(@"
+                                            SELECT TOP 1 n.ma_nhom FROM NHOM_DOI n
+                                            INNER JOIN GIAI_DAU g ON n.ma_tro_choi = g.ma_tro_choi
+                                            WHERE n.ma_doi = @Doi AND g.ma_giai_dau = @Gd
+                                        ", conn, tx))
                                         {
+                                            cmd.Parameters.AddWithValue("@Doi", maDoiThongBao.Value);
                                             cmd.Parameters.AddWithValue("@Gd", maGiaiDauThongBao.Value);
-                                            cmd.Parameters.AddWithValue("@Nhom", maDoi.Value);
-                                            cmd.ExecuteNonQuery();
+                                            var r = cmd.ExecuteScalar();
+                                            if(r != null && r != DBNull.Value) maNhomThamGia = Convert.ToInt32(r);
+                                        }
+
+                                        if (maNhomThamGia.HasValue)
+                                        {
+                                            string sqlJoin = @"
+                                                IF EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @Gd AND ma_nhom = @Nhom)
+                                                    UPDATE THAM_GIA_GIAI SET trang_thai_duyet = 'da_duyet' WHERE ma_giai_dau = @Gd AND ma_nhom = @Nhom
+                                                ELSE
+                                                    INSERT INTO THAM_GIA_GIAI(ma_giai_dau, ma_nhom, trang_thai_duyet, trang_thai_tham_gia)
+                                                    VALUES(@Gd, @Nhom, 'da_duyet', 'dang_thi_dau')";
+                                            using (var cmd = new SqlCommand(sqlJoin, conn, tx))
+                                            {
+                                                cmd.Parameters.AddWithValue("@Gd", maGiaiDauThongBao.Value);
+                                                cmd.Parameters.AddWithValue("@Nhom", maNhomThamGia.Value);
+                                                cmd.ExecuteNonQuery();
+                                            }
                                         }
                                     }
                                 }

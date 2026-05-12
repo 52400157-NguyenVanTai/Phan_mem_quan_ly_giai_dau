@@ -27,6 +27,7 @@ namespace DTO
         public DateTime ngay_tao { get; set; }   // thời điểm tạo bản ghi
         public int so_doi_dang_ky { get; set; }
         public int so_doi_da_duyet { get; set; }
+        public bool is_btc { get; set; }
     }
 
     // Chi tiet giai dau bao gom giai doan

@@ -140,43 +140,78 @@
         container.innerHTML = "";
 
         const tt = gd.trang_thai;
-        const isBTC = gd.is_btc || gd.ma_nguoi_tao === parseInt(hub.dataset.userId); // Assuming we can get userId
+        const isBTC = gd.is_btc || gd.ma_nguoi_tao === parseInt(hub.dataset.userId);
 
-        // Note: For now we'll rely on the backend check if the user can perform actions.
-        // If ma_nguoi_tao matches Session["UserId"], show BTC actions.
-        
-        if (tt === "mo_dang_ky") {
+        // 1. KHU VỰC ĐẠI CHÚNG (Public Action)
+        if (tt === "mo_dang_ky" || gd.dang_mo_dang_ky) {
             const regBtn = document.createElement("button");
             regBtn.className = "hub-btn-primary";
-            regBtn.textContent = "ĐĂNG KÝ NGAY";
-            regBtn.onclick = () => openRegisterTeamModal(maGiaiDau);
+            regBtn.textContent = "ĐĂNG KÝ THAM GIA";
+            regBtn.onclick = () => window.openRegisterTeamModal(maGiaiDau);
             container.appendChild(regBtn);
         }
 
-        // BTC Actions (Placeholder check - ideally passed from backend)
-        // For demonstration, we'll show them if it's not Draft.
-        if (tt !== "nhap" && tt !== "bi_tu_choi") {
-            const inviteTeamBtn = document.createElement("button");
-            inviteTeamBtn.className = "hub-btn-outline";
-            inviteTeamBtn.textContent = "MỜI ĐỘI";
-            inviteTeamBtn.onclick = () => window.openInviteModal(maGiaiDau, "doi");
-            container.appendChild(inviteTeamBtn);
+        // 2. KHU VỰC BẢNG ĐIỀU KHIỂN BTC (Admin Panel)
+        if (isBTC) {
+            const adminBox = document.createElement("div");
+            adminBox.className = "admin-panel-box";
+            adminBox.innerHTML = `<h4 class="block-title">BẢNG ĐIỀU KHIỂN BTC</h4>`;
 
+            // Mở/Đóng Đăng Ký Toggle
+            if (tt !== "nhap" && tt !== "bi_tu_choi" && tt !== "da_huy" && tt !== "ket_thuc") {
+                const toggleRegBtn = document.createElement("button");
+                if (gd.dang_mo_dang_ky) {
+                    toggleRegBtn.className = "hub-btn-warning";
+                    toggleRegBtn.textContent = "ĐÓNG ĐĂNG KÝ / CHỐT SỔ";
+                    toggleRegBtn.onclick = () => handleAction("close-reg", maGiaiDau);
+                } else {
+                    toggleRegBtn.className = "hub-btn-primary";
+                    toggleRegBtn.textContent = "MỞ ĐĂNG KÝ";
+                    toggleRegBtn.onclick = () => handleAction("open-reg", maGiaiDau);
+                }
+                adminBox.appendChild(toggleRegBtn);
+            }
+
+            // Mời BTC
+            const inviteBtcBtn = document.createElement("button");
+            inviteBtcBtn.className = "hub-btn-outline";
+            inviteBtcBtn.textContent = "MỜI BAN TỔ CHỨC";
+            inviteBtcBtn.onclick = () => window.openInviteModal(maGiaiDau, "btc");
+            adminBox.appendChild(inviteBtcBtn);
+
+            // Mời Trọng Tài
             const inviteRefBtn = document.createElement("button");
             inviteRefBtn.className = "hub-btn-outline";
             inviteRefBtn.textContent = "MỜI TRỌNG TÀI";
             inviteRefBtn.onclick = () => window.openInviteModal(maGiaiDau, "trong_tai");
-            container.appendChild(inviteRefBtn);
+            adminBox.appendChild(inviteRefBtn);
 
-            if (tt === "mo_dang_ky") {
-                const closeRegBtn = document.createElement("button");
-                closeRegBtn.className = "hub-btn-outline";
-                closeRegBtn.style.color = "var(--hub-accent-red)";
-                closeRegBtn.style.borderColor = "var(--hub-accent-red)";
-                closeRegBtn.textContent = "ĐÓNG ĐĂNG KÝ";
-                closeRegBtn.onclick = () => handleAction("close-reg", maGiaiDau);
-                container.appendChild(closeRegBtn);
+            // Mời Đội
+            const inviteTeamBtn = document.createElement("button");
+            inviteTeamBtn.className = "hub-btn-outline";
+            inviteTeamBtn.textContent = "MỜI ĐỘI";
+            inviteTeamBtn.onclick = () => window.openInviteModal(maGiaiDau, "doi");
+            adminBox.appendChild(inviteTeamBtn);
+
+            // Khởi Tranh (Placeholder)
+            if (tt === "sap_dien_ra" || tt === "mo_dang_ky" || tt === "khoa_dang_ky") {
+                const startBtn = document.createElement("button");
+                startBtn.className = "hub-btn-outline";
+                startBtn.textContent = "KHỞI TRANH GIẢI ĐẤU";
+                startBtn.onclick = () => alert("Chức năng Khởi Tranh đang được hoàn thiện.");
+                adminBox.appendChild(startBtn);
             }
+
+            // Hủy Giải Đấu
+            if (tt !== "ket_thuc" && tt !== "da_huy") {
+                const cancelBtn = document.createElement("button");
+                cancelBtn.className = "hub-btn-danger";
+                cancelBtn.textContent = "HỦY GIẢI ĐẤU";
+                cancelBtn.onclick = () => handleAction("cancel", maGiaiDau);
+                adminBox.appendChild(cancelBtn);
+            }
+
+            container.appendChild(adminBox);
         }
     }
 
@@ -256,26 +291,41 @@
     async function handleAction(action, id) {
         const confirmMessages = {
             "close-reg": "Chốt sổ đăng ký ngay bây giờ?",
+            "open-reg": "Bạn muốn mở đăng ký cho giải đấu này?",
             "cancel": "Hủy giải đấu? Hành động này không thể hoàn tác.",
         };
         if (confirmMessages[action] && !confirm(confirmMessages[action])) return;
 
         const endpoints = {
             "close-reg": "/GiaiDauApi/CloseRegistration",
+            "open-reg": "/GiaiDauApi/OpenRegistration",
         };
+
+        if (!endpoints[action]) return;
 
         const result = await postApi(endpoints[action], { ma_giai_dau: id });
         alert(result.message);
-        if (result.success) loadTournamentDetail();
+        
+        if (result.success) {
+            if (action === "open-reg") {
+                tournamentData.giai_dau.dang_mo_dang_ky = true;
+                tournamentData.giai_dau.trang_thai = "mo_dang_ky";
+            }
+            if (action === "close-reg") {
+                tournamentData.giai_dau.dang_mo_dang_ky = false;
+                tournamentData.giai_dau.trang_thai = "khoa_dang_ky";
+            }
+            renderHeader(); // Cập nhật badge trạng thái
+            renderActions(); // Re-render các nút
+        }
     }
 
     window.openRegisterTeamModal = function(maGiaiDau) {
-        const maDoi = prompt("Nhập mã Đội của bạn để đăng ký tham gia giải:");
-        if (maDoi) {
-            postApi("/GiaiDauApi/RegisterTeam", { ma_giai_dau: maGiaiDau, ma_doi: parseInt(maDoi) })
-                .then(res => alert(res.message))
-                .then(() => loadTournamentDetail());
-        }
+        postApi("/GiaiDauApi/RegisterTeam", { ma_giai_dau: maGiaiDau, ma_doi: 0 })
+            .then(res => {
+                alert(res.message);
+                if (res.success) loadTournamentDetail();
+            });
     };
 
     // INVITATION MODAL LOGIC (ADAPTED)

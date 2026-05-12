@@ -120,7 +120,8 @@ namespace GUI.Controllers
         [HttpGet]
         public JsonResult Detail(int maGiaiDau)
         {
-            return Json(bus.LayChiTiet(maGiaiDau), JsonRequestBehavior.AllowGet);
+            int? userId = Session["UserId"] as int?;
+            return Json(bus.LayChiTiet(maGiaiDau, userId), JsonRequestBehavior.AllowGet);
         }
 
         [HttpGet]

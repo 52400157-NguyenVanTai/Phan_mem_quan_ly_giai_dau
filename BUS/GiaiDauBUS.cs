@@ -1,5 +1,6 @@
 using DAL;
 using DTO;
+using System;
 using System.Collections.Generic;
 
 namespace BUS
@@ -190,10 +191,16 @@ namespace BUS
             return Ok("Lấy danh sách giải đấu thành công.", dal.LayGiaiDauCuaToi(maNguoiDung));
         }
 
-        public ApiResponseDTO LayChiTiet(int maGiaiDau)
+        public ApiResponseDTO LayChiTiet(int maGiaiDau, int? maNguoiDung = null)
         {
             GiaiDauDTO gd = dal.LayGiaiDau(maGiaiDau);
             if (gd == null) return Loi("Không tìm thấy giải đấu.");
+            
+            if (maNguoiDung.HasValue)
+            {
+                gd.is_btc = dal.LaBTC(maGiaiDau, maNguoiDung.Value);
+            }
+
             return Ok("Lấy chi tiết thành công.", new GiaiDauChiTietDTO
             {
                 giai_dau = gd,
@@ -226,24 +233,67 @@ namespace BUS
 
         public ApiResponseDTO DangKyThamGia(int maNguoiDung, DangKyGiaiDauRequestDTO req)
         {
-            if (req == null || req.ma_giai_dau <= 0 || req.ma_doi <= 0) return Loi("Dữ liệu không hợp lệ.");
-            
-            // Validate user is team president
-            bool isPresident = false;
-            using (var conn = DbConnectionFactory.CreateConnection())
-            using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT COUNT(1) FROM DOI WHERE ma_doi = @d AND ma_chu_tich = @u", conn))
+            if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
+
+            int maNhomToRegister = req.ma_doi;
+
+            if (maNhomToRegister <= 0)
             {
-                cmd.Parameters.AddWithValue("@d", req.ma_doi);
-                cmd.Parameters.AddWithValue("@u", maNguoiDung);
-                conn.Open();
-                isPresident = System.Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                // Tự động tìm đội của người dùng dựa trên game của giải đấu
+                GiaiDauDTO gd = dal.LayGiaiDau(req.ma_giai_dau);
+                if (gd == null) return Loi("Không tìm thấy giải đấu.");
+
+                using (var conn = DbConnectionFactory.CreateConnection())
+                {
+                    // Tìm ma_nhom của đội mà người dùng là chủ tịch và thi đấu cùng game với giải
+                    string sql = @"
+                        SELECT TOP 1 n.ma_nhom
+                        FROM DOI d
+                        INNER JOIN NHOM_DOI n ON d.ma_doi = n.ma_doi
+                        WHERE d.ma_doi_truong = @u 
+                          AND (n.ma_tro_choi = @game OR @game IS NULL)
+                          AND d.trang_thai = 'dang_hoat_dong'";
+                    
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@u", maNguoiDung);
+                        cmd.Parameters.AddWithValue("@game", (object)gd.ma_tro_choi ?? DBNull.Value);
+                        conn.Open();
+                        var res = cmd.ExecuteScalar();
+                        if (res == null || res == DBNull.Value)
+                            return Loi("Bạn chưa có đội thi đấu cho game này. Hãy tạo đội trước khi đăng ký.");
+                        
+                        maNhomToRegister = System.Convert.ToInt32(res);
+                    }
+                }
             }
-            if (!isPresident) return Loi("Chỉ Chủ tịch đội mới được đăng ký tham gia giải.");
+            else
+            {
+                // Kiểm tra quyền chủ tịch cho đội được chỉ định
+                bool isPresident = false;
+                using (var conn = DbConnectionFactory.CreateConnection())
+                {
+                    // Lưu ý: ma_doi trong req thực chất là ma_nhom theo logic hiện tại của hệ thống
+                    string sql = @"
+                        SELECT COUNT(1) 
+                        FROM DOI d
+                        INNER JOIN NHOM_DOI n ON d.ma_doi = n.ma_doi
+                        WHERE n.ma_nhom = @nhom AND d.ma_doi_truong = @u";
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@nhom", maNhomToRegister);
+                        cmd.Parameters.AddWithValue("@u", maNguoiDung);
+                        conn.Open();
+                        isPresident = System.Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                    }
+                }
+                if (!isPresident) return Loi("Chỉ Chủ tịch đội mới được đăng ký tham gia giải.");
+            }
 
             string tt = dal.LayTrangThai(req.ma_giai_dau);
             if (tt != "mo_dang_ky") return Loi("Giải đấu hiện không mở đăng ký.");
 
-            dal.DangKyThamGiaGiai(req.ma_giai_dau, req.ma_doi);
+            dal.DangKyThamGiaGiai(req.ma_giai_dau, maNhomToRegister);
             return Ok("Đã nộp đơn đăng ký thành công. Vui lòng chờ BTC xét duyệt.", null);
         }
 
