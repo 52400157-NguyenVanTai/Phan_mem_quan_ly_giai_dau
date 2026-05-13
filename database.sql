@@ -1,4 +1,14 @@
+﻿-- ================================================================
+-- QUANLY_ESPORTS - DATABASE TONG HOP
+-- Chay file nay de reset va tao toan bo cau truc database QuanLy_Esports.
+-- WARNING: File nay DROP va tao lai database QuanLy_Esports.
 -- ================================================================
+
+
+-- ================================================================
+-- BEGIN: database.sql
+-- ================================================================
+
 -- QUANLY_ESPORTS - COMPLETE RESET DATABASE SCRIPT
 -- SQL Server 2019+ | ASP.NET MVC 5 / Bootstrap 5 / jQuery
 -- WARNING: Drops and recreates QuanLy_Esports.
@@ -627,5 +637,921 @@ CREATE UNIQUE INDEX UX_KN_PENDING_TRAN_DOI ON dbo.KHIEU_NAI_KET_QUA(ma_tran, ma_
 GO
 CREATE UNIQUE INDEX UX_YCMK_PENDING_TRAN ON dbo.YEU_CAU_MO_KHOA_KET_QUA(ma_tran) WHERE trang_thai='cho_duyet';
 GO
-PRINT N'QuanLy_Esports database initialized successfully.';
+
 GO
+
+-- ================================================================
+-- END: database.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_doi.sql
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+IF COL_LENGTH('LOI_MOI_GIA_NHAP', 'ma_vi_tri') IS NULL
+BEGIN
+    ALTER TABLE LOI_MOI_GIA_NHAP ADD ma_vi_tri INT NULL;
+    ALTER TABLE LOI_MOI_GIA_NHAP ADD CONSTRAINT FK_LM_VITRI FOREIGN KEY (ma_vi_tri) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri);
+END
+GO
+
+IF COL_LENGTH('LOI_MOI_GIA_NHAP', 'mo_ta') IS NULL
+BEGIN
+    ALTER TABLE LOI_MOI_GIA_NHAP ADD mo_ta NVARCHAR(500) NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'YEU_CAU_MOI_THANH_VIEN_DOI')
+BEGIN
+    CREATE TABLE YEU_CAU_MOI_THANH_VIEN_DOI (
+        ma_yeu_cau INT IDENTITY PRIMARY KEY,
+        ma_doi INT NOT NULL,
+        ma_nhom INT NOT NULL,
+        ma_nguoi_duoc_moi INT NOT NULL,
+        ma_nguoi_gui INT NOT NULL,
+        ma_vi_tri INT NULL,
+        mo_ta NVARCHAR(500) NULL,
+        trang_thai NVARCHAR(20) NOT NULL CONSTRAINT DF_YCMTV_TRANGTHAI DEFAULT 'cho_duyet',
+        ngay_tao DATETIME NOT NULL CONSTRAINT DF_YCMTV_NGAYTAO DEFAULT GETDATE(),
+        ngay_duyet DATETIME NULL,
+        ma_nguoi_duyet INT NULL,
+        CONSTRAINT FK_YCMTV_DOI FOREIGN KEY (ma_doi) REFERENCES DOI(ma_doi),
+        CONSTRAINT FK_YCMTV_NHOM FOREIGN KEY (ma_nhom) REFERENCES NHOM_DOI(ma_nhom),
+        CONSTRAINT FK_YCMTV_NGUOINHAN FOREIGN KEY (ma_nguoi_duoc_moi) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_YCMTV_NGUOIGUI FOREIGN KEY (ma_nguoi_gui) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_YCMTV_VITRI FOREIGN KEY (ma_vi_tri) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri),
+        CONSTRAINT FK_YCMTV_NGUOIDUYET FOREIGN KEY (ma_nguoi_duyet) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT CHK_YCMTV_TRANGTHAI CHECK (trang_thai IN ('cho_duyet','chap_nhan','tu_choi'))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TRG_THANH_VIEN_DOI_RULES')
+BEGIN
+    EXEC('
+    CREATE TRIGGER TRG_THANH_VIEN_DOI_RULES
+    ON THANH_VIEN_DOI
+    AFTER INSERT, UPDATE
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+
+        IF EXISTS (
+            SELECT 1
+            FROM inserted i
+            INNER JOIN THANH_VIEN_DOI tv ON i.ma_nguoi_dung = tv.ma_nguoi_dung
+            INNER JOIN NHOM_DOI ni ON i.ma_nhom = ni.ma_nhom
+            INNER JOIN NHOM_DOI ntv ON tv.ma_nhom = ntv.ma_nhom
+            WHERE i.trang_thai_duyet = ''da_duyet''
+              AND i.trang_thai_hop_dong = ''dang_hieu_luc''
+              AND tv.trang_thai_duyet = ''da_duyet''
+              AND tv.trang_thai_hop_dong = ''dang_hieu_luc''
+              AND ni.ma_tro_choi = ntv.ma_tro_choi
+              AND i.ma_thanh_vien <> tv.ma_thanh_vien
+        )
+        BEGIN
+            RAISERROR (N''Má»™t ngÆ°á»i dÃ¹ng chá»‰ Ä‘Æ°á»£c tham gia má»™t Ä‘á»™i trong cÃ¹ng má»™t game.'', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END;
+
+        IF EXISTS (
+            SELECT 1
+            FROM THANH_VIEN_DOI tv
+            INNER JOIN inserted i ON tv.ma_nhom = i.ma_nhom
+            WHERE tv.vai_tro_noi_bo = ''doi_truong''
+              AND tv.trang_thai_duyet = ''da_duyet''
+              AND tv.trang_thai_hop_dong = ''dang_hieu_luc''
+            GROUP BY tv.ma_nhom
+            HAVING COUNT(*) > 1
+        )
+        BEGIN
+            RAISERROR (N''Má»—i Ä‘á»™i chá»‰ Ä‘Æ°á»£c cÃ³ má»™t Ä‘á»™i trÆ°á»Ÿng.'', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END;
+    END
+    ');
+END
+GO
+
+PRINT N'Migration Ä‘á»™i Ä‘Ã£ cháº¡y xong.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_doi.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_phase2.sql
+-- ================================================================
+
+-- ================================================================
+-- TOURNAMENT ENGINE â€” PHASE 2 MIGRATION
+-- Format Engine + Referee Portal + Match Lifecycle
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+-- 1. Add room/password columns to TRAN_DAU
+IF COL_LENGTH('dbo.TRAN_DAU', 'id_phong_game') IS NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU ADD id_phong_game NVARCHAR(50) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.TRAN_DAU', 'mat_khau_phong') IS NULL
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU ADD mat_khau_phong NVARCHAR(50) NULL;
+END
+GO
+
+-- 2. Add check-in columns to CHI_TIET_TRAN_DAU
+IF COL_LENGTH('dbo.CHI_TIET_TRAN_DAU', 'is_check_in') IS NULL
+BEGIN
+    ALTER TABLE dbo.CHI_TIET_TRAN_DAU ADD is_check_in BIT NOT NULL CONSTRAINT DF_CTTD_CHECKIN DEFAULT 0;
+END
+GO
+
+IF COL_LENGTH('dbo.CHI_TIET_TRAN_DAU', 'so_kill') IS NULL
+BEGIN
+    ALTER TABLE dbo.CHI_TIET_TRAN_DAU ADD so_kill INT NOT NULL CONSTRAINT DF_CTTD_KILL DEFAULT 0;
+END
+GO
+
+IF COL_LENGTH('dbo.CHI_TIET_TRAN_DAU', 'url_anh_bang_chung') IS NULL
+BEGIN
+    ALTER TABLE dbo.CHI_TIET_TRAN_DAU ADD url_anh_bang_chung NVARCHAR(500) NULL;
+END
+GO
+
+-- 3. Update TRAN_DAU trang_thai check to include new states
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_TD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.TRAN_DAU'))
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP CONSTRAINT CHK_TD_TRANGTHAI;
+END
+GO
+
+ALTER TABLE dbo.TRAN_DAU ADD CONSTRAINT CHK_TD_TRANGTHAI
+CHECK (trang_thai IN ('chua_dau','san_sang','dang_dau','cho_ket_qua','da_hoan_thanh','huy_bo','bye'));
+GO
+
+-- 4. Update GIAI_DOAN the_thuc check to include battle_royale
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_GDO_THETHUC' AND parent_object_id = OBJECT_ID('dbo.GIAI_DOAN'))
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN DROP CONSTRAINT CHK_GDO_THETHUC;
+END
+GO
+
+ALTER TABLE dbo.GIAI_DOAN ADD CONSTRAINT CHK_GDO_THETHUC
+CHECK (the_thuc IN (
+    'loai_truc_tiep','nhanh_thang_nhanh_thua',
+    'vong_tron','league_bang_cheo','thuy_si',
+    'battle_royale','champion_rush'
+));
+GO
+
+PRINT N'Migration Phase 2 completed.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_phase2.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_tournament_engine.sql
+-- ================================================================
+
+-- ================================================================
+-- TOURNAMENT ENGINE â€” MIGRATION SCRIPT
+-- Phase 1: Tao Giai Dau + Approval Workflow
+-- Date: 09/05/2026
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+-- ---------------------------------------------------------------
+-- 1. Them cot ly_do_tu_choi cho GIAI_DAU
+-- ---------------------------------------------------------------
+IF COL_LENGTH('dbo.GIAI_DAU', 'ly_do_tu_choi') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD ly_do_tu_choi NVARCHAR(MAX) NULL;
+END
+GO
+
+-- ---------------------------------------------------------------
+-- 2. Them cot is_registration_locked cho GIAI_DAU
+-- ---------------------------------------------------------------
+IF COL_LENGTH('dbo.GIAI_DAU', 'is_registration_locked') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD is_registration_locked BIT NOT NULL CONSTRAINT DF_GD_REG_LOCKED DEFAULT 0;
+END
+GO
+
+-- ---------------------------------------------------------------
+-- 3. Them cot min_members_per_team cho GIAI_DAU
+-- ---------------------------------------------------------------
+IF COL_LENGTH('dbo.GIAI_DAU', 'min_members_per_team') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU
+    ADD min_members_per_team INT NOT NULL CONSTRAINT DF_GD_MIN_MEMBERS DEFAULT 1;
+END
+GO
+
+-- ---------------------------------------------------------------
+-- 4. Cap nhat CHECK constraint trang_thai de them trang thai moi
+-- ---------------------------------------------------------------
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_GD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU'))
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT CHK_GD_TRANGTHAI;
+END
+GO
+
+ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT CHK_GD_TRANGTHAI
+CHECK (trang_thai IN (
+    'nhap',                -- Draft
+    'cho_xet_duyet',       -- Pending_Approval
+    'bi_tu_choi',          -- Rejected
+    'sap_dien_ra',         -- Upcoming
+    'mo_dang_ky',          -- Registration_Open
+    'khoa_dang_ky',        -- Registration_Closed
+    'dang_dien_ra',        -- Live
+    'ket_thuc',            -- Completed
+    'da_huy',              -- Cancelled
+    -- Keep old states for compatibility
+    'chuan_bi_dien_ra',
+    'tong_ket',
+    'tam_hoan',
+    'khoa'
+));
+GO
+
+-- ---------------------------------------------------------------
+-- 5. Them cot nguong_match_point va bang_diem_json cho GIAI_DOAN
+-- ---------------------------------------------------------------
+IF COL_LENGTH('dbo.GIAI_DOAN', 'nguong_match_point') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN
+    ADD nguong_match_point INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DOAN', 'bang_diem_json') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN
+    ADD bang_diem_json NVARCHAR(MAX) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.GIAI_DOAN', 'so_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN
+    ADD so_doi INT NOT NULL CONSTRAINT DF_GDO_SODOI DEFAULT 0;
+END
+GO
+
+-- Cap nhat CHECK constraint the_thuc cua GIAI_DOAN de them BattleRoyale, ChampionRush
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_GDO_THETHUC' AND parent_object_id = OBJECT_ID('dbo.GIAI_DOAN'))
+BEGIN
+    ALTER TABLE dbo.GIAI_DOAN DROP CONSTRAINT CHK_GDO_THETHUC;
+END
+GO
+
+ALTER TABLE dbo.GIAI_DOAN ADD CONSTRAINT CHK_GDO_THETHUC
+CHECK (the_thuc IN (
+    'loai_truc_tiep',           -- Single Elimination
+    'nhanh_thang_nhanh_thua',   -- Double Elimination
+    'vong_tron',                -- Round Robin
+    'thuy_si',                  -- Swiss
+    'battle_royale',            -- Battle Royale
+    'champion_rush',            -- Champion Rush / Match Point
+    'league_bang_cheo'          -- Legacy
+));
+GO
+
+-- ---------------------------------------------------------------
+-- 6. Tao bang TRONG_TAI_GIAI_DAU (Phase 2 prep)
+-- ---------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TRONG_TAI_GIAI_DAU')
+BEGIN
+    CREATE TABLE TRONG_TAI_GIAI_DAU (
+        ma_giai_dau INT NOT NULL,
+        ma_nguoi_dung INT NOT NULL,
+        trang_thai NVARCHAR(20) NOT NULL CONSTRAINT DF_TRONGTAI_TRANGTHAI DEFAULT 'cho_phan_hoi',
+        ngay_cap_quyen DATETIME NOT NULL CONSTRAINT DF_TRONGTAI_NGAY DEFAULT GETDATE(),
+
+        CONSTRAINT PK_TRONGTAI PRIMARY KEY (ma_giai_dau, ma_nguoi_dung),
+        CONSTRAINT FK_TRONGTAI_GD FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau),
+        CONSTRAINT FK_TRONGTAI_ND FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT CHK_TRONGTAI_TRANGTHAI CHECK (trang_thai IN ('cho_phan_hoi','da_chap_nhan','tu_choi'))
+    );
+END
+GO
+
+PRINT N'Migration Tournament Engine Phase 1 completed successfully.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_tournament_engine.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_20260507_ho_so_thi_dau.sql
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+IF COL_LENGTH('HO_SO_IN_GAME', 'thanh_tich') IS NULL
+BEGIN
+    ALTER TABLE HO_SO_IN_GAME ADD thanh_tich NVARCHAR(1000) NULL;
+END
+GO
+
+;WITH DuplicateProfiles AS (
+    SELECT ma_ho_so,
+           ROW_NUMBER() OVER (
+               PARTITION BY ma_nguoi_dung, ma_tro_choi
+               ORDER BY ngay_cap_nhat DESC, ma_ho_so DESC
+           ) AS row_number
+    FROM HO_SO_IN_GAME
+)
+DELETE FROM DuplicateProfiles
+WHERE row_number > 1;
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.key_constraints
+    WHERE name = 'UQ_HSG_PROFILE'
+      AND parent_object_id = OBJECT_ID('HO_SO_IN_GAME')
+)
+BEGIN
+    ALTER TABLE HO_SO_IN_GAME
+    ADD CONSTRAINT UQ_HSG_PROFILE UNIQUE (ma_nguoi_dung, ma_tro_choi);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM TRO_CHOI WHERE ten_game = N'Arena of Valor')
+    INSERT INTO TRO_CHOI (ten_game, the_loai) VALUES (N'Arena of Valor', 'MOBA');
+IF NOT EXISTS (SELECT 1 FROM TRO_CHOI WHERE ten_game = N'League of Legends')
+    INSERT INTO TRO_CHOI (ten_game, the_loai) VALUES (N'League of Legends', 'MOBA');
+IF NOT EXISTS (SELECT 1 FROM TRO_CHOI WHERE ten_game = N'Free Fire')
+    INSERT INTO TRO_CHOI (ten_game, the_loai) VALUES (N'Free Fire', 'BATTLEROYALE');
+IF NOT EXISTS (SELECT 1 FROM TRO_CHOI WHERE ten_game = N'PUBG')
+    INSERT INTO TRO_CHOI (ten_game, the_loai) VALUES (N'PUBG', 'BATTLEROYALE');
+IF NOT EXISTS (SELECT 1 FROM TRO_CHOI WHERE ten_game = N'Valorant')
+    INSERT INTO TRO_CHOI (ten_game, the_loai) VALUES (N'Valorant', 'FPS');
+IF NOT EXISTS (SELECT 1 FROM TRO_CHOI WHERE ten_game = N'CS:GO')
+    INSERT INTO TRO_CHOI (ten_game, the_loai) VALUES (N'CS:GO', 'FPS');
+GO
+
+DECLARE @AOV INT = (SELECT ma_tro_choi FROM TRO_CHOI WHERE ten_game = N'Arena of Valor');
+DECLARE @LOL INT = (SELECT ma_tro_choi FROM TRO_CHOI WHERE ten_game = N'League of Legends');
+DECLARE @FREEFIRE INT = (SELECT ma_tro_choi FROM TRO_CHOI WHERE ten_game = N'Free Fire');
+DECLARE @PUBG INT = (SELECT ma_tro_choi FROM TRO_CHOI WHERE ten_game = N'PUBG');
+DECLARE @VALORANT INT = (SELECT ma_tro_choi FROM TRO_CHOI WHERE ten_game = N'Valorant');
+DECLARE @CSGO INT = (SELECT ma_tro_choi FROM TRO_CHOI WHERE ten_game = N'CS:GO');
+
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @AOV AND ky_hieu = N'DS')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@AOV, N'ÄÆ°á»ng Caesar', N'DS', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @AOV AND ky_hieu = N'JG')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@AOV, N'Äi rá»«ng', N'JG', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @AOV AND ky_hieu = N'MID')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@AOV, N'ÄÆ°á»ng giá»¯a', N'MID', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @AOV AND ky_hieu = N'AD')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@AOV, N'Xáº¡ thá»§', N'AD', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @AOV AND ky_hieu = N'SP')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@AOV, N'Trá»£ thá»§', N'SP', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @LOL AND ky_hieu = N'TOP')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@LOL, N'ÄÆ°á»ng trÃªn', N'TOP', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @LOL AND ky_hieu = N'JGL')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@LOL, N'Äi rá»«ng', N'JGL', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @LOL AND ky_hieu = N'MID')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@LOL, N'ÄÆ°á»ng giá»¯a', N'MID', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @LOL AND ky_hieu = N'ADC')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@LOL, N'Xáº¡ thá»§', N'ADC', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @LOL AND ky_hieu = N'SUP')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@LOL, N'Há»— trá»£', N'SUP', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @VALORANT AND ky_hieu = N'DUEL')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@VALORANT, N'Duelist', N'DUEL', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @VALORANT AND ky_hieu = N'INIT')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@VALORANT, N'Initiator', N'INIT', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @VALORANT AND ky_hieu = N'CTRL')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@VALORANT, N'Controller', N'CTRL', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @VALORANT AND ky_hieu = N'SENT')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@VALORANT, N'Sentinel', N'SENT', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @CSGO AND ky_hieu = N'ENTRY')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@CSGO, N'Entry Fragger', N'ENTRY', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @CSGO AND ky_hieu = N'AWP')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@CSGO, N'AWPer', N'AWP', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @CSGO AND ky_hieu = N'IGL')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@CSGO, N'In-game Leader', N'IGL', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @CSGO AND ky_hieu = N'SUP')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@CSGO, N'Support', N'SUP', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @FREEFIRE AND ky_hieu = N'RUSH')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@FREEFIRE, N'Rusher', N'RUSH', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @FREEFIRE AND ky_hieu = N'SNIPER')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@FREEFIRE, N'Sniper', N'SNIPER', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @FREEFIRE AND ky_hieu = N'SUPPORT')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@FREEFIRE, N'Support', N'SUPPORT', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @PUBG AND ky_hieu = N'IGL')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@PUBG, N'Chá»‰ huy', N'IGL', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @PUBG AND ky_hieu = N'SCOUT')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@PUBG, N'Trinh sÃ¡t', N'SCOUT', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi = @PUBG AND ky_hieu = N'FRAG')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (@PUBG, N'Táº¥n cÃ´ng', N'FRAG', 'TuyenThu');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi IS NULL AND ky_hieu = N'HLV')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (NULL, N'Huáº¥n luyá»‡n viÃªn', N'HLV', 'HuanLuyen');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi IS NULL AND ky_hieu = N'PT')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (NULL, N'PhÃ¢n tÃ­ch viÃªn', N'PT', 'HuanLuyen');
+IF NOT EXISTS (SELECT 1 FROM DANH_MUC_VI_TRI WHERE ma_tro_choi IS NULL AND ky_hieu = N'QL')
+    INSERT INTO DANH_MUC_VI_TRI (ma_tro_choi, ten_vi_tri, ky_hieu, loai_vi_tri) VALUES (NULL, N'Quáº£n lÃ½', N'QL', 'HuanLuyen');
+GO
+
+PRINT N'Migration há»“ sÆ¡ thi Ä‘áº¥u Ä‘Ã£ hoÃ n táº¥t.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_20260507_ho_so_thi_dau.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_fix_gd_trangthai.sql
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+-- Dong bo CHECK constraint GIAI_DAU.trang_thai voi state machine hien tai cua app.
+-- Luu y: backend/frontend trong du an nay dang dung trang thai dang snake_case
+-- (vd: 'sap_dien_ra', 'bi_tu_choi'), khong phai bo ten tieng Anh
+-- (vd: 'Registration_Open', 'Rejected').
+-- Loi can sua: khi Admin phe duyet, code cap nhat trang_thai = 'sap_dien_ra'
+-- nhung database cu co the van giu CHK_GD_TRANGTHAI khong chap nhan gia tri nay.
+
+UPDATE dbo.GIAI_DAU
+SET trang_thai = CASE trang_thai
+    WHEN 'ban_nhap' THEN 'nhap'
+    WHEN 'cho_phe_duyet' THEN 'cho_xet_duyet'
+    WHEN 'chuan_bi_dien_ra' THEN 'sap_dien_ra'
+    WHEN 'tong_ket' THEN 'ket_thuc'
+    WHEN 'tam_hoan' THEN 'da_huy'
+    WHEN 'khoa' THEN 'khoa_dang_ky'
+    WHEN 'Draft' THEN 'nhap'
+    WHEN 'Pending_Approval' THEN 'cho_xet_duyet'
+    WHEN 'Rejected' THEN 'bi_tu_choi'
+    WHEN 'Registration_Open' THEN 'mo_dang_ky'
+    WHEN 'Registration_Closed' THEN 'khoa_dang_ky'
+    WHEN 'Live' THEN 'dang_dien_ra'
+    WHEN 'Completed' THEN 'ket_thuc'
+    WHEN 'Cancelled' THEN 'da_huy'
+    WHEN 'Upcoming' THEN 'sap_dien_ra'
+    ELSE trang_thai
+END
+WHERE trang_thai IN (
+    'ban_nhap',
+    'cho_phe_duyet',
+    'chuan_bi_dien_ra',
+    'tong_ket',
+    'tam_hoan',
+    'khoa',
+    'Draft',
+    'Pending_Approval',
+    'Rejected',
+    'Registration_Open',
+    'Registration_Closed',
+    'Live',
+    'Completed',
+    'Cancelled',
+    'Upcoming'
+);
+GO
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.check_constraints
+    WHERE name = 'CHK_GD_TRANGTHAI'
+      AND parent_object_id = OBJECT_ID('dbo.GIAI_DAU')
+)
+BEGIN
+    ALTER TABLE dbo.GIAI_DAU DROP CONSTRAINT CHK_GD_TRANGTHAI;
+END
+GO
+
+ALTER TABLE dbo.GIAI_DAU ADD CONSTRAINT CHK_GD_TRANGTHAI CHECK (trang_thai IN (
+    'nhap',
+    'cho_xet_duyet',
+    'bi_tu_choi',
+    'sap_dien_ra',
+    'mo_dang_ky',
+    'khoa_dang_ky',
+    'dang_dien_ra',
+    'ket_thuc',
+    'da_huy'
+));
+GO
+
+PRINT N'Fixed CHK_GD_TRANGTHAI for GIAI_DAU.trang_thai.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_fix_gd_trangthai.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_add_thongbao_ma_doi.sql
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;
+END
+GO
+
+PRINT N'Added THONG_BAO.ma_doi if missing.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_add_thongbao_ma_doi.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_remove_nhom_doi.sql
+-- ================================================================
+
+-- Chuyen doi: bo NHOM_DOI, gan game va thanh vien truc tiep vao DOI.
+-- Chay sau database.sql tren database hien co.
+
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+
+IF COL_LENGTH('dbo.DOI', 'ma_tro_choi') IS NULL
+BEGIN
+    ALTER TABLE dbo.DOI ADD ma_tro_choi INT NULL;
+END;
+
+IF OBJECT_ID('dbo.NHOM_DOI', 'U') IS NOT NULL
+BEGIN
+    UPDATE d
+    SET d.ma_tro_choi = n.ma_tro_choi
+    FROM dbo.DOI d
+    INNER JOIN (
+        SELECT ma_doi, MIN(ma_tro_choi) AS ma_tro_choi
+        FROM dbo.NHOM_DOI
+        WHERE ma_tro_choi IS NOT NULL
+        GROUP BY ma_doi
+    ) n ON d.ma_doi = n.ma_doi
+    WHERE d.ma_tro_choi IS NULL;
+END;
+
+IF EXISTS (SELECT 1 FROM dbo.DOI WHERE ma_tro_choi IS NULL)
+BEGIN
+    RAISERROR(N'Con DOI chua co ma_tro_choi. Hay gan game cho tat ca doi truoc khi chay migration.', 16, 1);
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_DOI_TROCHOI' AND parent_object_id = OBJECT_ID('dbo.DOI'))
+BEGIN
+    ALTER TABLE dbo.DOI ADD CONSTRAINT FK_DOI_TROCHOI FOREIGN KEY (ma_tro_choi) REFERENCES dbo.DANH_MUC_TRO_CHOI(ma_tro_choi);
+END;
+
+IF COL_LENGTH('dbo.THANH_VIEN_DOI', 'ma_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.THANH_VIEN_DOI ADD ma_doi INT NULL;
+END;
+
+IF OBJECT_ID('dbo.NHOM_DOI', 'U') IS NOT NULL
+BEGIN
+    UPDATE tv
+    SET tv.ma_doi = n.ma_doi
+    FROM dbo.THANH_VIEN_DOI tv
+    INNER JOIN dbo.NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
+    WHERE tv.ma_doi IS NULL;
+END;
+
+IF COL_LENGTH('dbo.XIN_GIA_NHAP', 'ma_doi') IS NOT NULL AND OBJECT_ID('dbo.NHOM_DOI', 'U') IS NOT NULL
+BEGIN
+    UPDATE xg
+    SET xg.ma_doi = n.ma_doi
+    FROM dbo.XIN_GIA_NHAP xg
+    INNER JOIN dbo.NHOM_DOI n ON xg.ma_nhom = n.ma_nhom
+    WHERE xg.ma_doi IS NULL;
+END;
+
+IF COL_LENGTH('dbo.THAM_GIA_GIAI', 'ma_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.THAM_GIA_GIAI ADD ma_doi INT NULL;
+END;
+
+IF OBJECT_ID('dbo.NHOM_DOI', 'U') IS NOT NULL
+BEGIN
+    UPDATE tg
+    SET tg.ma_doi = n.ma_doi
+    FROM dbo.THAM_GIA_GIAI tg
+    INNER JOIN dbo.NHOM_DOI n ON tg.ma_nhom = n.ma_nhom
+    WHERE tg.ma_doi IS NULL;
+END;
+
+IF COL_LENGTH('dbo.CHI_TIET_TRAN_DAU', 'ma_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.CHI_TIET_TRAN_DAU ADD ma_doi INT NULL;
+END;
+
+IF OBJECT_ID('dbo.NHOM_DOI', 'U') IS NOT NULL
+BEGIN
+    UPDATE ctd
+    SET ctd.ma_doi = n.ma_doi
+    FROM dbo.CHI_TIET_TRAN_DAU ctd
+    INNER JOIN dbo.NHOM_DOI n ON ctd.ma_nhom = n.ma_nhom
+    WHERE ctd.ma_doi IS NULL;
+END;
+
+IF EXISTS (SELECT 1 FROM dbo.THANH_VIEN_DOI WHERE ma_doi IS NULL)
+    RAISERROR(N'Con THANH_VIEN_DOI chua gan duoc ma_doi.', 16, 1);
+IF EXISTS (SELECT 1 FROM dbo.THAM_GIA_GIAI WHERE ma_doi IS NULL)
+    RAISERROR(N'Con THAM_GIA_GIAI chua gan duoc ma_doi.', 16, 1);
+IF EXISTS (SELECT 1 FROM dbo.CHI_TIET_TRAN_DAU WHERE ma_doi IS NULL)
+    RAISERROR(N'Con CHI_TIET_TRAN_DAU chua gan duoc ma_doi.', 16, 1);
+
+IF COL_LENGTH('dbo.THANH_VIEN_DOI', 'ma_doi') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.THANH_VIEN_DOI ALTER COLUMN ma_doi INT NOT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_TV_DOI' AND parent_object_id = OBJECT_ID('dbo.THANH_VIEN_DOI'))
+        ALTER TABLE dbo.THANH_VIEN_DOI ADD CONSTRAINT FK_TV_DOI FOREIGN KEY (ma_doi) REFERENCES dbo.DOI(ma_doi);
+END;
+
+IF COL_LENGTH('dbo.THAM_GIA_GIAI', 'ma_doi') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.THAM_GIA_GIAI ALTER COLUMN ma_doi INT NOT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_TGG_DOI' AND parent_object_id = OBJECT_ID('dbo.THAM_GIA_GIAI'))
+        ALTER TABLE dbo.THAM_GIA_GIAI ADD CONSTRAINT FK_TGG_DOI FOREIGN KEY (ma_doi) REFERENCES dbo.DOI(ma_doi);
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_TGG_GD_DOI' AND object_id = OBJECT_ID('dbo.THAM_GIA_GIAI'))
+        ALTER TABLE dbo.THAM_GIA_GIAI ADD CONSTRAINT UQ_TGG_GD_DOI UNIQUE (ma_giai_dau, ma_doi);
+END;
+
+IF COL_LENGTH('dbo.CHI_TIET_TRAN_DAU', 'ma_doi') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.CHI_TIET_TRAN_DAU ALTER COLUMN ma_doi INT NOT NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_CTTD_DOI' AND parent_object_id = OBJECT_ID('dbo.CHI_TIET_TRAN_DAU'))
+        ALTER TABLE dbo.CHI_TIET_TRAN_DAU ADD CONSTRAINT FK_CTTD_DOI FOREIGN KEY (ma_doi) REFERENCES dbo.DOI(ma_doi);
+END;
+
+IF EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TRG_THANH_VIEN_DOI_RULES')
+    DROP TRIGGER dbo.TRG_THANH_VIEN_DOI_RULES;
+
+EXEC('
+CREATE TRIGGER dbo.TRG_THANH_VIEN_DOI_RULES
+ON dbo.THANH_VIEN_DOI
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        INNER JOIN dbo.THANH_VIEN_DOI tv ON i.ma_nguoi_dung = tv.ma_nguoi_dung
+        INNER JOIN dbo.DOI di ON i.ma_doi = di.ma_doi
+        INNER JOIN dbo.DOI dtv ON tv.ma_doi = dtv.ma_doi
+        WHERE i.trang_thai_duyet = ''da_duyet''
+          AND i.trang_thai_hop_dong = ''dang_hieu_luc''
+          AND tv.trang_thai_duyet = ''da_duyet''
+          AND tv.trang_thai_hop_dong = ''dang_hieu_luc''
+          AND di.ma_tro_choi = dtv.ma_tro_choi
+          AND i.ma_thanh_vien <> tv.ma_thanh_vien
+    )
+    BEGIN
+        RAISERROR (N''Mot nguoi dung chi duoc tham gia mot doi trong cung game.'', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.THANH_VIEN_DOI tv
+        WHERE tv.ma_doi IN (SELECT DISTINCT ma_doi FROM inserted)
+          AND tv.vai_tro_noi_bo = ''doi_truong''
+          AND tv.trang_thai_duyet = ''da_duyet''
+          AND tv.trang_thai_hop_dong = ''dang_hieu_luc''
+        GROUP BY tv.ma_doi
+        HAVING COUNT(*) > 1
+    )
+    BEGIN
+        RAISERROR (N''Moi doi chi duoc co mot doi truong.'', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+END
+');
+
+COMMIT TRANSACTION;
+
+GO
+
+-- ================================================================
+-- END: migration_remove_nhom_doi.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: fix_trigger_thanh_vien_doi.sql
+-- ================================================================
+
+-- Fix trigger TRG_THANH_VIEN_DOI_RULES sau khi bo NHOM_DOI.
+-- Loi cu: JOIN inserted theo ma_doi lam nhan ban dong doi_truong khi insert nhieu thanh vien cung luc.
+-- Chay file nay truoc, sau do chay lai seed_aov_sample.sql.
+
+USE QuanLy_Esports;
+GO
+
+CREATE OR ALTER TRIGGER dbo.TRG_THANH_VIEN_DOI_RULES
+ON dbo.THANH_VIEN_DOI
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        INNER JOIN dbo.THANH_VIEN_DOI tv ON i.ma_nguoi_dung = tv.ma_nguoi_dung
+        INNER JOIN dbo.DOI di ON i.ma_doi = di.ma_doi
+        INNER JOIN dbo.DOI dtv ON tv.ma_doi = dtv.ma_doi
+        WHERE i.trang_thai_duyet = N'da_duyet'
+          AND i.trang_thai_hop_dong = N'dang_hieu_luc'
+          AND tv.trang_thai_duyet = N'da_duyet'
+          AND tv.trang_thai_hop_dong = N'dang_hieu_luc'
+          AND di.ma_tro_choi = dtv.ma_tro_choi
+          AND i.ma_thanh_vien <> tv.ma_thanh_vien
+    )
+    BEGIN
+        RAISERROR (N'Mot nguoi dung chi duoc tham gia mot doi trong cung game.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.THANH_VIEN_DOI tv
+        WHERE tv.ma_doi IN (SELECT DISTINCT ma_doi FROM inserted)
+          AND tv.vai_tro_noi_bo = N'doi_truong'
+          AND tv.trang_thai_duyet = N'da_duyet'
+          AND tv.trang_thai_hop_dong = N'dang_hieu_luc'
+        GROUP BY tv.ma_doi
+        HAVING COUNT(*) > 1
+    )
+    BEGIN
+        RAISERROR (N'Moi doi chi duoc co mot doi truong.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END;
+END;
+GO
+
+GO
+
+-- ================================================================
+-- END: fix_trigger_thanh_vien_doi.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_fix_performance.sql
+-- ================================================================
+
+-- Migration: Optimize performance for Team management
+-- 1. Add missing indexes
+-- 2. Ensure THONG_BAO schema is correct
+
+USE QuanLy_Esports;
+GO
+
+-- Index for THANH_VIEN_DOI to speed up joins on ma_doi
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_THANH_VIEN_DOI_MA_DOI' AND object_id = OBJECT_ID('dbo.THANH_VIEN_DOI'))
+BEGIN
+    CREATE INDEX IX_THANH_VIEN_DOI_MA_DOI ON dbo.THANH_VIEN_DOI(ma_doi);
+END;
+GO
+
+-- Index for THANH_VIEN_DOI to speed up "My Teams" lookup
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_THANH_VIEN_DOI_MA_ND' AND object_id = OBJECT_ID('dbo.THANH_VIEN_DOI'))
+BEGIN
+    CREATE INDEX IX_THANH_VIEN_DOI_MA_ND ON dbo.THANH_VIEN_DOI(ma_nguoi_dung);
+END;
+GO
+
+-- Ensure ma_doi column exists in THONG_BAO (moved from C# code to DB script)
+IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
+BEGIN
+    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;
+END;
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_fix_performance.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_van_hanh_giai_dau.sql
+-- ================================================================
+
+USE QuanLy_Esports;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_TD_TRANGTHAI' AND parent_object_id = OBJECT_ID('dbo.TRAN_DAU'))
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP CONSTRAINT CHK_TD_TRANGTHAI;
+END
+GO
+
+ALTER TABLE dbo.TRAN_DAU ADD CONSTRAINT CHK_TD_TRANGTHAI
+CHECK (trang_thai IN (
+    'chua_dau',
+    'chuan_bi',
+    'san_sang',
+    'dang_dau',
+    'dang_thi_dau',
+    'cho_ket_qua',
+    'da_hoan_thanh',
+    'huy_bo',
+    'bye'
+));
+GO
+
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_TD_THETHUCTRAN' AND parent_object_id = OBJECT_ID('dbo.TRAN_DAU'))
+BEGIN
+    ALTER TABLE dbo.TRAN_DAU DROP CONSTRAINT CHK_TD_THETHUCTRAN;
+END
+GO
+
+ALTER TABLE dbo.TRAN_DAU ADD CONSTRAINT CHK_TD_THETHUCTRAN
+CHECK (the_thuc_tran IN ('BO1','BO3','BO5','BO7','SinhTon'));
+GO
+
+PRINT N'Migration van hanh giai dau completed.';
+GO
+
+GO
+
+-- ================================================================
+-- END: migration_van_hanh_giai_dau.sql
+-- ================================================================
+
+
+-- ================================================================
+-- BEGIN: migration_ket_qua_van_dau.sql
+-- ================================================================
+
+IF OBJECT_ID('dbo.KET_QUA_VAN_DAU', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.KET_QUA_VAN_DAU(
+        ma_tran INT NOT NULL,
+        so_van INT NOT NULL,
+        ma_doi INT NOT NULL,
+        ket_qua NVARCHAR(20) NULL,
+        thu_hang INT NULL,
+        so_kill INT NOT NULL DEFAULT 0,
+        diem_so FLOAT NOT NULL DEFAULT 0,
+        ngay_cap_nhat DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_KET_QUA_VAN_DAU PRIMARY KEY(ma_tran, so_van, ma_doi)
+    );
+END
+
+GO
+
+-- ================================================================
+-- END: migration_ket_qua_van_dau.sql
+-- ================================================================
+
