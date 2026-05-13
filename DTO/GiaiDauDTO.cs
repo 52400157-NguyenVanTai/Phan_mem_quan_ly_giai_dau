@@ -63,6 +63,7 @@ namespace DTO
         public int ma_tham_gia { get; set; }
         public int ma_nhom { get; set; }
         public string ten_doi { get; set; }
+        public string ten_viet_tat { get; set; }
         public string logo_url { get; set; }
         public string ten_game { get; set; }
         public string trang_thai_duyet { get; set; }

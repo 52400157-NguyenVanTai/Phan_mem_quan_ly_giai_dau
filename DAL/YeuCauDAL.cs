@@ -275,6 +275,7 @@ namespace DAL
                             case "loi_moi_tham_gia_giai":
                                 int? maGiaiDauThongBao = null;
                                 int? maDoiThongBao = null;
+                                bool daThemDoiVaoGiai = !req.chap_nhan;
                                 using (var cmd = new SqlCommand("SELECT ma_entity, ma_doi FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
@@ -325,7 +326,10 @@ namespace DAL
                                         {
                                             string sqlJoin = @"
                                                 IF EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @Gd AND ma_doi = @Doi)
-                                                    UPDATE THAM_GIA_GIAI SET trang_thai_duyet = 'da_duyet' WHERE ma_giai_dau = @Gd AND ma_doi = @Doi
+                                                    UPDATE THAM_GIA_GIAI
+                                                    SET trang_thai_duyet = 'da_duyet',
+                                                        trang_thai_tham_gia = 'dang_thi_dau'
+                                                    WHERE ma_giai_dau = @Gd AND ma_doi = @Doi
                                                 ELSE
                                                     INSERT INTO THAM_GIA_GIAI(ma_giai_dau, ma_doi, trang_thai_duyet, trang_thai_tham_gia)
                                                     VALUES(@Gd, @Doi, 'da_duyet', 'dang_thi_dau')";
@@ -335,8 +339,14 @@ namespace DAL
                                                 cmd.Parameters.AddWithValue("@Doi", maDoiThongBao.Value);
                                                 cmd.ExecuteNonQuery();
                                             }
+                                            daThemDoiVaoGiai = true;
                                         }
                                     }
+                                }
+
+                                if (req.chap_nhan && !daThemDoiVaoGiai)
+                                {
+                                    throw new InvalidOperationException("Khong the them doi vao giai. Vui long kiem tra quyen quan ly doi, game cua doi va thong tin loi moi.");
                                 }
 
                                 using (var cmd = new SqlCommand("DELETE FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))

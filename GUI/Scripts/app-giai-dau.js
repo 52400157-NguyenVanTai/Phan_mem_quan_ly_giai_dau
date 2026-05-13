@@ -951,7 +951,13 @@
   // ---- MỜI & ĐĂNG KÝ ----
   window.openRegisterTeamModal = function(maGiaiDau) {
       postApi("/GiaiDauApi/RegisterTeam", { ma_giai_dau: maGiaiDau, ma_doi: 0 })
-          .then(res => alert(res.message));
+          .then(res => {
+              alert(res.message);
+              if (res.success) {
+                  loadPublicTournaments();
+                  loadMyTournaments();
+              }
+          });
   };
 
   // ---- CUSTOM AUTOCOMPLETE MODAL VARIABLES ----

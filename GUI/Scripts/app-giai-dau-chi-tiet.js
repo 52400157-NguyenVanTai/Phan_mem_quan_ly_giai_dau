@@ -46,6 +46,12 @@
         bye: "BYE"
     };
 
+    const TEAM_APPROVAL_LABELS = {
+        cho_duyet: "Cho duyet",
+        da_duyet: "Da duyet",
+        bi_tu_choi: "Bi tu choi"
+    };
+
     // INIT
     async function init() {
         ensureOperationTabs();
@@ -199,14 +205,15 @@
         const teams = tournamentData.doi_tham_gia || [];
 
         // Slot progress
-        const approvedCount = gd.so_doi_da_duyet || 0;
+        const registeredCount = gd.so_doi_dang_ky || teams.length || 0;
+        const approvedCount = gd.so_doi_da_duyet || teams.filter(t => t.trang_thai_duyet === "da_duyet").length || 0;
         const maxTeams = gd.so_doi_toi_da || 16;
         document.getElementById("slotCount").textContent = `${approvedCount}/${maxTeams}`;
         const percent = Math.min(100, (approvedCount / maxTeams) * 100);
         document.getElementById("slotBar").style.width = `${percent}%`;
 
         // Stats
-        document.getElementById("statTeams").textContent = approvedCount;
+        document.getElementById("statTeams").textContent = registeredCount;
         document.getElementById("statSlots").textContent = maxTeams;
         document.getElementById("statStages").textContent = stages.length;
 
@@ -381,6 +388,7 @@
                 </div>
                 <span class="hub-team-name">${escapeHtml(t.ten_doi)}</span>
                 <span class="hub-team-tag">${escapeHtml(t.ten_viet_tat || "")}</span>
+                <span class="hub-team-tag">${escapeHtml(TEAM_APPROVAL_LABELS[t.trang_thai_duyet] || t.trang_thai_duyet || "")}</span>
             </div>
         `).join("");
     }

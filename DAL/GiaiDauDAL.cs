@@ -521,33 +521,33 @@ namespace DAL
                     string maNhomExpr = "tg.ma_doi";
                     string gameSelect = doiHasMaTroChoi ? "tc.ten_game" : "CAST(NULL AS NVARCHAR(255)) AS ten_game";
                     string gameJoin = doiHasMaTroChoi ? "LEFT JOIN DANH_MUC_TRO_CHOI tc ON d.ma_tro_choi=tc.ma_tro_choi" : "";
-                    sql = @"SELECT tg.ma_tham_gia, " + maNhomExpr + @" AS ma_nhom, d.ten_doi, d.logo_url, " + gameSelect + @",
+                    sql = @"SELECT tg.ma_tham_gia, " + maNhomExpr + @" AS ma_nhom, d.ten_doi, d.ten_viet_tat, d.logo_url, " + gameSelect + @",
                         tg.trang_thai_duyet, tg.trang_thai_tham_gia
                         FROM THAM_GIA_GIAI tg
                         INNER JOIN DOI d ON tg.ma_doi=d.ma_doi
                         " + gameJoin + @"
                         WHERE tg.ma_giai_dau=@id
-                        ORDER BY tg.ma_tham_gia";
+                        ORDER BY CASE tg.trang_thai_duyet WHEN 'da_duyet' THEN 1 WHEN 'cho_duyet' THEN 2 ELSE 3 END, tg.ma_tham_gia";
                 }
                 else if (tggHasMaNhom && nhomDoiExists)
                 {
-                    sql = @"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.logo_url, tc.ten_game,
+                    sql = @"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.ten_viet_tat, d.logo_url, tc.ten_game,
                         tg.trang_thai_duyet, tg.trang_thai_tham_gia
                         FROM THAM_GIA_GIAI tg
                         INNER JOIN NHOM_DOI n ON tg.ma_nhom=n.ma_nhom
                         INNER JOIN DOI d ON n.ma_doi=d.ma_doi
                         LEFT JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi=tc.ma_tro_choi
                         WHERE tg.ma_giai_dau=@id
-                        ORDER BY tg.ma_tham_gia";
+                        ORDER BY CASE tg.trang_thai_duyet WHEN 'da_duyet' THEN 1 WHEN 'cho_duyet' THEN 2 ELSE 3 END, tg.ma_tham_gia";
                 }
                 else if (tggHasMaNhom)
                 {
-                    sql = @"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.logo_url, CAST(NULL AS NVARCHAR(255)) AS ten_game,
+                    sql = @"SELECT tg.ma_tham_gia, tg.ma_nhom, d.ten_doi, d.ten_viet_tat, d.logo_url, CAST(NULL AS NVARCHAR(255)) AS ten_game,
                         tg.trang_thai_duyet, tg.trang_thai_tham_gia
                         FROM THAM_GIA_GIAI tg
                         INNER JOIN DOI d ON tg.ma_nhom=d.ma_doi
                         WHERE tg.ma_giai_dau=@id
-                        ORDER BY tg.ma_tham_gia";
+                        ORDER BY CASE tg.trang_thai_duyet WHEN 'da_duyet' THEN 1 WHEN 'cho_duyet' THEN 2 ELSE 3 END, tg.ma_tham_gia";
                 }
                 else
                 {
@@ -568,6 +568,7 @@ namespace DAL
                                 ma_tham_gia = Convert.ToInt32(r["ma_tham_gia"]),
                                 ma_nhom = Convert.ToInt32(r["ma_nhom"]),
                                 ten_doi = r["ten_doi"].ToString(),
+                                ten_viet_tat = r["ten_viet_tat"] == DBNull.Value ? null : r["ten_viet_tat"].ToString(),
                                 logo_url = r["logo_url"] == DBNull.Value ? null : r["logo_url"].ToString(),
                                 ten_game = r["ten_game"] == DBNull.Value ? null : r["ten_game"].ToString(),
                                 trang_thai_duyet = r["trang_thai_duyet"].ToString(),
@@ -624,7 +625,14 @@ namespace DAL
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(@"
-                    IF NOT EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @gd AND ma_doi = @doi)
+                    IF EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @gd AND ma_doi = @doi)
+                    BEGIN
+                        UPDATE THAM_GIA_GIAI
+                        SET trang_thai_duyet = CASE WHEN trang_thai_duyet = 'bi_tu_choi' THEN 'cho_duyet' ELSE trang_thai_duyet END,
+                            trang_thai_tham_gia = 'dang_thi_dau'
+                        WHERE ma_giai_dau = @gd AND ma_doi = @doi
+                    END
+                    ELSE
                     BEGIN
                         INSERT INTO THAM_GIA_GIAI(ma_giai_dau, ma_doi, trang_thai_duyet, trang_thai_tham_gia)
                         VALUES(@gd, @doi, 'cho_duyet', 'dang_thi_dau')

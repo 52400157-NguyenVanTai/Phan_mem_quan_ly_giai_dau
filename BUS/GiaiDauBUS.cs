@@ -306,9 +306,15 @@ namespace BUS
                     string sql = @"
                         SELECT TOP 1 d.ma_doi
                         FROM DOI d
-                        WHERE d.ma_doi_truong = @u 
+                        LEFT JOIN THANH_VIEN_DOI tv ON tv.ma_doi = d.ma_doi
+                            AND tv.ma_nguoi_dung = @u
+                            AND tv.trang_thai_duyet = 'da_duyet'
+                            AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+                            AND tv.vai_tro_noi_bo IN ('chu_tich', 'doi_truong', 'ban_dieu_hanh')
+                        WHERE (d.ma_doi_truong = @u OR tv.ma_nguoi_dung = @u)
                           AND (d.ma_tro_choi = @game OR @game IS NULL)
-                          AND d.trang_thai = 'dang_hoat_dong'";
+                          AND d.trang_thai = 'dang_hoat_dong'
+                        ORDER BY CASE WHEN d.ma_doi_truong = @u THEN 0 ELSE 1 END, d.ma_doi";
                     
                     using (var cmd = new System.Data.SqlClient.SqlCommand(sql, conn))
                     {
@@ -332,8 +338,13 @@ namespace BUS
                         SELECT COUNT(1)
                         FROM DOI d
                         INNER JOIN GIAI_DAU gd ON gd.ma_giai_dau = @giaiDau
+                        LEFT JOIN THANH_VIEN_DOI tv ON tv.ma_doi = d.ma_doi
+                            AND tv.ma_nguoi_dung = @u
+                            AND tv.trang_thai_duyet = 'da_duyet'
+                            AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+                            AND tv.vai_tro_noi_bo IN ('chu_tich', 'doi_truong', 'ban_dieu_hanh')
                         WHERE d.ma_doi = @doi
-                          AND d.ma_doi_truong = @u
+                          AND (d.ma_doi_truong = @u OR tv.ma_nguoi_dung = @u)
                           AND d.trang_thai = 'dang_hoat_dong'
                           AND (gd.ma_tro_choi IS NULL OR d.ma_tro_choi = gd.ma_tro_choi)";
                     using (var cmd = new System.Data.SqlClient.SqlCommand(sql, conn))

@@ -171,13 +171,63 @@ namespace DAL
         public void Delete(int maNguoiDung, int maTroChoi)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand("DELETE FROM HO_SO_IN_GAME WHERE ma_nguoi_dung = @maNguoiDung AND ma_tro_choi = @maTroChoi", connection))
             {
-                command.CommandTimeout = 120;
-                command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
-                command.Parameters.AddWithValue("@maTroChoi", maTroChoi);
                 connection.Open();
-                command.ExecuteNonQuery();
+                using (SqlTransaction transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        int? maHoSo = null;
+                        using (SqlCommand command = new SqlCommand(@"SELECT ma_ho_so
+                                                                    FROM HO_SO_IN_GAME
+                                                                    WHERE ma_nguoi_dung = @maNguoiDung AND ma_tro_choi = @maTroChoi", connection, transaction))
+                        {
+                            command.CommandTimeout = 120;
+                            command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
+                            command.Parameters.AddWithValue("@maTroChoi", maTroChoi);
+
+                            object value = command.ExecuteScalar();
+                            if (value != null && value != DBNull.Value)
+                            {
+                                maHoSo = Convert.ToInt32(value);
+                            }
+                        }
+
+                        if (!maHoSo.HasValue)
+                        {
+                            transaction.Commit();
+                            return;
+                        }
+
+                        using (SqlCommand command = new SqlCommand(@"UPDATE XIN_GIA_NHAP
+                                                                    SET ma_ho_so = NULL
+                                                                    WHERE ma_ho_so = @maHoSo", connection, transaction))
+                        {
+                            command.CommandTimeout = 120;
+                            command.Parameters.AddWithValue("@maHoSo", maHoSo.Value);
+                            command.ExecuteNonQuery();
+                        }
+
+                        using (SqlCommand command = new SqlCommand(@"DELETE FROM HO_SO_IN_GAME
+                                                                    WHERE ma_ho_so = @maHoSo
+                                                                      AND ma_nguoi_dung = @maNguoiDung
+                                                                      AND ma_tro_choi = @maTroChoi", connection, transaction))
+                        {
+                            command.CommandTimeout = 120;
+                            command.Parameters.AddWithValue("@maHoSo", maHoSo.Value);
+                            command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
+                            command.Parameters.AddWithValue("@maTroChoi", maTroChoi);
+                            command.ExecuteNonQuery();
+                        }
+
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
             }
         }
 
