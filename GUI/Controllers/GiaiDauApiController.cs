@@ -120,30 +120,58 @@ namespace GUI.Controllers
         [HttpGet]
         public JsonResult Mine()
         {
-            int? userId = Session["UserId"] as int?;
-            if (!userId.HasValue) return Json(ChuaDangNhap(), JsonRequestBehavior.AllowGet);
-            return Json(bus.LayGiaiDauCuaToi(userId.Value), JsonRequestBehavior.AllowGet);
+            try
+            {
+                int? userId = Session["UserId"] as int?;
+                if (!userId.HasValue) return Json(ChuaDangNhap(), JsonRequestBehavior.AllowGet);
+                return Json(bus.LayGiaiDauCuaToi(userId.Value), JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(LoiHeThong(ex), JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpGet]
         public JsonResult Detail(int maGiaiDau)
         {
-            int? userId = Session["UserId"] as int?;
-            return Json(bus.LayChiTiet(maGiaiDau, userId), JsonRequestBehavior.AllowGet);
+            try
+            {
+                int? userId = Session["UserId"] as int?;
+                return Json(bus.LayChiTiet(maGiaiDau, userId), JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(LoiHeThong(ex), JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpGet]
         public JsonResult PendingApproval()
         {
-            int? userId = Session["UserId"] as int?;
-            if (!userId.HasValue) return Json(ChuaDangNhap(), JsonRequestBehavior.AllowGet);
-            return Json(bus.LayDanhSachChoPheDuyet(userId.Value), JsonRequestBehavior.AllowGet);
+            try
+            {
+                int? userId = Session["UserId"] as int?;
+                if (!userId.HasValue) return Json(ChuaDangNhap(), JsonRequestBehavior.AllowGet);
+                return Json(bus.LayDanhSachChoPheDuyet(userId.Value), JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(LoiHeThong(ex), JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpGet]
         public JsonResult All()
         {
-            return Json(bus.LayDanhSachPublic(), JsonRequestBehavior.AllowGet);
+            try
+            {
+                return Json(bus.LayDanhSachPublic(), JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(LoiHeThong(ex), JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpPost]
@@ -190,6 +218,15 @@ namespace GUI.Controllers
         private ApiResponseDTO ChuaDangNhap()
         {
             return new ApiResponseDTO { success = false, message = "Bạn chưa đăng nhập.", data = null };
+        }
+        private ApiResponseDTO LoiHeThong(Exception ex)
+        {
+            return new ApiResponseDTO
+            {
+                success = false,
+                message = "Loi he thong khi tai du lieu giai dau: " + ex.Message,
+                data = null
+            };
         }
     }
 }

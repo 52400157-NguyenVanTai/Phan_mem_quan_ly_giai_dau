@@ -150,15 +150,6 @@ namespace DAL
             }
         }
 
-        private void DamBaoCotThongBaoMaDoi(SqlConnection conn)
-        {
-            using (var cmd = new SqlCommand(@"
-                IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
-                    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;", conn))
-            {
-                cmd.ExecuteNonQuery();
-            }
-        }
 
         private bool TableExists(SqlConnection conn, string tableName)
         {
@@ -631,14 +622,14 @@ namespace DAL
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(@"
-                    IF NOT EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @gd AND ma_nhom = @nhom)
+                    IF NOT EXISTS (SELECT 1 FROM THAM_GIA_GIAI WHERE ma_giai_dau = @gd AND ma_doi = @doi)
                     BEGIN
-                        INSERT INTO THAM_GIA_GIAI(ma_giai_dau, ma_nhom, trang_thai_duyet, trang_thai_tham_gia)
-                        VALUES(@gd, @nhom, 'cho_duyet', 'dang_thi_dau')
+                        INSERT INTO THAM_GIA_GIAI(ma_giai_dau, ma_doi, trang_thai_duyet, trang_thai_tham_gia)
+                        VALUES(@gd, @doi, 'cho_duyet', 'dang_thi_dau')
                     END", conn))
                 {
                     cmd.Parameters.AddWithValue("@gd", maGiaiDau);
-                    cmd.Parameters.AddWithValue("@nhom", maDoi);
+                    cmd.Parameters.AddWithValue("@doi", maDoi);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -649,7 +640,6 @@ namespace DAL
             using (var conn = DbConnectionFactory.CreateConnection())
             {
                 conn.Open();
-                DamBaoCotThongBaoMaDoi(conn);
                 
                 // Get all captains for the team (both DOI.ma_doi_truong and THANH_VIEN_DOI with captain roles)
                 var captains = new HashSet<int>();
@@ -664,8 +654,7 @@ namespace DAL
                 using (var cmd = new SqlCommand(@"
                     SELECT tv.ma_nguoi_dung 
                     FROM THANH_VIEN_DOI tv 
-                    INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom 
-                    WHERE n.ma_doi = @nhom AND tv.vai_tro_noi_bo IN ('chu_tich', 'doi_truong', 'ban_dieu_hanh')
+                    WHERE tv.ma_doi = @nhom AND tv.vai_tro_noi_bo IN ('chu_tich', 'doi_truong', 'ban_dieu_hanh')
                 ", conn))
                 {
                     cmd.Parameters.AddWithValue("@nhom", maDoi);

@@ -7,36 +7,22 @@ namespace DAL
 {
     public class DoiDAL
     {
-        private void DamBaoCotThongBaoMaDoi(SqlConnection connection)
-        {
-            using (SqlCommand command = new SqlCommand(@"
-                IF COL_LENGTH('dbo.THONG_BAO', 'ma_doi') IS NULL
-                    ALTER TABLE dbo.THONG_BAO ADD ma_doi INT NULL;", connection))
-            {
-                command.ExecuteNonQuery();
-            }
-        }
 
         public List<DoiDTO> TimKiemDoi(string tuKhoa, int? maTroChoi, int? maNguoiDung)
         {
             List<DoiDTO> items = new List<DoiDTO>();
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, n.ma_nhom, n.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
+            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, d.ma_doi AS ma_nhom, d.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
                                                                d.ma_doi_truong, nd.ten_dang_nhap AS ten_chu_tich, d.logo_url, d.slogan, d.mo_ta,
                                                                d.trang_thai, d.dang_tuyen, d.ngay_tao,
-                                                               COUNT(tv.ma_thanh_vien) AS so_thanh_vien,
-                                                               MAX(CASE WHEN tv2.ma_nguoi_dung IS NULL THEN NULL ELSE tv2.vai_tro_noi_bo END) AS vai_tro_cua_toi
-                                                        FROM DOI d
-                                                        INNER JOIN NHOM_DOI n ON d.ma_doi = n.ma_doi AND n.ma_tro_choi IS NOT NULL
-                                                        INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
-                                                        INNER JOIN NGUOI_DUNG nd ON d.ma_doi_truong = nd.ma_nguoi_dung
-                                                        LEFT JOIN THANH_VIEN_DOI tv ON n.ma_nhom = tv.ma_nhom AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
-                                                        LEFT JOIN THANH_VIEN_DOI tv2 ON n.ma_nhom = tv2.ma_nhom AND tv2.ma_nguoi_dung = @maNguoiDung AND tv2.trang_thai_duyet = 'da_duyet' AND tv2.trang_thai_hop_dong = 'dang_hieu_luc'
+                                                               (SELECT COUNT(1) FROM THANH_VIEN_DOI tv WITH (NOLOCK) WHERE tv.ma_doi = d.ma_doi AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS so_thanh_vien,
+                                                               (SELECT TOP 1 tv2.vai_tro_noi_bo FROM THANH_VIEN_DOI tv2 WITH (NOLOCK) WHERE tv2.ma_doi = d.ma_doi AND tv2.ma_nguoi_dung = @maNguoiDung AND tv2.trang_thai_duyet = 'da_duyet' AND tv2.trang_thai_hop_dong = 'dang_hieu_luc') AS vai_tro_cua_toi
+                                                        FROM DOI d WITH (NOLOCK)
+                                                        INNER JOIN DANH_MUC_TRO_CHOI tc WITH (NOLOCK) ON d.ma_tro_choi = tc.ma_tro_choi
+                                                        INNER JOIN NGUOI_DUNG nd WITH (NOLOCK) ON d.ma_doi_truong = nd.ma_nguoi_dung
                                                         WHERE d.trang_thai = 'dang_hoat_dong'
                                                           AND (@tuKhoa IS NULL OR d.ten_doi LIKE '%' + @tuKhoa + '%' OR d.ten_viet_tat LIKE '%' + @tuKhoa + '%')
-                                                          AND (@maTroChoi IS NULL OR n.ma_tro_choi = @maTroChoi)
-                                                        GROUP BY d.ma_doi, n.ma_nhom, n.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
-                                                                 d.ma_doi_truong, nd.ten_dang_nhap, d.logo_url, d.slogan, d.mo_ta, d.trang_thai, d.dang_tuyen, d.ngay_tao
+                                                          AND (@maTroChoi IS NULL OR d.ma_tro_choi = @maTroChoi)
                                                         ORDER BY d.ngay_tao DESC", connection))
             {
                 command.Parameters.AddWithValue("@tuKhoa", string.IsNullOrWhiteSpace(tuKhoa) ? (object)DBNull.Value : tuKhoa.Trim());
@@ -85,26 +71,21 @@ namespace DAL
         {
             List<DoiDTO> items = new List<DoiDTO>();
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, n.ma_nhom, n.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
+            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, d.ma_doi AS ma_nhom, d.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
                                                                d.ma_doi_truong, nd.ten_dang_nhap AS ten_chu_tich, d.logo_url, d.slogan, d.mo_ta,
                                                                d.trang_thai, d.dang_tuyen, d.ngay_tao,
-                                                               COUNT(tv_all.ma_thanh_vien) AS so_thanh_vien,
+                                                               (SELECT COUNT(1) FROM THANH_VIEN_DOI tv_all WITH (NOLOCK) WHERE tv_all.ma_doi = d.ma_doi AND tv_all.trang_thai_duyet = 'da_duyet' AND tv_all.trang_thai_hop_dong = 'dang_hieu_luc') AS so_thanh_vien,
                                                                tv.vai_tro_noi_bo AS vai_tro_cua_toi
-                                                        FROM THANH_VIEN_DOI tv
-                                                        INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                        INNER JOIN DOI d ON n.ma_doi = d.ma_doi
-                                                        INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
-                                                        INNER JOIN NGUOI_DUNG nd ON d.ma_doi_truong = nd.ma_nguoi_dung
-                                                        LEFT JOIN THANH_VIEN_DOI tv_all ON n.ma_nhom = tv_all.ma_nhom AND tv_all.trang_thai_duyet = 'da_duyet' AND tv_all.trang_thai_hop_dong = 'dang_hieu_luc'
+                                                        FROM THANH_VIEN_DOI tv WITH (NOLOCK)
+                                                        INNER JOIN DOI d WITH (NOLOCK) ON tv.ma_doi = d.ma_doi
+                                                        INNER JOIN DANH_MUC_TRO_CHOI tc WITH (NOLOCK) ON d.ma_tro_choi = tc.ma_tro_choi
+                                                        INNER JOIN NGUOI_DUNG nd WITH (NOLOCK) ON d.ma_doi_truong = nd.ma_nguoi_dung
                                                         WHERE tv.ma_nguoi_dung = @maNguoiDung AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
                                                           AND d.trang_thai = 'dang_hoat_dong'
-                                                        GROUP BY d.ma_doi, n.ma_nhom, n.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
-                                                                 d.ma_doi_truong, nd.ten_dang_nhap, d.logo_url, d.slogan, d.mo_ta, d.trang_thai, d.dang_tuyen, d.ngay_tao, tv.vai_tro_noi_bo
                                                         ORDER BY tc.ten_game, d.ten_doi", connection))
             {
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
                 connection.Open();
-                DamBaoCotThongBaoMaDoi(connection);
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read()) items.Add(MapDoi(reader));
@@ -116,15 +97,14 @@ namespace DAL
         public DoiDTO LayDoi(int maDoi, int? maNguoiDung)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, n.ma_nhom, n.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
+            using (SqlCommand command = new SqlCommand(@"SELECT d.ma_doi, d.ma_doi AS ma_nhom, d.ma_tro_choi, tc.ten_game, d.ten_doi, d.ten_viet_tat,
                                                                d.ma_doi_truong, nd.ten_dang_nhap AS ten_chu_tich, d.logo_url, d.slogan, d.mo_ta,
                                                                d.trang_thai, d.dang_tuyen, d.ngay_tao,
-                                                               (SELECT COUNT(1) FROM THANH_VIEN_DOI tv WHERE tv.ma_nhom = n.ma_nhom AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS so_thanh_vien,
-                                                               (SELECT TOP 1 tv2.vai_tro_noi_bo FROM THANH_VIEN_DOI tv2 WHERE tv2.ma_nhom = n.ma_nhom AND tv2.ma_nguoi_dung = @maNguoiDung AND tv2.trang_thai_duyet = 'da_duyet' AND tv2.trang_thai_hop_dong = 'dang_hieu_luc') AS vai_tro_cua_toi
-                                                        FROM DOI d
-                                                        INNER JOIN NHOM_DOI n ON d.ma_doi = n.ma_doi AND n.ma_tro_choi IS NOT NULL
-                                                        INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
-                                                        INNER JOIN NGUOI_DUNG nd ON d.ma_doi_truong = nd.ma_nguoi_dung
+                                                               (SELECT COUNT(1) FROM THANH_VIEN_DOI tv WITH (NOLOCK) WHERE tv.ma_doi = d.ma_doi AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc') AS so_thanh_vien,
+                                                               (SELECT TOP 1 tv2.vai_tro_noi_bo FROM THANH_VIEN_DOI tv2 WITH (NOLOCK) WHERE tv2.ma_doi = d.ma_doi AND tv2.ma_nguoi_dung = @maNguoiDung AND tv2.trang_thai_duyet = 'da_duyet' AND tv2.trang_thai_hop_dong = 'dang_hieu_luc') AS vai_tro_cua_toi
+                                                        FROM DOI d WITH (NOLOCK)
+                                                        INNER JOIN DANH_MUC_TRO_CHOI tc WITH (NOLOCK) ON d.ma_tro_choi = tc.ma_tro_choi
+                                                        INNER JOIN NGUOI_DUNG nd WITH (NOLOCK) ON d.ma_doi_truong = nd.ma_nguoi_dung
                                                         WHERE d.ma_doi = @maDoi", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
@@ -142,13 +122,11 @@ namespace DAL
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(@"DECLARE @maDoi INT;
-                                                        INSERT INTO DOI (ten_doi, ten_viet_tat, ma_doi_truong, logo_url, slogan, mo_ta)
-                                                        VALUES (@tenDoi, @tenVietTat, @maNguoiDung, @logoUrl, @slogan, @moTa);
+                                                        INSERT INTO DOI (ten_doi, ten_viet_tat, ma_doi_truong, ma_tro_choi, logo_url, slogan, mo_ta)
+                                                        VALUES (@tenDoi, @tenVietTat, @maNguoiDung, @maTroChoi, @logoUrl, @slogan, @moTa);
                                                         SET @maDoi = SCOPE_IDENTITY();
-                                                        INSERT INTO NHOM_DOI (ma_doi, ma_tro_choi, ten_nhom, ma_doi_truong_nhom)
-                                                        VALUES (@maDoi, @maTroChoi, @tenDoi, @maNguoiDung);
-                                                        INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, vai_tro_noi_bo, phan_he)
-                                                        VALUES (@maNguoiDung, SCOPE_IDENTITY(), 'chu_tich', 'TuyenThu');
+                                                        INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_doi, vai_tro_noi_bo, phan_he)
+                                                        VALUES (@maNguoiDung, @maDoi, 'chu_tich', 'TuyenThu');
                                                         SELECT @maDoi;", connection))
             {
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
@@ -168,9 +146,8 @@ namespace DAL
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(@"SELECT COUNT(1)
                                                         FROM THANH_VIEN_DOI tv
-                                                        INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                        INNER JOIN DOI d ON n.ma_doi = d.ma_doi
-                                                        WHERE tv.ma_nguoi_dung = @maNguoiDung AND n.ma_tro_choi = @maTroChoi
+                                                        INNER JOIN DOI d ON tv.ma_doi = d.ma_doi
+                                                        WHERE tv.ma_nguoi_dung = @maNguoiDung AND d.ma_tro_choi = @maTroChoi
                                                           AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
                                                           AND d.trang_thai = 'dang_hoat_dong'", connection))
             {
@@ -186,9 +163,8 @@ namespace DAL
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(@"SELECT COUNT(1)
                                                         FROM DOI d
-                                                        INNER JOIN NHOM_DOI n ON d.ma_doi = n.ma_doi
                                                         WHERE d.ten_doi = @tenDoi
-                                                          AND n.ma_tro_choi = @maTroChoi
+                                                          AND d.ma_tro_choi = @maTroChoi
                                                           AND (@boQuaMaDoi IS NULL OR d.ma_doi <> @boQuaMaDoi)", connection))
             {
                 command.Parameters.AddWithValue("@tenDoi", tenDoi.Trim());
@@ -199,10 +175,10 @@ namespace DAL
             }
         }
 
-        public int LayMaNhomTheoDoi(int maDoi)
+        public int LayMaDoiDangThiDau(int maDoi)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand("SELECT TOP 1 ma_nhom FROM NHOM_DOI WHERE ma_doi = @maDoi AND ma_tro_choi IS NOT NULL", connection))
+            using (SqlCommand command = new SqlCommand("SELECT ma_doi FROM DOI WHERE ma_doi = @maDoi AND ma_tro_choi IS NOT NULL", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
                 connection.Open();
@@ -214,7 +190,7 @@ namespace DAL
         public int LayGameTheoDoi(int maDoi)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand("SELECT TOP 1 ma_tro_choi FROM NHOM_DOI WHERE ma_doi = @maDoi AND ma_tro_choi IS NOT NULL", connection))
+            using (SqlCommand command = new SqlCommand("SELECT ma_tro_choi FROM DOI WHERE ma_doi = @maDoi AND ma_tro_choi IS NOT NULL", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
                 connection.Open();
@@ -263,15 +239,14 @@ namespace DAL
             }
         }
 
-        public void TaoDonXinGiaNhap(int maDoi, int maNhom, int maNguoiDung, int maHoSo)
+        public void TaoDonXinGiaNhap(int maDoi, int maNguoiDung, int maHoSo)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"INSERT INTO XIN_GIA_NHAP (ma_nguoi_dung, ma_doi, ma_nhom, ma_ho_so)
-                                                        VALUES (@maNguoiDung, @maDoi, @maNhom, @maHoSo)", connection))
+            using (SqlCommand command = new SqlCommand(@"INSERT INTO XIN_GIA_NHAP (ma_nguoi_dung, ma_doi, ma_ho_so)
+                                                        VALUES (@maNguoiDung, @maDoi, @maHoSo)", connection))
             {
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
                 command.Parameters.AddWithValue("@maDoi", maDoi);
-                command.Parameters.AddWithValue("@maNhom", maNhom);
                 command.Parameters.AddWithValue("@maHoSo", maHoSo);
                 connection.Open();
                 command.ExecuteNonQuery();
@@ -283,8 +258,7 @@ namespace DAL
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(@"SELECT TOP 1 tv.vai_tro_noi_bo
                                                         FROM THANH_VIEN_DOI tv
-                                                        INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                        WHERE n.ma_doi = @maDoi AND tv.ma_nguoi_dung = @maNguoiDung
+                                                        WHERE tv.ma_doi = @maDoi AND tv.ma_nguoi_dung = @maNguoiDung
                                                           AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
@@ -302,10 +276,9 @@ namespace DAL
             using (SqlCommand command = new SqlCommand(@"SELECT tv.ma_thanh_vien, tv.ma_nguoi_dung, nd.ten_dang_nhap, nd.avatar_url,
                                                                vt.ten_vi_tri, tv.vai_tro_noi_bo, tv.phan_he, tv.ngay_tham_gia
                                                         FROM THANH_VIEN_DOI tv
-                                                        INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
                                                         INNER JOIN NGUOI_DUNG nd ON tv.ma_nguoi_dung = nd.ma_nguoi_dung
                                                         LEFT JOIN DANH_MUC_VI_TRI vt ON tv.ma_vi_tri = vt.ma_vi_tri
-                                                        WHERE n.ma_doi = @maDoi AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
+                                                        WHERE tv.ma_doi = @maDoi AND tv.trang_thai_duyet = 'da_duyet' AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
                                                         ORDER BY CASE tv.vai_tro_noi_bo WHEN 'chu_tich' THEN 1 WHEN 'ban_dieu_hanh' THEN 2 WHEN 'doi_truong' THEN 3 ELSE 4 END, nd.ten_dang_nhap", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
@@ -366,18 +339,12 @@ namespace DAL
         public void XoaDoi(int maDoi)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"DECLARE @NhomCanXoa TABLE (ma_nhom INT PRIMARY KEY);
-                                                        INSERT INTO @NhomCanXoa (ma_nhom)
-                                                        SELECT ma_nhom FROM NHOM_DOI WHERE ma_doi = @maDoi;
-
-                                                        DELETE FROM YEU_CAU_XAC_NHAN_LOI_MOI WHERE ma_doi = @maDoi OR ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_doi = @maDoi OR ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_doi = @maDoi OR ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM XIN_GIA_NHAP WHERE ma_doi = @maDoi OR ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM YEU_CAU_THAM_GIA_NHOM WHERE ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM BAI_DANG_TUYEN_DUNG WHERE ma_doi = @maDoi OR ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM THANH_VIEN_DOI WHERE ma_nhom IN (SELECT ma_nhom FROM @NhomCanXoa);
-                                                        DELETE FROM NHOM_DOI WHERE ma_doi = @maDoi;
+            using (SqlCommand command = new SqlCommand(@"DELETE FROM YEU_CAU_XAC_NHAN_LOI_MOI WHERE ma_doi = @maDoi;
+                                                        DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_doi = @maDoi;
+                                                        DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_doi = @maDoi;
+                                                        DELETE FROM XIN_GIA_NHAP WHERE ma_doi = @maDoi;
+                                                        DELETE FROM BAI_DANG_TUYEN_DUNG WHERE ma_doi = @maDoi;
+                                                        DELETE FROM THANH_VIEN_DOI WHERE ma_doi = @maDoi;
                                                         DELETE FROM DOI WHERE ma_doi = @maDoi;", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
@@ -398,20 +365,19 @@ namespace DAL
             }
         }
 
-        public void TaoLoiMoi(int maDoi, int maNhom, int maNguoiNhan, int maNguoiGui, int? maViTri, string moTa)
+        public void TaoLoiMoi(int maDoi, int maNguoiNhan, int maNguoiGui, int? maViTri, string moTa)
         {
             bool coCotMoRong = CotTonTai("LOI_MOI_GIA_NHAP", "ma_vi_tri") && CotTonTai("LOI_MOI_GIA_NHAP", "mo_ta");
             string sql = coCotMoRong
-                ? @"INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
-                    VALUES (@maDoi, @maNhom, @maNguoiNhan, @maNguoiGui, @maViTri, @moTa)"
-                : @"INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui)
-                    VALUES (@maDoi, @maNhom, @maNguoiNhan, @maNguoiGui)";
+                ? @"INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
+                    VALUES (@maDoi, @maNguoiNhan, @maNguoiGui, @maViTri, @moTa)"
+                : @"INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nguoi_duoc_moi, ma_nguoi_gui)
+                    VALUES (@maDoi, @maNguoiNhan, @maNguoiGui)";
 
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(sql, connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
-                command.Parameters.AddWithValue("@maNhom", maNhom);
                 command.Parameters.AddWithValue("@maNguoiNhan", maNguoiNhan);
                 command.Parameters.AddWithValue("@maNguoiGui", maNguoiGui);
                 if (coCotMoRong)
@@ -424,14 +390,13 @@ namespace DAL
             }
         }
 
-        public void TaoYeuCauMoiThanhVien(int maDoi, int maNhom, int maNguoiNhan, int maNguoiGui, int? maViTri, string moTa)
+        public void TaoYeuCauMoiThanhVien(int maDoi, int maNguoiNhan, int maNguoiGui, int? maViTri, string moTa)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"INSERT INTO YEU_CAU_MOI_THANH_VIEN_DOI (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
-                                                        VALUES (@maDoi, @maNhom, @maNguoiNhan, @maNguoiGui, @maViTri, @moTa)", connection))
+            using (SqlCommand command = new SqlCommand(@"INSERT INTO YEU_CAU_MOI_THANH_VIEN_DOI (ma_doi, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
+                                                        VALUES (@maDoi, @maNguoiNhan, @maNguoiGui, @maViTri, @moTa)", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
-                command.Parameters.AddWithValue("@maNhom", maNhom);
                 command.Parameters.AddWithValue("@maNguoiNhan", maNguoiNhan);
                 command.Parameters.AddWithValue("@maNguoiGui", maNguoiGui);
                 command.Parameters.AddWithValue("@maViTri", (object)maViTri ?? DBNull.Value);
@@ -447,12 +412,12 @@ namespace DAL
             using (SqlCommand command = new SqlCommand(@"IF @vaiTro = 'doi_truong'
                                                         BEGIN
                                                             UPDATE tv SET vai_tro_noi_bo = 'thanh_vien'
-                                                            FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                            WHERE n.ma_doi = @maDoi AND tv.vai_tro_noi_bo = 'doi_truong';
+                                                            FROM THANH_VIEN_DOI tv
+                                                            WHERE tv.ma_doi = @maDoi AND tv.vai_tro_noi_bo = 'doi_truong';
                                                         END
                                                         UPDATE tv SET vai_tro_noi_bo = @vaiTro
-                                                        FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                        WHERE n.ma_doi = @maDoi AND tv.ma_nguoi_dung = @maNguoiDung AND tv.vai_tro_noi_bo <> 'chu_tich';", connection))
+                                                        FROM THANH_VIEN_DOI tv
+                                                        WHERE tv.ma_doi = @maDoi AND tv.ma_nguoi_dung = @maNguoiDung AND tv.vai_tro_noi_bo <> 'chu_tich';", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
@@ -467,8 +432,7 @@ namespace DAL
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(@"DELETE tv
                                                         FROM THANH_VIEN_DOI tv
-                                                        INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                        WHERE n.ma_doi = @maDoi AND tv.ma_nguoi_dung = @maNguoiDung AND tv.vai_tro_noi_bo <> 'chu_tich'", connection))
+                                                        WHERE tv.ma_doi = @maDoi AND tv.ma_nguoi_dung = @maNguoiDung AND tv.vai_tro_noi_bo <> 'chu_tich'", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
@@ -483,9 +447,8 @@ namespace DAL
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
             using (SqlCommand command = new SqlCommand(@"SELECT gd.ma_giai_dau, gd.ten_giai_dau, gd.trang_thai, tgg.trang_thai_tham_gia
                                                         FROM THAM_GIA_GIAI tgg
-                                                        INNER JOIN NHOM_DOI n ON tgg.ma_nhom = n.ma_nhom
                                                         INNER JOIN GIAI_DAU gd ON tgg.ma_giai_dau = gd.ma_giai_dau
-                                                        WHERE n.ma_doi = @maDoi
+                                                        WHERE tgg.ma_doi = @maDoi
                                                         ORDER BY gd.ma_giai_dau DESC", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
@@ -517,8 +480,7 @@ namespace DAL
                                                         FROM CHI_TIET_TRAN_DAU ctd
                                                         INNER JOIN TRAN_DAU td ON ctd.ma_tran = td.ma_tran
                                                         INNER JOIN GIAI_DAU gd ON td.ma_giai_dau = gd.ma_giai_dau
-                                                        INNER JOIN NHOM_DOI n ON ctd.ma_nhom = n.ma_nhom
-                                                        WHERE n.ma_doi = @maDoi AND ((@sapToi = 1 AND td.trang_thai = 'chua_dau' AND (td.thoi_gian_bat_dau IS NULL OR td.thoi_gian_bat_dau >= GETDATE())) OR (@sapToi = 0 AND td.trang_thai <> 'chua_dau'))
+                                                        WHERE ctd.ma_doi = @maDoi AND ((@sapToi = 1 AND td.trang_thai = 'chua_dau' AND (td.thoi_gian_bat_dau IS NULL OR td.thoi_gian_bat_dau >= GETDATE())) OR (@sapToi = 0 AND td.trang_thai <> 'chua_dau'))
                                                         ORDER BY CASE WHEN @sapToi = 1 THEN DATEDIFF(MINUTE, GETDATE(), ISNULL(td.thoi_gian_bat_dau, GETDATE())) ELSE -DATEDIFF(MINUTE, GETDATE(), ISNULL(td.thoi_gian_bat_dau, GETDATE())) END", connection))
             {
                 command.Parameters.AddWithValue("@maDoi", maDoi);
@@ -557,8 +519,7 @@ namespace DAL
                            CAST(NULL AS NVARCHAR(100)) AS ho_so_vi_tri, CAST(NULL AS NVARCHAR(500)) AS ho_so_thanh_tich
                     FROM LOI_MOI_GIA_NHAP lm
                     INNER JOIN DOI d ON lm.ma_doi = d.ma_doi
-                    INNER JOIN NHOM_DOI n ON lm.ma_nhom = n.ma_nhom
-                    INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
+                    INNER JOIN DANH_MUC_TRO_CHOI tc ON d.ma_tro_choi = tc.ma_tro_choi
                     LEFT JOIN NGUOI_DUNG ng ON lm.ma_nguoi_gui = ng.ma_nguoi_dung
                     INNER JOIN NGUOI_DUNG nn ON lm.ma_nguoi_duoc_moi = nn.ma_nguoi_dung
                     LEFT JOIN DANH_MUC_VI_TRI vt ON lm.ma_vi_tri = vt.ma_vi_tri
@@ -570,8 +531,7 @@ namespace DAL
                            CAST(NULL AS NVARCHAR(100)) AS ho_so_vi_tri, CAST(NULL AS NVARCHAR(500)) AS ho_so_thanh_tich
                     FROM LOI_MOI_GIA_NHAP lm
                     INNER JOIN DOI d ON lm.ma_doi = d.ma_doi
-                    INNER JOIN NHOM_DOI n ON lm.ma_nhom = n.ma_nhom
-                    INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
+                    INNER JOIN DANH_MUC_TRO_CHOI tc ON d.ma_tro_choi = tc.ma_tro_choi
                     LEFT JOIN NGUOI_DUNG ng ON lm.ma_nguoi_gui = ng.ma_nguoi_dung
                     INNER JOIN NGUOI_DUNG nn ON lm.ma_nguoi_duoc_moi = nn.ma_nguoi_dung
                     WHERE lm.ma_nguoi_duoc_moi = @maNguoiDung AND lm.trang_thai = 'cho_phan_hoi'";
@@ -585,14 +545,13 @@ namespace DAL
                            CAST(NULL AS NVARCHAR(100)) AS ho_so_vi_tri, CAST(NULL AS NVARCHAR(500)) AS ho_so_thanh_tich
                     FROM YEU_CAU_MOI_THANH_VIEN_DOI yc
                     INNER JOIN DOI d ON yc.ma_doi = d.ma_doi
-                    INNER JOIN NHOM_DOI n ON yc.ma_nhom = n.ma_nhom
-                    INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
+                    INNER JOIN DANH_MUC_TRO_CHOI tc ON d.ma_tro_choi = tc.ma_tro_choi
                     INNER JOIN NGUOI_DUNG ng ON yc.ma_nguoi_gui = ng.ma_nguoi_dung
                     INNER JOIN NGUOI_DUNG nn ON yc.ma_nguoi_duoc_moi = nn.ma_nguoi_dung
                     LEFT JOIN DANH_MUC_VI_TRI vt ON yc.ma_vi_tri = vt.ma_vi_tri
                     WHERE yc.trang_thai = 'cho_duyet' AND EXISTS (
-                        SELECT 1 FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI nx ON tv.ma_nhom = nx.ma_nhom
-                        WHERE nx.ma_doi = yc.ma_doi AND tv.ma_nguoi_dung = @maNguoiDung AND tv.vai_tro_noi_bo IN ('chu_tich','ban_dieu_hanh')
+                        SELECT 1 FROM THANH_VIEN_DOI tv
+                        WHERE tv.ma_doi = yc.ma_doi AND tv.ma_nguoi_dung = @maNguoiDung AND tv.vai_tro_noi_bo IN ('chu_tich','ban_dieu_hanh')
                     )";
             }
             sql += @" UNION ALL
@@ -604,15 +563,14 @@ namespace DAL
                            vt.ten_vi_tri AS ho_so_vi_tri, hs.thanh_tich AS ho_so_thanh_tich
                     FROM XIN_GIA_NHAP xg
                     INNER JOIN DOI d ON xg.ma_doi = d.ma_doi
-                    INNER JOIN NHOM_DOI n ON xg.ma_nhom = n.ma_nhom
-                    INNER JOIN DANH_MUC_TRO_CHOI tc ON n.ma_tro_choi = tc.ma_tro_choi
+                    INNER JOIN DANH_MUC_TRO_CHOI tc ON d.ma_tro_choi = tc.ma_tro_choi
                     INNER JOIN NGUOI_DUNG ng ON xg.ma_nguoi_dung = ng.ma_nguoi_dung
                     INNER JOIN NGUOI_DUNG nd ON d.ma_doi_truong = nd.ma_nguoi_dung
                     LEFT JOIN HO_SO_IN_GAME hs ON xg.ma_ho_so = hs.ma_ho_so
                     LEFT JOIN DANH_MUC_VI_TRI vt ON hs.ma_vi_tri_so_truong = vt.ma_vi_tri
                     WHERE xg.trang_thai = 'cho_duyet' AND d.trang_thai = 'dang_hoat_dong' AND EXISTS (
-                        SELECT 1 FROM THANH_VIEN_DOI tv INNER JOIN NHOM_DOI nx ON tv.ma_nhom = nx.ma_nhom
-                        WHERE nx.ma_doi = xg.ma_doi AND tv.ma_nguoi_dung = @maNguoiDung
+                        SELECT 1 FROM THANH_VIEN_DOI tv
+                        WHERE tv.ma_doi = xg.ma_doi AND tv.ma_nguoi_dung = @maNguoiDung
                           AND tv.vai_tro_noi_bo IN ('chu_tich','ban_dieu_hanh')
                           AND tv.trang_thai_duyet = 'da_duyet'
                           AND tv.trang_thai_hop_dong = 'dang_hieu_luc'
@@ -638,7 +596,6 @@ namespace DAL
             {
                 command.Parameters.AddWithValue("@maNguoiDung", maNguoiDung);
                 connection.Open();
-                DamBaoCotThongBaoMaDoi(connection);
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -673,26 +630,26 @@ namespace DAL
         {
             bool coCotViTri = CotTonTai("LOI_MOI_GIA_NHAP", "ma_vi_tri");
             string sql = coCotViTri
-                ? @"DECLARE @maNhom INT, @maViTri INT;
-                    SELECT @maNhom = ma_nhom, @maViTri = ma_vi_tri FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau AND ma_nguoi_duoc_moi = @maNguoiDung AND trang_thai = 'cho_phan_hoi';
-                    IF @maNhom IS NOT NULL
+                ? @"DECLARE @maDoi INT, @maViTri INT;
+                    SELECT @maDoi = ma_doi, @maViTri = ma_vi_tri FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau AND ma_nguoi_duoc_moi = @maNguoiDung AND trang_thai = 'cho_phan_hoi';
+                    IF @maDoi IS NOT NULL
                     BEGIN
                         DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
-                            INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, ma_vi_tri, vai_tro_noi_bo, phan_he)
-                            VALUES (@maNguoiDung, @maNhom, @maViTri, 'thanh_vien', 'TuyenThu');
+                            INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_doi, ma_vi_tri, vai_tro_noi_bo, phan_he)
+                            VALUES (@maNguoiDung, @maDoi, @maViTri, 'thanh_vien', 'TuyenThu');
                         END
                     END"
-                : @"DECLARE @maNhom INT;
-                    SELECT @maNhom = ma_nhom FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau AND ma_nguoi_duoc_moi = @maNguoiDung AND trang_thai = 'cho_phan_hoi';
-                    IF @maNhom IS NOT NULL
+                : @"DECLARE @maDoi INT;
+                    SELECT @maDoi = ma_doi FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau AND ma_nguoi_duoc_moi = @maNguoiDung AND trang_thai = 'cho_phan_hoi';
+                    IF @maDoi IS NOT NULL
                     BEGIN
                         DELETE FROM LOI_MOI_GIA_NHAP WHERE ma_loi_moi = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
-                            INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, vai_tro_noi_bo, phan_he)
-                            VALUES (@maNguoiDung, @maNhom, 'thanh_vien', 'TuyenThu');
+                            INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_doi, vai_tro_noi_bo, phan_he)
+                            VALUES (@maNguoiDung, @maDoi, 'thanh_vien', 'TuyenThu');
                         END
                     END";
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
@@ -710,28 +667,28 @@ namespace DAL
         {
             bool coCotMoRong = CotTonTai("LOI_MOI_GIA_NHAP", "ma_vi_tri") && CotTonTai("LOI_MOI_GIA_NHAP", "mo_ta");
             string sql = coCotMoRong
-                ? @"DECLARE @maDoi INT, @maNhom INT, @maNguoiNhan INT, @maNguoiGui INT, @maViTri INT, @moTa NVARCHAR(500);
-                    SELECT @maDoi = ma_doi, @maNhom = ma_nhom, @maNguoiNhan = ma_nguoi_duoc_moi, @maNguoiGui = ma_nguoi_gui, @maViTri = ma_vi_tri, @moTa = mo_ta
+                ? @"DECLARE @maDoi INT, @maNguoiNhan INT, @maNguoiGui INT, @maViTri INT, @moTa NVARCHAR(500);
+                    SELECT @maDoi = ma_doi, @maNguoiNhan = ma_nguoi_duoc_moi, @maNguoiGui = ma_nguoi_gui, @maViTri = ma_vi_tri, @moTa = mo_ta
                     FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau AND trang_thai = 'cho_duyet';
                     IF @maDoi IS NOT NULL
                     BEGIN
                         DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
-                            INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
-                            VALUES (@maDoi, @maNhom, @maNguoiNhan, @maNguoiGui, @maViTri, @moTa);
+                            INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nguoi_duoc_moi, ma_nguoi_gui, ma_vi_tri, mo_ta)
+                            VALUES (@maDoi, @maNguoiNhan, @maNguoiGui, @maViTri, @moTa);
                         END
                     END"
-                : @"DECLARE @maDoi INT, @maNhom INT, @maNguoiNhan INT, @maNguoiGui INT;
-                    SELECT @maDoi = ma_doi, @maNhom = ma_nhom, @maNguoiNhan = ma_nguoi_duoc_moi, @maNguoiGui = ma_nguoi_gui
+                : @"DECLARE @maDoi INT, @maNguoiNhan INT, @maNguoiGui INT;
+                    SELECT @maDoi = ma_doi, @maNguoiNhan = ma_nguoi_duoc_moi, @maNguoiGui = ma_nguoi_gui
                     FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau AND trang_thai = 'cho_duyet';
                     IF @maDoi IS NOT NULL
                     BEGIN
                         DELETE FROM YEU_CAU_MOI_THANH_VIEN_DOI WHERE ma_yeu_cau = @maYeuCau;
                         IF @chapNhan = 1
                         BEGIN
-                            INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nhom, ma_nguoi_duoc_moi, ma_nguoi_gui)
-                            VALUES (@maDoi, @maNhom, @maNguoiNhan, @maNguoiGui);
+                            INSERT INTO LOI_MOI_GIA_NHAP (ma_doi, ma_nguoi_duoc_moi, ma_nguoi_gui)
+                            VALUES (@maDoi, @maNguoiNhan, @maNguoiGui);
                         END
                     END";
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
@@ -748,15 +705,14 @@ namespace DAL
         public void XuLyDonXinGiaNhap(int maDonXin, int maNguoiDuyet, bool chapNhan)
         {
             using (SqlConnection connection = DbConnectionFactory.CreateConnection())
-            using (SqlCommand command = new SqlCommand(@"DECLARE @maDoi INT, @maNhom INT, @maNguoiDung INT;
-                                                        SELECT @maDoi = xg.ma_doi, @maNhom = xg.ma_nhom, @maNguoiDung = xg.ma_nguoi_dung
+            using (SqlCommand command = new SqlCommand(@"DECLARE @maDoi INT, @maNguoiDung INT;
+                                                        SELECT @maDoi = xg.ma_doi, @maNguoiDung = xg.ma_nguoi_dung
                                                         FROM XIN_GIA_NHAP xg
                                                         WHERE xg.ma_don_xin = @maDonXin AND xg.trang_thai = 'cho_duyet'
                                                           AND EXISTS (
                                                               SELECT 1
                                                               FROM THANH_VIEN_DOI tv
-                                                              INNER JOIN NHOM_DOI n ON tv.ma_nhom = n.ma_nhom
-                                                              WHERE n.ma_doi = xg.ma_doi
+                                                              WHERE tv.ma_doi = xg.ma_doi
                                                                 AND tv.ma_nguoi_dung = @maNguoiDuyet
                                                                 AND tv.vai_tro_noi_bo IN ('chu_tich','ban_dieu_hanh')
                                                                 AND tv.trang_thai_duyet = 'da_duyet'
@@ -768,8 +724,8 @@ namespace DAL
 
                                                             IF @chapNhan = 1
                                                             BEGIN
-                                                                INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_nhom, vai_tro_noi_bo, phan_he)
-                                                                VALUES (@maNguoiDung, @maNhom, 'thanh_vien', 'TuyenThu');
+                                                                INSERT INTO THANH_VIEN_DOI (ma_nguoi_dung, ma_doi, vai_tro_noi_bo, phan_he)
+                                                                VALUES (@maNguoiDung, @maDoi, 'thanh_vien', 'TuyenThu');
                                                             END
                                                         END", connection))
             {

@@ -127,14 +127,13 @@ namespace BUS
             if (doiDAL.NguoiDungDaCoDoiTheoGame(maNguoiNhan.Value, maTroChoi)) return Loi("Người này đã có đội trong game này.");
             if (!doiDAL.LayHoSoTheoGame(maNguoiNhan.Value, maTroChoi).HasValue) return Loi("Người được mời chưa có hồ sơ thi đấu của game mà đội đang thi đấu.");
 
-            int maNhom = doiDAL.LayMaNhomTheoDoi(request.ma_doi);
             if (vaiTro == "doi_truong")
             {
-                doiDAL.TaoYeuCauMoiThanhVien(request.ma_doi, maNhom, maNguoiNhan.Value, maNguoiDung, request.ma_vi_tri, request.mo_ta);
+                doiDAL.TaoYeuCauMoiThanhVien(request.ma_doi, maNguoiNhan.Value, maNguoiDung, request.ma_vi_tri, request.mo_ta);
                 return ThanhCong("ÄÃ£ gá»­i yÃªu cáº§u má»i thÃ nh viÃªn cho chá»§ tá»‹ch hoáº·c ban Ä‘iá»u hÃ nh duyá»‡t.", null);
             }
 
-            doiDAL.TaoLoiMoi(request.ma_doi, maNhom, maNguoiNhan.Value, maNguoiDung, request.ma_vi_tri, request.mo_ta);
+            doiDAL.TaoLoiMoi(request.ma_doi, maNguoiNhan.Value, maNguoiDung, request.ma_vi_tri, request.mo_ta);
             return ThanhCong("ÄÃ£ gá»­i lá»i má»i vÃ o Ä‘á»™i.", null);
         }
 
@@ -151,8 +150,7 @@ namespace BUS
             if (!maHoSo.HasValue) return Loi("Bạn cần tạo hồ sơ thi đấu của game này trước khi xin gia nhập đội.");
             if (doiDAL.DaCoDonXinGiaNhap(request.ma_doi, maNguoiDung)) return Loi("Bạn đã gửi đơn xin gia nhập đội này và đang chờ duyệt.");
 
-            int maNhom = doiDAL.LayMaNhomTheoDoi(request.ma_doi);
-            doiDAL.TaoDonXinGiaNhap(request.ma_doi, maNhom, maNguoiDung, maHoSo.Value);
+            doiDAL.TaoDonXinGiaNhap(request.ma_doi, maNguoiDung, maHoSo.Value);
             return ThanhCong("Đã gửi đơn xin gia nhập đội.", null);
         }
         public ApiResponseDTO CapNhatVaiTroThanhVien(int maNguoiDung, CapNhatVaiTroThanhVienRequestDTO request)

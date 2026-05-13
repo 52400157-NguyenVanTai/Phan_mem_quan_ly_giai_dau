@@ -50,8 +50,8 @@ GO
 -- ================================================================
 -- Nhom danh muc: DANH_MUC_TRO_CHOI, DANH_MUC_VI_TRI
 -- Nhom nguoi dung: NGUOI_DUNG, HO_SO_IN_GAME
--- Nhom doi tuyen: DOI, NHOM_DOI, THANH_VIEN_DOI
--- Nhom tuyen dung: BAI_DANG_TUYEN_DUNG, DON_UNG_TUYEN, LOI_MOI_GIA_NHAP, XIN_GIA_NHAP, YEU_CAU_THAM_GIA_NHOM, YEU_CAU_XAC_NHAN_LOI_MOI
+-- Nhom doi tuyen: DOI, THANH_VIEN_DOI
+-- Nhom tuyen dung: BAI_DANG_TUYEN_DUNG, DON_UNG_TUYEN, LOI_MOI_GIA_NHAP, XIN_GIA_NHAP, YEU_CAU_XAC_NHAN_LOI_MOI
 -- Nhom giai dau: GIAI_DAU, QUAN_TRI_GIAI_DAU, YEU_CAU_TAO_GIAI_DAU, THAM_GIA_GIAI, DOI_HINH_THI_DAU, GIAI_THUONG, GIAI_DOAN
 -- Nhom tran dau/ket qua: TRAN_DAU, CHI_TIET_TRAN_DAU, KET_QUA_TRAN, LICH_SU_SUA_KET_QUA, KHIEU_NAI_KET_QUA, YEU_CAU_MO_KHOA_KET_QUA
 -- Nhom thong ke: CHI_TIET_NGUOI_CHOI_TRAN, BANG_XEP_HANG, BANG_XEP_HANG_CA_NHAN
@@ -264,6 +264,7 @@ BEGIN
         ten_viet_tat NVARCHAR(20) NULL,       -- Tên viết tắt/tag của đội
         ma_doi_truong INT         NOT NULL,   -- Người tạo / chủ đội
         ma_manager  INT           NULL,       -- Manager (có thể khác chủ đội)
+        ma_tro_choi INT           NOT NULL,
         logo_url    NVARCHAR(400) NULL,
         slogan      NVARCHAR(300) NULL,
         mo_ta       NVARCHAR(500) NULL,
@@ -273,40 +274,21 @@ BEGIN
 
         CONSTRAINT CHK_DOI_TRANGTHAI CHECK (trang_thai IN ('dang_hoat_dong','tam_dung','da_giai_the')),
         CONSTRAINT FK_DOI_DOITRUONG FOREIGN KEY (ma_doi_truong) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
+        CONSTRAINT FK_DOI_TROCHOI FOREIGN KEY (ma_tro_choi) REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi),
         CONSTRAINT FK_DOI_MANAGER  FOREIGN KEY (ma_manager)    REFERENCES NGUOI_DUNG(ma_nguoi_dung)
     );
 END
 GO
 
 -- ---------------------------------------------------------------
--- 3.2  NHOM_DOI  (Squad per game under a club)
--- ---------------------------------------------------------------
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'NHOM_DOI')
-BEGIN
-    CREATE TABLE NHOM_DOI (
-        ma_nhom           INT           IDENTITY PRIMARY KEY,
-        ma_doi            INT           NOT NULL,
-        ma_tro_choi       INT           NULL,  -- NULL for management group
-        ten_nhom          NVARCHAR(150) NOT NULL,
-        ma_doi_truong_nhom INT          NULL,   -- Squad captain
-
-        CONSTRAINT FK_NHOM_DOI    FOREIGN KEY (ma_doi)             REFERENCES DOI(ma_doi),
-        CONSTRAINT FK_NHOM_TC     FOREIGN KEY (ma_tro_choi)        REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi),
-        CONSTRAINT FK_NHOM_CAP    FOREIGN KEY (ma_doi_truong_nhom) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
-        CONSTRAINT UQ_NHOM_DOI_GAME_TEN UNIQUE (ma_doi, ma_tro_choi, ten_nhom)
-    );
-END
-GO
-
--- ---------------------------------------------------------------
--- 3.3  THANH_VIEN_DOI  (Squad membership)
+-- 3.2  THANH_VIEN_DOI  (Team membership)
 -- ---------------------------------------------------------------
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'THANH_VIEN_DOI')
 BEGIN
     CREATE TABLE THANH_VIEN_DOI (
         ma_thanh_vien      INT          IDENTITY PRIMARY KEY,
         ma_nguoi_dung      INT          NOT NULL,
-        ma_nhom            INT          NULL,          -- NULL = team member without squad, 0 = management group (nhóm quản lý)
+        ma_doi             INT          NOT NULL,
         ma_vi_tri          INT          NULL,
         vai_tro_noi_bo     NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_VAITRO    DEFAULT 'thanh_vien',
         phan_he            NVARCHAR(20) NOT NULL CONSTRAINT DF_TV_PHANHE    DEFAULT 'TuyenThu',
@@ -315,7 +297,7 @@ BEGIN
         ngay_tham_gia      DATETIME     NOT NULL CONSTRAINT DF_TV_NGAYTG    DEFAULT GETDATE(),
 
         CONSTRAINT FK_TV_ND       FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
-        CONSTRAINT FK_TV_NHOM     FOREIGN KEY (ma_nhom)       REFERENCES NHOM_DOI(ma_nhom),
+        CONSTRAINT FK_TV_DOI      FOREIGN KEY (ma_doi)        REFERENCES DOI(ma_doi),
         CONSTRAINT FK_TV_VITRI    FOREIGN KEY (ma_vi_tri)     REFERENCES DANH_MUC_VI_TRI(ma_vi_tri),
         CONSTRAINT CHK_TV_VAITRO  CHECK (vai_tro_noi_bo     IN ('chu_tich','ban_dieu_hanh','doi_truong','thanh_vien')),
         CONSTRAINT CHK_TV_PHANHE  CHECK (phan_he             IN ('TuyenThu','HuanLuyen')),
@@ -339,13 +321,13 @@ BEGIN
             SELECT 1
             FROM inserted i
             INNER JOIN THANH_VIEN_DOI tv ON i.ma_nguoi_dung = tv.ma_nguoi_dung
-            INNER JOIN NHOM_DOI ni ON i.ma_nhom = ni.ma_nhom
-            INNER JOIN NHOM_DOI ntv ON tv.ma_nhom = ntv.ma_nhom
+            INNER JOIN DOI di ON i.ma_doi = di.ma_doi
+            INNER JOIN DOI dtv ON tv.ma_doi = dtv.ma_doi
             WHERE i.trang_thai_duyet = ''da_duyet''
               AND i.trang_thai_hop_dong = ''dang_hieu_luc''
               AND tv.trang_thai_duyet = ''da_duyet''
               AND tv.trang_thai_hop_dong = ''dang_hieu_luc''
-              AND ni.ma_tro_choi = ntv.ma_tro_choi
+              AND di.ma_tro_choi = dtv.ma_tro_choi
               AND i.ma_thanh_vien <> tv.ma_thanh_vien
         )
         BEGIN
@@ -357,11 +339,11 @@ BEGIN
         IF EXISTS (
             SELECT 1
             FROM THANH_VIEN_DOI tv
-            INNER JOIN inserted i ON tv.ma_nhom = i.ma_nhom
-            WHERE tv.vai_tro_noi_bo = ''doi_truong''
+            WHERE tv.ma_doi IN (SELECT DISTINCT ma_doi FROM inserted)
+              AND tv.vai_tro_noi_bo = ''doi_truong''
               AND tv.trang_thai_duyet = ''da_duyet''
               AND tv.trang_thai_hop_dong = ''dang_hieu_luc''
-            GROUP BY tv.ma_nhom
+            GROUP BY tv.ma_doi
             HAVING COUNT(*) > 1
         )
         BEGIN
@@ -386,14 +368,12 @@ BEGIN
     CREATE TABLE BAI_DANG_TUYEN_DUNG (
         ma_bai_dang INT           IDENTITY PRIMARY KEY,
         ma_doi      INT           NOT NULL,
-        ma_nhom     INT           NOT NULL,
         ma_vi_tri   INT           NOT NULL,
         noi_dung    NVARCHAR(500) NOT NULL,
         trang_thai  NVARCHAR(20)  NOT NULL CONSTRAINT DF_BD_TRANGTHAI DEFAULT 'dang_mo',
         ngay_tao    DATETIME      NOT NULL CONSTRAINT DF_BD_NGAYTAO   DEFAULT GETDATE(),
 
         CONSTRAINT FK_BD_DOI    FOREIGN KEY (ma_doi)    REFERENCES DOI(ma_doi),
-        CONSTRAINT FK_BD_NHOM   FOREIGN KEY (ma_nhom)   REFERENCES NHOM_DOI(ma_nhom),
         CONSTRAINT FK_BD_VITRI  FOREIGN KEY (ma_vi_tri) REFERENCES DANH_MUC_VI_TRI(ma_vi_tri),
         CONSTRAINT CHK_BD_TRANGTHAI CHECK (trang_thai IN ('dang_mo','tam_dong','da_dong'))
     );
@@ -428,7 +408,6 @@ BEGIN
     CREATE TABLE LOI_MOI_GIA_NHAP (
         ma_loi_moi        INT          IDENTITY PRIMARY KEY,
         ma_doi            INT          NOT NULL,
-        ma_nhom           INT          NULL,
         ma_nguoi_duoc_moi INT          NOT NULL,
         ma_nguoi_gui      INT          NULL,
         ma_vi_tri         INT          NULL,
@@ -437,11 +416,10 @@ BEGIN
         ngay_tao          DATETIME     NOT NULL CONSTRAINT DF_LM_NGAYTAO   DEFAULT GETDATE(),
 
         CONSTRAINT FK_LM_DOI       FOREIGN KEY (ma_doi)            REFERENCES DOI(ma_doi),
-        CONSTRAINT FK_LM_NHOM      FOREIGN KEY (ma_nhom)           REFERENCES NHOM_DOI(ma_nhom),
         CONSTRAINT FK_LM_NGUOINHAN FOREIGN KEY (ma_nguoi_duoc_moi) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_LM_NGUOIGUI  FOREIGN KEY (ma_nguoi_gui)     REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_LM_VITRI     FOREIGN KEY (ma_vi_tri)        REFERENCES DANH_MUC_VI_TRI(ma_vi_tri),
-        CONSTRAINT UQ_LM_UNIQUE    UNIQUE (ma_doi, ma_nhom, ma_nguoi_duoc_moi),
+        CONSTRAINT UQ_LM_UNIQUE    UNIQUE (ma_doi, ma_nguoi_duoc_moi),
         CONSTRAINT CHK_LM_TRANGTHAI CHECK (trang_thai IN ('cho_phan_hoi','chap_nhan','tu_choi','da_het_han'))
     );
 END
@@ -455,7 +433,6 @@ BEGIN
     CREATE TABLE YEU_CAU_MOI_THANH_VIEN_DOI (
         ma_yeu_cau        INT          IDENTITY PRIMARY KEY,
         ma_doi            INT          NOT NULL,
-        ma_nhom           INT          NOT NULL,
         ma_nguoi_duoc_moi INT          NOT NULL,
         ma_nguoi_gui      INT          NOT NULL,
         ma_vi_tri         INT          NULL,
@@ -466,7 +443,6 @@ BEGIN
         ma_nguoi_duyet    INT          NULL,
 
         CONSTRAINT FK_YCMTV_DOI        FOREIGN KEY (ma_doi)            REFERENCES DOI(ma_doi),
-        CONSTRAINT FK_YCMTV_NHOM       FOREIGN KEY (ma_nhom)           REFERENCES NHOM_DOI(ma_nhom),
         CONSTRAINT FK_YCMTV_NGUOINHAN  FOREIGN KEY (ma_nguoi_duoc_moi) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_YCMTV_NGUOIGUI   FOREIGN KEY (ma_nguoi_gui)      REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_YCMTV_VITRI      FOREIGN KEY (ma_vi_tri)         REFERENCES DANH_MUC_VI_TRI(ma_vi_tri),
@@ -485,14 +461,12 @@ BEGIN
         ma_don_xin   INT          IDENTITY PRIMARY KEY,
         ma_nguoi_dung INT          NOT NULL,
         ma_doi       INT          NOT NULL,
-        ma_nhom      INT          NULL,
         ma_ho_so     INT          NULL,
         trang_thai   NVARCHAR(20) NOT NULL CONSTRAINT DF_XG_TRANGTHAI DEFAULT 'cho_duyet',
         ngay_tao     DATETIME     NOT NULL CONSTRAINT DF_XG_NGAYTAO   DEFAULT GETDATE(),
 
         CONSTRAINT FK_XG_ND    FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_XG_DOI   FOREIGN KEY (ma_doi)        REFERENCES DOI(ma_doi),
-        CONSTRAINT FK_XG_NHOM  FOREIGN KEY (ma_nhom)       REFERENCES NHOM_DOI(ma_nhom),
         CONSTRAINT FK_XG_HOSO  FOREIGN KEY (ma_ho_so)     REFERENCES HO_SO_IN_GAME(ma_ho_so),
         CONSTRAINT UQ_XINGIANHAP UNIQUE (ma_nguoi_dung, ma_doi),
         CONSTRAINT CHK_XG_TRANGTHAI CHECK (trang_thai IN ('cho_duyet','chap_nhan','tu_choi'))
@@ -501,32 +475,7 @@ END
 GO
 
 -- ---------------------------------------------------------------
--- 4.5  YEU_CAU_THAM_GIA_NHOM  (Squad join request with captain approval)
--- ---------------------------------------------------------------
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'YEU_CAU_THAM_GIA_NHOM')
-BEGIN
-    CREATE TABLE YEU_CAU_THAM_GIA_NHOM (
-        ma_yeu_cau      INT          IDENTITY PRIMARY KEY,
-        ma_nguoi_dung   INT          NOT NULL,
-        ma_nhom         INT          NOT NULL,
-        ma_ho_so        INT          NOT NULL,    -- Required game profile for the squad's game
-        trang_thai      NVARCHAR(20) NOT NULL CONSTRAINT DF_YCTN_TRANGTHAI DEFAULT 'cho_duyet',
-        ngay_tao        DATETIME     NOT NULL CONSTRAINT DF_YCTN_NGAYTAO   DEFAULT GETDATE(),
-        ngay_duyet      DATETIME     NULL,
-        ma_nguoi_duyet  INT          NULL,       -- Squad captain who approved/rejected
-
-        CONSTRAINT FK_YCTN_ND       FOREIGN KEY (ma_nguoi_dung)  REFERENCES NGUOI_DUNG(ma_nguoi_dung),
-        CONSTRAINT FK_YCTN_NHOM     FOREIGN KEY (ma_nhom)        REFERENCES NHOM_DOI(ma_nhom),
-        CONSTRAINT FK_YCTN_HOSO     FOREIGN KEY (ma_ho_so)       REFERENCES HO_SO_IN_GAME(ma_ho_so),
-        CONSTRAINT FK_YCTN_NGUOIDUYET FOREIGN KEY (ma_nguoi_duyet) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
-        CONSTRAINT UQ_YCTN_UNIQUE  UNIQUE (ma_nhom, ma_nguoi_dung),
-        CONSTRAINT CHK_YCTN_TRANGTHAI CHECK (trang_thai IN ('cho_duyet','chap_nhan','tu_choi'))
-    );
-END
-GO
-
--- ---------------------------------------------------------------
--- 4.6  YEU_CAU_XAC_NHAN_LOI_MOI  (Invite confirmation request)
+-- 4.5  YEU_CAU_XAC_NHAN_LOI_MOI  (Invite confirmation request)
 -- ---------------------------------------------------------------
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'YEU_CAU_XAC_NHAN_LOI_MOI')
 BEGIN
@@ -534,7 +483,6 @@ BEGIN
         ma_yeu_cau         INT          IDENTITY PRIMARY KEY,
         ma_nguoi_gui       INT          NOT NULL,
         ma_doi             INT          NOT NULL,
-        ma_nhom            INT          NULL,
         ma_nguoi_nhan      INT          NOT NULL,
         trang_thai         NVARCHAR(50) NOT NULL CONSTRAINT DF_YCXNLM_TRANGTHAI DEFAULT 'cho_xac_nhan',
         ngay_tao           DATETIME     NOT NULL CONSTRAINT DF_YCXNLM_NGAYTAO DEFAULT GETDATE(),
@@ -543,7 +491,6 @@ BEGIN
 
         CONSTRAINT FK_YCXNLM_NGUOI_GUI      FOREIGN KEY (ma_nguoi_gui)      REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_YCXNLM_DOI            FOREIGN KEY (ma_doi)            REFERENCES DOI(ma_doi),
-        CONSTRAINT FK_YCXNLM_NHOM           FOREIGN KEY (ma_nhom)           REFERENCES NHOM_DOI(ma_nhom),
         CONSTRAINT FK_YCXNLM_NGUOI_NHAN     FOREIGN KEY (ma_nguoi_nhan)     REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_YCXNLM_NGUOI_XAC_NHAN FOREIGN KEY (ma_nguoi_xac_nhan) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT CHK_YCXNLM_TRANGTHAI CHECK (trang_thai IN ('cho_xac_nhan', 'da_xac_nhan', 'tu_choi'))
@@ -701,21 +648,21 @@ END
 GO
 
 -- ---------------------------------------------------------------
--- 5.4  THAM_GIA_GIAI  (Squad registration to a tournament)
+-- 5.4  THAM_GIA_GIAI  (Team registration to a tournament)
 -- ---------------------------------------------------------------
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'THAM_GIA_GIAI')
 BEGIN
     CREATE TABLE THAM_GIA_GIAI (
         ma_tham_gia        INT          IDENTITY PRIMARY KEY,
         ma_giai_dau        INT          NOT NULL,
-        ma_nhom            INT          NOT NULL,
+        ma_doi             INT          NOT NULL,
         trang_thai_duyet   NVARCHAR(20) NOT NULL CONSTRAINT DF_TGG_DUYET    DEFAULT 'cho_duyet',
         trang_thai_tham_gia NVARCHAR(20) NOT NULL CONSTRAINT DF_TGG_THAMGIA DEFAULT 'dang_thi_dau',
         hat_giong          INT          NULL,
 
         CONSTRAINT FK_TGG_GD     FOREIGN KEY (ma_giai_dau) REFERENCES GIAI_DAU(ma_giai_dau),
-        CONSTRAINT FK_TGG_NHOM   FOREIGN KEY (ma_nhom)     REFERENCES NHOM_DOI(ma_nhom),
-        CONSTRAINT UQ_TGG_GD_NHOM UNIQUE (ma_giai_dau, ma_nhom),
+        CONSTRAINT FK_TGG_DOI    FOREIGN KEY (ma_doi)      REFERENCES DOI(ma_doi),
+        CONSTRAINT UQ_TGG_GD_DOI UNIQUE (ma_giai_dau, ma_doi),
         CONSTRAINT CHK_TGG_DUYET   CHECK (trang_thai_duyet    IN ('cho_duyet','da_duyet','bi_tu_choi')),
         CONSTRAINT CHK_TGG_THAMGIA CHECK (trang_thai_tham_gia IN ('dang_thi_dau','di_tiep','bi_loai'))
     );
@@ -848,7 +795,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CHI_TIET_TRAN_DAU')
 BEGIN
     CREATE TABLE CHI_TIET_TRAN_DAU (
         ma_tran   INT          NOT NULL,
-        ma_nhom   INT          NOT NULL,
+        ma_doi    INT          NOT NULL,
         diem_so   FLOAT        NOT NULL CONSTRAINT DF_CTTD_DIEM DEFAULT 0,
         thu_hang  INT          NULL,     -- Battle Royale placement
         ket_qua   NVARCHAR(10) NULL,     -- 'thang','thua','hoa' (MOBA/FPS)
@@ -856,9 +803,9 @@ BEGIN
         so_kill   INT          NOT NULL CONSTRAINT DF_CTTD_KILL DEFAULT 0,
         url_anh_bang_chung NVARCHAR(500) NULL,
 
-        CONSTRAINT PK_CTTD     PRIMARY KEY (ma_tran, ma_nhom),
+        CONSTRAINT PK_CTTD     PRIMARY KEY (ma_tran, ma_doi),
         CONSTRAINT FK_CTTD_TD  FOREIGN KEY (ma_tran) REFERENCES TRAN_DAU(ma_tran),
-        CONSTRAINT FK_CTTD_NHOM FOREIGN KEY (ma_nhom) REFERENCES NHOM_DOI(ma_nhom),
+        CONSTRAINT FK_CTTD_DOI FOREIGN KEY (ma_doi) REFERENCES DOI(ma_doi),
         CONSTRAINT CHK_CTTD_KETQUA CHECK (ket_qua IS NULL OR ket_qua IN ('thang','thua','hoa'))
     );
 END
@@ -926,7 +873,7 @@ BEGIN
     CREATE TABLE KHIEU_NAI_KET_QUA (
         ma_khieu_nai   INT           IDENTITY PRIMARY KEY,
         ma_tran        INT           NOT NULL,
-        ma_nhom        INT           NOT NULL,
+        ma_doi         INT           NOT NULL,
         ma_nguoi_gui   INT           NOT NULL,
         noi_dung       NVARCHAR(MAX) NOT NULL,
         trang_thai     NVARCHAR(20)  NOT NULL CONSTRAINT DF_KN_TRANGTHAI DEFAULT 'cho_xu_ly',
@@ -936,7 +883,7 @@ BEGIN
         thoi_gian_xu_ly DATETIME     NULL,
 
         CONSTRAINT FK_KN_TD          FOREIGN KEY (ma_tran)        REFERENCES TRAN_DAU(ma_tran),
-        CONSTRAINT FK_KN_NHOM        FOREIGN KEY (ma_nhom)        REFERENCES NHOM_DOI(ma_nhom),
+        CONSTRAINT FK_KN_DOI         FOREIGN KEY (ma_doi)         REFERENCES DOI(ma_doi),
         CONSTRAINT FK_KN_NGUOIGUI    FOREIGN KEY (ma_nguoi_gui)   REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT FK_KN_ADMIN       FOREIGN KEY (ma_admin_xu_ly) REFERENCES NGUOI_DUNG(ma_nguoi_dung),
         CONSTRAINT CHK_KN_TRANGTHAI  CHECK (trang_thai IN ('cho_xu_ly','da_xu_ly','tu_choi'))
@@ -948,7 +895,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_KN_PENDING_TRAN_NHOM' AND object_id = OBJECT_ID('KHIEU_NAI_KET_QUA'))
 BEGIN
     CREATE UNIQUE INDEX UX_KN_PENDING_TRAN_NHOM
-    ON KHIEU_NAI_KET_QUA(ma_tran, ma_nhom)
+    ON KHIEU_NAI_KET_QUA(ma_tran, ma_doi)
     WHERE trang_thai = 'cho_xu_ly';
 END
 GO
@@ -1181,27 +1128,16 @@ BEGIN
 END
 GO
 
-IF EXISTS (
-    SELECT 1
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_NAME = 'NHOM_DOI'
-      AND COLUMN_NAME = 'ma_tro_choi'
-      AND IS_NULLABLE = 'NO'
-)
-BEGIN
-    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_NHOM_TC' AND parent_object_id = OBJECT_ID('dbo.NHOM_DOI'))
-    BEGIN
-        ALTER TABLE dbo.NHOM_DOI DROP CONSTRAINT FK_NHOM_TC;
-    END
-
-    ALTER TABLE dbo.NHOM_DOI ALTER COLUMN ma_tro_choi INT NULL;
-    ALTER TABLE dbo.NHOM_DOI ADD CONSTRAINT FK_NHOM_TC FOREIGN KEY (ma_tro_choi) REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi);
-END
-GO
-
 IF COL_LENGTH('dbo.DOI', 'ten_viet_tat') IS NULL
 BEGIN
     ALTER TABLE dbo.DOI ADD ten_viet_tat NVARCHAR(20) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.DOI', 'ma_tro_choi') IS NULL
+BEGIN
+    ALTER TABLE dbo.DOI ADD ma_tro_choi INT NULL;
+    ALTER TABLE dbo.DOI ADD CONSTRAINT FK_DOI_TROCHOI FOREIGN KEY (ma_tro_choi) REFERENCES DANH_MUC_TRO_CHOI(ma_tro_choi);
 END
 GO
 
@@ -1298,7 +1234,7 @@ BEGIN
         ma_bxh             INT   IDENTITY PRIMARY KEY,
         ma_giai_dau        INT   NOT NULL,
         ma_giai_doan       INT   NULL,
-        ma_nhom            INT   NOT NULL,
+        ma_doi             INT   NOT NULL,
         so_tran_da_dau     INT   NOT NULL CONSTRAINT DF_BXH_SOTRAN   DEFAULT 0,
         -- MOBA / FPS
         so_tran_thang      INT   NOT NULL CONSTRAINT DF_BXH_THANG    DEFAULT 0,
@@ -1315,9 +1251,9 @@ BEGIN
 
         CONSTRAINT FK_BXH_GD    FOREIGN KEY (ma_giai_dau)  REFERENCES GIAI_DAU(ma_giai_dau),
         CONSTRAINT FK_BXH_GDO   FOREIGN KEY (ma_giai_doan) REFERENCES GIAI_DOAN(ma_giai_doan),
-        CONSTRAINT FK_BXH_NHOM  FOREIGN KEY (ma_nhom)      REFERENCES NHOM_DOI(ma_nhom),
-        -- One row per squad per stage
-        CONSTRAINT UQ_BXH_GIAIDOAN_NHOM UNIQUE (ma_giai_doan, ma_nhom)
+        CONSTRAINT FK_BXH_DOI   FOREIGN KEY (ma_doi)       REFERENCES DOI(ma_doi),
+        -- One row per team per stage
+        CONSTRAINT UQ_BXH_GIAIDOAN_DOI UNIQUE (ma_giai_doan, ma_doi)
     );
 END
 GO
@@ -1445,11 +1381,11 @@ BEGIN
         INCLUDE (ten_giai_dau, ma_tro_choi);
 END
 
--- Fast lookup: squad members by squad
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TV_NHOM_TRANGTHAI' AND object_id = OBJECT_ID('THANH_VIEN_DOI'))
+-- Fast lookup: team members by team
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TV_DOI_TRANGTHAI' AND object_id = OBJECT_ID('THANH_VIEN_DOI'))
 BEGIN
-    CREATE INDEX IX_TV_NHOM_TRANGTHAI
-        ON THANH_VIEN_DOI(ma_nhom, trang_thai_duyet)
+    CREATE INDEX IX_TV_DOI_TRANGTHAI
+        ON THANH_VIEN_DOI(ma_doi, trang_thai_duyet)
         INCLUDE (ma_nguoi_dung, vai_tro_noi_bo);
 END
 

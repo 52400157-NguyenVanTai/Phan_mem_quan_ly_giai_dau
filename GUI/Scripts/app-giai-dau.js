@@ -430,9 +430,13 @@
         });
         gamesLoaded = true;
       }
+    } else {
+      console.error("[Tournament] Games load failed:", result);
     }
   }
-  loadGamesDropdown();
+  loadGamesDropdown().catch(function (err) {
+    console.error("[Tournament] Games load failed:", err);
+  });
 
   // ---- CREATE TOURNAMENT FORM ----
   var createForm = document.getElementById("createTournamentForm");
@@ -525,27 +529,45 @@
   async function loadMyTournaments() {
     var list = document.getElementById("myTournamentList");
     var empty = document.getElementById("myTournamentEmpty");
-    list.innerHTML = '<p class="text-muted">Đang tải...</p>';
-    var result = await getApi("/GiaiDauApi/Mine");
-    var data = (result.data || result.Data || []);
-    if (!Array.isArray(data)) data = [];
-    if (data.length === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
-    empty.style.display = "none";
-    list.innerHTML = data.map(renderTournamentCard).join("");
-    attachCardEvents(list);
+    try {
+      list.innerHTML = '<p class="text-muted">Đang tải...</p>';
+      var result = await getApi("/GiaiDauApi/Mine");
+      if (!(result.success || result.Success)) {
+        renderLoadError(list, empty, apiMessage(result, "Không thể tải giải đấu của tôi."));
+        return;
+      }
+      var data = (result.data || result.Data || []);
+      if (!Array.isArray(data)) data = [];
+      if (data.length === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      list.innerHTML = data.map(renderTournamentCard).join("");
+      attachCardEvents(list);
+    } catch (err) {
+      console.error("[Tournament] Mine load failed:", err);
+      renderLoadError(list, empty, err.message || "Không thể tải giải đấu của tôi.");
+    }
   }
 
   async function loadPublicTournaments() {
     var list = document.getElementById("publicTournamentList");
     var empty = document.getElementById("publicTournamentEmpty");
-    list.innerHTML = '<p class="text-muted">Đang tải...</p>';
-    var result = await getApi("/GiaiDauApi/All");
-    var data = (result.data || result.Data || []);
-    if (!Array.isArray(data)) data = [];
-    if (data.length === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
-    empty.style.display = "none";
-    list.innerHTML = data.map(renderTournamentCard).join("");
-    attachCardEvents(list);
+    try {
+      list.innerHTML = '<p class="text-muted">Đang tải...</p>';
+      var result = await getApi("/GiaiDauApi/All");
+      if (!(result.success || result.Success)) {
+        renderLoadError(list, empty, apiMessage(result, "Không thể tải danh sách giải đấu."));
+        return;
+      }
+      var data = (result.data || result.Data || []);
+      if (!Array.isArray(data)) data = [];
+      if (data.length === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      list.innerHTML = data.map(renderTournamentCard).join("");
+      attachCardEvents(list);
+    } catch (err) {
+      console.error("[Tournament] Public load failed:", err);
+      renderLoadError(list, empty, err.message || "Không thể tải danh sách giải đấu.");
+    }
   }
 
   async function loadPendingTournaments() {
@@ -553,15 +575,26 @@
     var empty = document.getElementById("pendingTournamentEmpty");
     var badge = document.getElementById("pendingCount");
     if (!list) return;
-    list.innerHTML = '<p class="text-muted">Đang tải...</p>';
-    var result = await getApi("/GiaiDauApi/PendingApproval");
-    var data = (result.data || result.Data || []);
-    if (!Array.isArray(data)) data = [];
-    if (badge) badge.textContent = data.length > 0 ? data.length : "";
-    if (data.length === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
-    empty.style.display = "none";
-    list.innerHTML = data.map(renderTournamentCard).join("");
-    attachCardEvents(list);
+    try {
+      list.innerHTML = '<p class="text-muted">Đang tải...</p>';
+      var result = await getApi("/GiaiDauApi/PendingApproval");
+      if (!(result.success || result.Success)) {
+        if (badge) badge.textContent = "";
+        renderLoadError(list, empty, apiMessage(result, "Không thể tải danh sách chờ duyệt."));
+        return;
+      }
+      var data = (result.data || result.Data || []);
+      if (!Array.isArray(data)) data = [];
+      if (badge) badge.textContent = data.length > 0 ? data.length : "";
+      if (data.length === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      list.innerHTML = data.map(renderTournamentCard).join("");
+      attachCardEvents(list);
+    } catch (err) {
+      console.error("[Tournament] Pending load failed:", err);
+      if (badge) badge.textContent = "";
+      renderLoadError(list, empty, err.message || "Không thể tải danh sách chờ duyệt.");
+    }
   }
 
   // ---- RENDER CARD ----
@@ -903,6 +936,15 @@
 
   // ---- HELPERS ----
   function esc(v) { var d = document.createElement("div"); d.textContent = v == null ? "" : String(v); return d.innerHTML; }
+
+  function apiMessage(result, fallback) {
+    return (result && (result.message || result.Message)) || fallback || "Không thể tải dữ liệu.";
+  }
+
+  function renderLoadError(list, empty, message) {
+    if (empty) empty.style.display = "none";
+    if (list) list.innerHTML = '<p class="text-danger">' + esc(message) + '</p>';
+  }
 
   // ---- MỜI & ĐĂNG KÝ ----
   window.openRegisterTeamModal = function(maGiaiDau) {
