@@ -298,9 +298,11 @@ namespace DTO
         public int? ty_so_doi_1 { get; set; }
         public int? ty_so_doi_2 { get; set; }
         public int so_van { get; set; }
+        public string the_thuc_tran { get; set; }
         public List<GameResultDTO> games { get; set; }
         public List<PlayerStatsDTO> nguoi_choi { get; set; }
         public List<KetQuaDoiBRDTO> ket_qua_br { get; set; }
+        public List<BattleRoyaleGameResultDTO> br_games { get; set; }
     }
 
     public class GameResultDTO
@@ -320,6 +322,12 @@ namespace DTO
         public int so_death { get; set; }
         public int so_assist { get; set; }
         public bool is_mvp_tran { get; set; }
+    }
+
+    public class BattleRoyaleGameResultDTO
+    {
+        public int so_van { get; set; }
+        public List<KetQuaDoiBRDTO> ket_qua { get; set; }
     }
 
     // Request: Invite referee

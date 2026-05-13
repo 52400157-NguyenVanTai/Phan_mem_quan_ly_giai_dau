@@ -277,3 +277,13 @@ C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\obj\Debug\GUI.cspro
 C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\obj\Debug\GUI.csproj.Up2Date
 C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\obj\Debug\GUI.dll
 C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\obj\Debug\GUI.pdb
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.Text.Json.dll
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.Threading.Tasks.Extensions.dll
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.IO.Pipelines.dll
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.Text.Encodings.Web.dll
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.Text.Json.xml
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.Threading.Tasks.Extensions.xml
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.IO.Pipelines.xml
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\System.Text.Encodings.Web.xml
+C:\Users\ACER\Desktop\esport\E\Phan_mem_quan_ly_giai_dau\GUI\bin\Microsoft.Bcl.AsyncInterfaces.xml

@@ -9,6 +9,7 @@
 
     const maGiaiDau = parseInt(hub.getAttribute("data-id"));
     let tournamentData = null;
+    let currentResultMatch = null;
     const pendingActions = new Set();
 
     const STATE_LABELS = {
@@ -51,7 +52,7 @@
         await loadTournamentDetail();
         setupTabs();
         setupInviteModal();
-        setupMatchSetupModal();
+        setupQuickResultModal();
     }
 
     function ensureOperationTabs() {
@@ -325,7 +326,7 @@
         if (tab === "operators") renderOperatorsTab();
         if (tab === "standings") renderStandingsTab();
         if (tab === "schedule") renderScheduleTab();
-        if (tab === "bracket") renderScheduleTab();
+        if (tab === "bracket") renderBracketTab();
         if (tab === "rules") renderRulesTab();
     }
 
@@ -443,16 +444,35 @@
 
     function renderScheduleTab() {
         const matches = uniqueMatches(tournamentData.tran_dau || []);
-        const container = document.getElementById("matchList") || document.querySelector("#pane-bracket");
+        const container = document.getElementById("matchList");
         if (!container) return;
         if (!matches.length) {
             container.innerHTML = '<div class="empty-state">Lich thi dau se hien thi khi giai dau bat dau.</div>';
             return;
         }
-        const format = tournamentData.giai_dau.the_thuc;
-        if (format === "loai_truc_tiep") { renderKnockoutBracket(container, matches); return; }
-        if (format === "thuy_si") { renderSwissRounds(container, matches); return; }
         renderMatchList(container, matches);
+    }
+
+    function renderBracketTab() {
+        const matches = uniqueMatches(tournamentData.tran_dau || []);
+        const container = document.getElementById("pane-bracket");
+        if (!container) return;
+        if (!matches.length) {
+            container.innerHTML = '<div class="empty-state">Cay dau se hien thi khi giai dau bat dau.</div>';
+            return;
+        }
+
+        const stages = groupBy(matches, m => m.ten_giai_doan || "Giai doan");
+        container.innerHTML = '<div class="bracket-stage-list">' + Object.keys(stages).map(stageName => {
+            const stageMatches = stages[stageName] || [];
+            const hasSwiss = stageMatches.some(m => String(m.nhanh_dau || "").toLowerCase() === "swiss");
+            const hasDoubleElim = stageMatches.some(m => ["winners", "losers", "grand_final"].indexOf(String(m.nhanh_dau || "").toLowerCase()) >= 0);
+            const body = hasDoubleElim
+                ? renderDoubleElimBracketHtml(stageMatches)
+                : (hasSwiss ? renderSwissRoundsHtml(stageMatches) : renderKnockoutBracketHtml(stageMatches));
+            return '<section class="bracket-stage-section"><h3 class="block-title">' + escapeHtml(stageName) + '</h3>' + body + '</section>';
+        }).join("") + '</div>';
+        bindMatchButtons(container);
     }
 
     function uniqueMatches(matches) {
@@ -468,60 +488,85 @@
     }
 
     function renderSwissRounds(container, matches) {
-        const rounds = groupBy(matches, m => m.vong_dau || "Vong chua xep");
-        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
-        container.innerHTML = '<div class="round-list">' + Object.keys(rounds).map(round =>
-            '<section class="round-section"><h3>' + escapeHtml(round) + '</h3><div class="match-list compact">' +
-            rounds[round].map(m => renderMatchCard(m, isBTC)).join("") + '</div></section>'
-        ).join("") + '</div>';
+        container.innerHTML = renderSwissRoundsHtml(matches);
         bindMatchButtons(container);
     }
 
+    function renderSwissRoundsHtml(matches) {
+        const rounds = groupBy(matches, m => m.vong_dau || "Vong chua xep");
+        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
+        return '<div class="round-list">' + Object.keys(rounds).map(round =>
+            '<section class="round-section"><h3>' + escapeHtml(round) + '</h3><div class="match-list compact">' +
+            rounds[round].map(m => renderMatchCard(m, isBTC)).join("") + '</div></section>'
+        ).join("") + '</div>';
+    }
+
     function renderKnockoutBracket(container, matches) {
+        container.innerHTML = renderKnockoutBracketHtml(matches);
+        bindMatchButtons(container);
+    }
+
+    function renderKnockoutBracketHtml(matches) {
         const roundNames = [];
         matches.forEach(m => { const name = m.vong_dau || "Vong dau"; if (roundNames.indexOf(name) < 0) roundNames.push(name); });
         const rounds = groupBy(matches, m => m.vong_dau || "Vong dau");
         const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
-        container.innerHTML = '<div class="bracket-board">' + roundNames.map(name =>
+        return '<div class="bracket-board">' + roundNames.map(name =>
             '<section class="bracket-round"><h3>' + escapeHtml(name) + '</h3><div class="bracket-stack">' +
             (rounds[name] || []).map(m => renderBracketMatch(m, isBTC)).join("") + '</div></section>'
         ).join("") + '</div>';
-        bindMatchButtons(container);
+    }
+
+    function renderDoubleElimBracketHtml(matches) {
+        const lanes = [
+            { key: "winners", title: "Nhanh thang" },
+            { key: "losers", title: "Nhanh thua" },
+            { key: "grand_final", title: "Chung ket tong" }
+        ];
+        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
+        return '<div class="double-elim-board">' + lanes.map(lane => {
+            const laneMatches = matches.filter(m => String(m.nhanh_dau || "").toLowerCase() === lane.key);
+            if (!laneMatches.length) return "";
+            return '<section class="double-elim-lane"><h3>' + lane.title + '</h3><div class="bracket-stack">' +
+                laneMatches.map(m => renderBracketMatch(m, isBTC)).join("") +
+                '</div></section>';
+        }).join("") + '</div>';
     }
 
     function renderBracketMatch(m, isBTC) {
         const teams = m.chi_tiet || [];
-        const canSetup = isBTC && (m.trang_thai === "chua_dau" || m.trang_thai === "chuan_bi");
+        const canScore = canWriteResult(m, isBTC);
         const next = m.ma_tran_tiep_theo_thang ? '<div class="bracket-next">Thang -> #' + m.ma_tran_tiep_theo_thang + '</div>' : "";
         return '<article class="bracket-match" data-match-id="' + m.ma_tran + '">' +
             '<div class="bracket-match-code">#' + m.ma_tran + '</div>' +
             '<div class="bracket-team">' + escapeHtml(teams[0] && teams[0].ten_doi || "Cho doi thang") + '</div>' +
             '<div class="bracket-team">' + escapeHtml(teams[1] && teams[1].ten_doi || "Cho doi thang") + '</div>' +
             '<div class="muted">' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div>' + next +
-            '<div class="match-actions bracket-actions">' + (canSetup ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") + '</div>' +
+            '<div class="match-actions bracket-actions">' + (canScore ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi ket qua</button>' : "") + '</div>' +
             '</article>';
     }
 
     function renderMatchCard(m, isBTC) {
         const teams = (m.chi_tiet || []).map(c => escapeHtml(c.ten_doi)).join(" vs ");
-        const canSetup = isBTC && (m.trang_thai === "chua_dau" || m.trang_thai === "chuan_bi");
-        const canStart = isBTC && m.trang_thai === "san_sang";
+        const canScore = canWriteResult(m, isBTC);
         return '<article class="match-card" data-match-id="' + m.ma_tran + '"><div>' +
             '<div class="match-title">' + escapeHtml(m.vong_dau || m.ten_giai_doan || "Tran dau") + '</div>' +
             '<div class="match-teams">' + (teams || "Dang cho doi") + '</div>' +
-            '<div class="muted">Trọng tài: ' + escapeHtml(m.ten_trong_tai || "Chưa chọn") + ' · ' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div></div>' +
+            '<div class="muted">Trong tai: ' + escapeHtml(m.ten_trong_tai || "Chua chon") + ' - ' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div></div>' +
             '<div class="match-actions">' +
-            (canSetup ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuẩn bị</button>' : "") +
-            (canStart ? '<button class="hub-btn-primary js-start-match" data-id="' + m.ma_tran + '">Bắt đầu trận</button>' : "") +
-            (m.trang_thai === "dang_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi kết quả</button>' : "") +
+            (canScore ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi ket qua</button>' : "") +
             '</div></article>';
     }
 
     function bindMatchButtons(container) {
-        container.querySelectorAll(".js-setup-match").forEach(btn => btn.onclick = () => openSetupMatchModal(parseInt(btn.dataset.id)));
-        container.querySelectorAll(".js-start-match").forEach(btn => btn.onclick = () => postMatchAction("/GiaiDauApi/StartMatch", parseInt(btn.dataset.id)));
-        container.querySelectorAll(".js-complete-match").forEach(btn => btn.onclick = () => postMatchAction("/GiaiDauApi/CompleteMatch", parseInt(btn.dataset.id)));
         container.querySelectorAll(".js-stats-match").forEach(btn => btn.onclick = () => openStatsModal(parseInt(btn.dataset.id)));
+    }
+
+    function canWriteResult(match, isBTC) {
+        const currentUserId = parseInt(hub.dataset.userId || "0", 10);
+        const isReferee = !!match.ma_trong_tai && match.ma_trong_tai === currentUserId;
+        const blocked = ["da_hoan_thanh", "huy_bo", "bye"].indexOf(match.trang_thai) >= 0;
+        return (isBTC || isReferee) && !blocked && (match.chi_tiet || []).length >= 2;
     }
 
     function groupBy(items, selector) {
@@ -612,59 +657,225 @@
             }
         };
     }
-    async function openStatsModal(maTran) {
+    function setupQuickResultModal() {
+        const modal = document.getElementById("quickResultModal");
+        if (!modal) return;
+        const close = () => { modal.style.display = "none"; currentResultMatch = null; };
+        document.getElementById("closeQuickResultModal").onclick = close;
+        document.getElementById("cancelQuickResultModal").onclick = close;
+        modal.addEventListener("click", e => { if (e.target === modal) close(); });
+        document.getElementById("quickResultSave").onclick = submitQuickResult;
+    }
+
+    function openStatsModal(maTran) {
         const match = (tournamentData.tran_dau || []).find(x => x.ma_tran === maTran);
         if (!match) return;
-        if (match.trang_thai === "da_hoan_thanh") {
-            notify("Tran dau da ket thuc.");
+        if (!canWriteResult(match, tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId || "0", 10))) {
+            notify("Ban khong co quyen hoac tran dau chua san sang de ghi ket qua.");
             return;
         }
+
+        currentResultMatch = match;
         const teams = match.chi_tiet || [];
-        if (!teams.length) {
-            notify("Tran dau chua co doi tham gia.");
+        const isBR = match.the_thuc_tran === "SinhTon";
+        document.getElementById("quickResultMatchId").value = match.ma_tran;
+        document.getElementById("quickResultTitle").textContent = "Ghi ket qua tran #" + match.ma_tran;
+        document.getElementById("quickResultMessage").style.display = "none";
+        document.getElementById("quickGameNo").closest(".form-group").style.display = "none";
+        document.getElementById("quickResultBoFields").style.display = isBR ? "none" : "block";
+        document.getElementById("quickResultBrFields").style.display = isBR ? "block" : "none";
+
+        if (isBR) {
+            configureQuickBoControls(match, false);
+            renderQuickBattleRoyaleRows(teams);
+        } else {
+            configureQuickBoControls(match, true);
+            renderQuickBoFields(teams);
+        }
+
+        document.getElementById("quickResultModal").style.display = "flex";
+    }
+
+    function configureQuickBoControls(match, visible) {
+        const wrap = document.getElementById("quickBoSettings");
+        const formatSelect = document.getElementById("quickResultFormat");
+        const gameCount = document.getElementById("quickResultGameCount");
+        if (!wrap || !formatSelect || !gameCount) return;
+        wrap.style.display = visible ? "grid" : "none";
+        if (!visible) return;
+        const format = /^BO[1357]$/i.test(match.the_thuc_tran || "") ? String(match.the_thuc_tran).toUpperCase() : "BO" + parseBoCount(match.the_thuc_tran || ("BO" + (match.so_vong || 1)));
+        formatSelect.value = ["BO1", "BO3", "BO5", "BO7"].indexOf(format) >= 0 ? format : "BO1";
+        gameCount.value = parseBoCount(formatSelect.value);
+        formatSelect.onchange = () => {
+            gameCount.value = parseBoCount(formatSelect.value);
+            renderQuickBoFields(currentResultMatch.chi_tiet || []);
+        };
+        gameCount.onchange = () => {
+            let count = Math.max(1, Math.min(7, parseInt(gameCount.value, 10) || 1));
+            if (count % 2 === 0) count += 1;
+            gameCount.value = count;
+            renderQuickBoFields(currentResultMatch.chi_tiet || []);
+        };
+    }
+
+    function renderQuickBoFields(teams) {
+        teams = teams.slice(0, 2);
+        const selectedFormat = document.getElementById("quickResultFormat") ? document.getElementById("quickResultFormat").value : currentResultMatch.the_thuc_tran;
+        const totalGames = Math.max(1, Math.min(7, parseInt(document.getElementById("quickResultGameCount").value, 10) || parseBoCount(selectedFormat || ("BO" + (currentResultMatch.so_vong || 1)))));
+        const blocks = [];
+        for (let i = 1; i <= totalGames; i++) {
+            blocks.push('<section class="result-game-card mb-3 quick-bo-game" data-game="' + i + '">' +
+                '<div class="result-game-head"><h4 class="result-game-title">Game ' + i + '</h4><span class="badge quick-game-state">Dang nhap</span></div>' +
+                '<div class="result-game-grid">' +
+                '<div class="form-group"><label>Doi thang game nay</label><select class="form-control quick-game-winner"><option value="">Chon doi thang</option>' +
+                teams.map(t => '<option value="' + t.ma_nhom + '">' + escapeHtml(t.ten_doi) + '</option>').join("") +
+                '</select></div>' +
+                '<div class="form-group"><label>' + escapeHtml(teams[0] && teams[0].ten_doi || "Doi 1") + ' kills</label><input class="form-control quick-kill-one" type="number" min="0" value="0"></div>' +
+                '<div class="form-group"><label>' + escapeHtml(teams[1] && teams[1].ten_doi || "Doi 2") + ' kills</label><input class="form-control quick-kill-two" type="number" min="0" value="0"></div>' +
+                '</div></section>');
+        }
+        document.getElementById("quickResultBoFields").innerHTML = '<div class="alert alert-info py-2">Can ' + (Math.floor(totalGames / 2) + 1) + ' game thang de ket thuc ' + escapeHtml(selectedFormat || ("BO" + totalGames)) + '.</div><div id="quickBoGames">' + blocks.join("") + '</div><div id="quickBoPreview" class="result-preview"></div>';
+        document.querySelectorAll("#quickBoGames select").forEach(el => el.onchange = updateQuickBoPreview);
+        updateQuickBoPreview();
+    }
+
+    function renderQuickBattleRoyaleRows(teams) {
+        document.getElementById("quickResultBrFields").innerHTML = '<div class="form-group"><label>So map can nhap</label><input id="soTranBRQuick" class="form-control" type="number" min="1" value="' + (currentResultMatch.so_vong || 1) + '"></div><div id="quickBrGames" style="margin-top: 16px;"></div><div id="quickBrPreview" class="table-responsive" style="margin-top: 16px;"></div>';
+        document.getElementById("soTranBRQuick").onchange = renderQuickBrGameBlocks;
+        renderQuickBrGameBlocks();
+    }
+
+    function brRankPoint(rank, teamCount) {
+        if (rank === 1) return 10;
+        if (rank === 2) return 6;
+        if (rank === 3) return 5;
+        if (rank === 4) return 4;
+        if (rank === 5) return 3;
+        return rank > 0 && rank <= teamCount ? 1 : 0;
+    }
+
+    function renderQuickBrGameBlocks() {
+        const teams = currentResultMatch.chi_tiet || [];
+        const count = Math.max(1, parseInt(document.getElementById("soTranBRQuick").value, 10) || 1);
+        const blocks = [];
+        for (let i = 1; i <= count; i++) {
+            blocks.push('<section class="request-card p-3 mb-3 quick-br-game" data-game="' + i + '"><strong>Map ' + i + '</strong><div class="table-responsive mt-3"><table class="table"><thead><tr><th>Doi</th><th>Hang</th><th>Kills</th><th>Diem</th></tr></thead><tbody>' +
+                teams.map(t => '<tr data-br-team="' + t.ma_nhom + '"><td>' + escapeHtml(t.ten_doi) + '</td><td><input class="form-control quick-br-rank" type="number" min="1" max="' + teams.length + '" value="' + (t.thu_hang || teams.length) + '"></td><td><input class="form-control quick-br-kill" type="number" min="0" value="' + (t.so_kill || 0) + '"></td><td class="quick-br-total">0</td></tr>').join("") +
+                '</tbody></table></div></section>');
+        }
+        document.getElementById("quickBrGames").innerHTML = blocks.join("");
+        document.querySelectorAll("#quickBrGames input").forEach(el => el.oninput = updateQuickBrPreview);
+        updateQuickBrPreview();
+    }
+
+    function updateQuickBoPreview() {
+        const teams = (currentResultMatch.chi_tiet || []).slice(0, 2);
+        const score = {};
+        teams.forEach(t => { score[t.ma_nhom] = 0; });
+        const target = Math.floor((parseInt(document.getElementById("quickResultGameCount").value, 10) || parseBoCount(currentResultMatch.the_thuc_tran)) / 2) + 1;
+        let finished = false;
+        document.querySelectorAll(".quick-bo-game").forEach(block => {
+            const winner = parseInt(block.querySelector(".quick-game-winner").value, 10) || 0;
+            if (!finished && winner) {
+                score[winner] = (score[winner] || 0) + 1;
+                block.querySelector(".quick-game-state").textContent = "Da tinh";
+                block.style.display = "";
+                if (score[winner] >= target) finished = true;
+            } else if (finished) {
+                block.style.display = "none";
+                block.querySelector(".quick-game-winner").value = "";
+            } else {
+                block.querySelector(".quick-game-state").textContent = "Dang nhap";
+                block.style.display = "";
+            }
+        });
+        const scoreText = (score[teams[0].ma_nhom] || 0) + "-" + (score[teams[1].ma_nhom] || 0);
+        document.getElementById("quickBoPreview").textContent = "Ty so tam tinh: " + scoreText;
+        document.getElementById("quickResultSave").textContent = "Luu ket qua (Ty so chung cuoc " + scoreText + ")";
+    }
+
+    function updateQuickBrPreview() {
+        const teams = currentResultMatch.chi_tiet || [];
+        const totals = {};
+        teams.forEach(t => { totals[t.ma_nhom] = { name: t.ten_doi, points: 0, kills: 0 }; });
+        document.querySelectorAll(".quick-br-game tr[data-br-team]").forEach(row => {
+            const id = parseInt(row.dataset.brTeam, 10);
+            const rank = parseInt(row.querySelector(".quick-br-rank").value, 10) || teams.length;
+            const kills = parseInt(row.querySelector(".quick-br-kill").value, 10) || 0;
+            const points = brRankPoint(rank, teams.length) + kills;
+            row.querySelector(".quick-br-total").textContent = points;
+            totals[id].points += points;
+            totals[id].kills += kills;
+        });
+        document.getElementById("quickBrPreview").innerHTML = '<table class="table"><thead><tr><th>Doi</th><th>Tong diem</th><th>Tong kills</th></tr></thead><tbody>' +
+            Object.keys(totals).map(id => totals[id]).sort((a, b) => b.points - a.points || b.kills - a.kills).map(t => '<tr><td>' + escapeHtml(t.name) + '</td><td>' + t.points + '</td><td>' + t.kills + '</td></tr>').join("") +
+            '</tbody></table>';
+        document.getElementById("quickResultSave").textContent = "Luu ket qua BR";
+    }
+
+    function buildQuickResultPayload() {
+        const match = currentResultMatch;
+        const teams = match.chi_tiet || [];
+        if (match.the_thuc_tran === "SinhTon") {
+            return {
+                ma_tran: match.ma_tran,
+                so_van: parseInt(document.getElementById("soTranBRQuick").value, 10) || 1,
+                br_games: Array.from(document.querySelectorAll(".quick-br-game")).map(block => ({
+                    so_van: parseInt(block.dataset.game, 10),
+                    ket_qua: Array.from(block.querySelectorAll("tr[data-br-team]")).map(row => ({
+                        ma_nhom: parseInt(row.dataset.brTeam, 10),
+                        thu_hang: parseInt(row.querySelector(".quick-br-rank").value, 10),
+                        so_kill: parseInt(row.querySelector(".quick-br-kill").value, 10) || 0
+                    }))
+                }))
+            };
+        }
+
+        return {
+            ma_tran: match.ma_tran,
+            so_van: 1,
+            the_thuc_tran: document.getElementById("quickResultFormat") ? document.getElementById("quickResultFormat").value : match.the_thuc_tran,
+            games: Array.from(document.querySelectorAll(".quick-bo-game"))
+                .filter(block => block.style.display !== "none" && (parseInt(block.querySelector(".quick-game-winner").value, 10) || 0))
+                .map(block => ({
+                so_van: parseInt(block.dataset.game, 10),
+                ma_doi_1: teams[0].ma_nhom,
+                ma_doi_2: teams[1].ma_nhom,
+                ma_doi_thang: parseInt(block.querySelector(".quick-game-winner").value, 10),
+                kill_doi_1: parseInt(block.querySelector(".quick-kill-one").value, 10) || 0,
+                kill_doi_2: parseInt(block.querySelector(".quick-kill-two").value, 10) || 0
+            }))
+        };
+    }
+
+    async function submitQuickResult() {
+        if (!currentResultMatch) return;
+        const payload = buildQuickResultPayload();
+        if (currentResultMatch.the_thuc_tran !== "SinhTon" && (!payload.games || !payload.games.length)) {
+            const message = document.getElementById("quickResultMessage");
+            message.textContent = "Vui long chon it nhat mot game thang.";
+            message.style.display = "block";
             return;
         }
-        const isBR = match.the_thuc_tran === "SinhTon";
-        const payload = isBR ? buildBattleRoyaleResultPayload(match, teams) : buildBoResultPayload(match, teams);
-        if (!payload) return;
-        if (willCompleteMatch(match, payload) && !confirm("Canh bao: Luu ket qua nay se ket thuc tran dau. Ban co chac du lieu da chinh xac?")) return;
+        if (!confirm("Luu ket qua nay? Du lieu da chinh xac?")) return;
+        const button = document.getElementById("quickResultSave");
+        const message = document.getElementById("quickResultMessage");
+        button.disabled = true;
         const result = await postApi("/GiaiDauApi/SaveMatchResults", payload);
-        notify(result.message);
-        const data = getResponseData(result);
-        if (result.success) {
-            if (data && data.match_completed) notify("Tran dau da ket thuc.");
-            await loadTournamentDetail();
+        button.disabled = false;
+        if (!result.success) {
+            message.textContent = result.message || "Khong the luu ket qua.";
+            message.style.display = "block";
+            return;
         }
-    }
-
-    function buildBoResultPayload(match, teams) {
-        if (teams.length < 2) { notify("Tran BO can 2 doi."); return null; }
-        const bo = parseBoCount(match.the_thuc_tran || "BO1");
-        const played = parseInt(prompt("Nhap so van da co ket qua", "1"), 10) || 1;
-        const games = [];
-        const teamText = teams.map(t => t.ma_nhom + ": " + t.ten_doi).join("\n");
-        for (let i = 1; i <= played; i++) {
-            const winner = parseInt(prompt("Game " + i + " - ID doi thang:\n" + teamText, teams[0].ma_nhom), 10);
-            if (!winner) return null;
-            const kill1 = parseInt(prompt("Game " + i + " - Kills " + teams[0].ten_doi, "0"), 10) || 0;
-            const kill2 = parseInt(prompt("Game " + i + " - Kills " + teams[1].ten_doi, "0"), 10) || 0;
-            games.push({ so_van: i, ma_doi_1: teams[0].ma_nhom, ma_doi_2: teams[1].ma_nhom, ma_doi_thang: winner, kill_doi_1: kill1, kill_doi_2: kill2 });
-        }
-        return { ma_tran: match.ma_tran, so_van: played, games: games };
-    }
-
-    function buildBattleRoyaleResultPayload(match, teams) {
-        const mapNo = parseInt(prompt("Nhap so map/van", "1"), 10) || 1;
-        const rows = teams.map(t => {
-            const rank = parseInt(prompt("Hang cua " + t.ten_doi, "1"), 10);
-            const kills = parseInt(prompt("Kills cua " + t.ten_doi, "0"), 10) || 0;
-            return { ma_nhom: t.ma_nhom, thu_hang: rank, so_kill: kills };
-        });
-        if (rows.some(r => !r.thu_hang)) return null;
-        return { ma_tran: match.ma_tran, so_van: mapNo, ket_qua_br: rows };
+        notify(result.message || "Da luu ket qua.");
+        document.getElementById("quickResultModal").style.display = "none";
+        currentResultMatch = null;
+        await loadTournamentDetail();
     }
 
     function parseBoCount(format) {
+
         const found = String(format || "BO1").match(/BO(\d+)/i);
         return found ? parseInt(found[1], 10) : 1;
     }

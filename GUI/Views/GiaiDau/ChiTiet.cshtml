@@ -158,37 +158,62 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="setupMatchModal" style="display:none;">
-    <div class="modal-dialog modal-sm">
+<div class="modal-overlay" id="quickResultModal" style="display:none;">
+    <div class="modal-dialog modal-xl result-modal-dialog">
         <div class="modal-header">
-            <h3>Chuẩn bị trận đấu</h3>
-            <button class="modal-close" id="closeSetupMatchModal">&times;</button>
+            <h3 id="quickResultTitle">Ghi ket qua tran dau</h3>
+            <button class="modal-close" id="closeQuickResultModal">&times;</button>
         </div>
         <div class="modal-body">
-            <input type="hidden" id="setupMatchId">
+            <input type="hidden" id="quickResultMatchId">
+            <div class="result-settings-grid" id="quickBoSettings">
+                <div class="form-group">
+                    <label>Thá»ƒ thá»©c BO</label>
+                    <select id="quickResultFormat" class="form-control">
+                        <option value="BO1">BO1</option>
+                        <option value="BO3">BO3</option>
+                        <option value="BO5">BO5</option>
+                        <option value="BO7">BO7</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sá»‘ game</label>
+                    <input type="number" id="quickResultGameCount" class="form-control" min="1" max="7" step="2" value="1">
+                </div>
+            </div>
             <div class="form-group">
-                <label>Trọng tài <span class="required">*</span></label>
-                <select id="setupMatchReferee" class="form-control"></select>
+                <label>Game / Map so</label>
+                <input id="quickGameNo" class="form-control" type="number" min="1" value="1">
             </div>
-            <div class="form-group" style="margin-top: 16px;">
-                <label>Thể thức trận <span class="required">*</span></label>
-                <select id="setupMatchFormat" class="form-control">
-                    <option value="BO1">BO1</option>
-                    <option value="BO3">BO3</option>
-                    <option value="BO5">BO5</option>
-                    <option value="BO7">BO7</option>
-                    <option value="SinhTon">Sinh tồn</option>
-                </select>
+            <div id="quickResultBoFields">
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Doi thang</label>
+                    <select id="quickWinnerTeam" class="form-control"></select>
+                </div>
+                <div class="row" style="margin-top: 16px;">
+                    <div class="col-md-6 form-group">
+                        <label id="quickTeamOneName">Doi 1</label>
+                        <input id="quickKillOne" class="form-control" type="number" min="0" value="0">
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label id="quickTeamTwoName">Doi 2</label>
+                        <input id="quickKillTwo" class="form-control" type="number" min="0" value="0">
+                    </div>
+                </div>
             </div>
-            <div class="form-group" id="setupMatchRoundsGroup" style="display:none; margin-top: 16px;">
-                <label>Số game/map</label>
-                <input type="number" id="setupMatchRounds" class="form-control" min="1" max="20" value="5">
+            <div id="quickResultBrFields" style="display:none; margin-top: 16px;">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Doi</th><th>Hang</th><th>Kills</th></tr></thead>
+                        <tbody id="quickBrRows"></tbody>
+                    </table>
+                </div>
             </div>
-            <div id="setupMatchValidation" style="color: #ef4444; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+            <div id="quickResultMessage" style="color: #ef4444; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
         </div>
         <div class="modal-footer">
-            <button class="ak-btn-pill" id="cancelSetupMatchModal">Hủy</button>
-            <button class="ak-btn-primary" id="confirmSetupMatchModal">Lưu cấu hình</button>
+            <button class="ak-btn-pill" id="cancelQuickResultModal">Huy</button>
+            <button class="ak-btn-primary" id="quickResultSave">Luu ket qua</button>
         </div>
     </div>
 </div>

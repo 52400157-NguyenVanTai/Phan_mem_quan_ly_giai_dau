@@ -15,13 +15,28 @@
 </section>
 
 <div class="modal-overlay" id="refereeResultModal" style="display:none;">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl result-modal-dialog">
         <div class="modal-header">
             <h3>Nhập kết quả trận đấu</h3>
             <button class="modal-close" id="closeRefereeResultModal">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="refereeResultMatchId">
+            <div class="result-settings-grid" id="refereeBoSettings">
+                <div class="form-group">
+                    <label>Thá»ƒ thá»©c BO</label>
+                    <select id="refereeResultFormat" class="form-control">
+                        <option value="BO1">BO1</option>
+                        <option value="BO3">BO3</option>
+                        <option value="BO5">BO5</option>
+                        <option value="BO7">BO7</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sá»‘ game</label>
+                    <input type="number" id="refereeResultGameCount" class="form-control" min="1" max="7" step="2" value="1">
+                </div>
+            </div>
             <div class="form-group">
                 <label>Đội thắng <span class="required">*</span></label>
                 <select id="refereeWinnerTeam" class="form-control"></select>
