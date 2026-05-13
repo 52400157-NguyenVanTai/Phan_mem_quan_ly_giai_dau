@@ -5,5 +5,45 @@
 <section class="empty-page-card">
     <p class="eyebrow">TRỌNG TÀI</p>
     <h1>Trung tâm trọng tài</h1>
-    <p class="text-muted">Trang này đang để trống, sẽ được bổ sung chức năng sau.</p>
+    <p class="text-muted">Quản lý các trận đã xác nhận điều hành, nhập kết quả và gửi Ban tổ chức duyệt.</p>
 </section>
+
+<section class="request-list mt-4" id="refereeMatchList">
+    <div class="empty-page-card">
+        <h3>Đang tải danh sách trận đấu...</h3>
+    </div>
+</section>
+
+<div class="modal-overlay" id="refereeResultModal" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>Nhập kết quả trận đấu</h3>
+            <button class="modal-close" id="closeRefereeResultModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="refereeResultMatchId">
+            <div class="form-group">
+                <label>Đội thắng <span class="required">*</span></label>
+                <select id="refereeWinnerTeam" class="form-control"></select>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+                <label>Tỉ số / số điểm đội 1</label>
+                <input type="number" id="refereeScoreOne" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+                <label>Tỉ số / số điểm đội 2</label>
+                <input type="number" id="refereeScoreTwo" class="form-control" min="0" value="0">
+            </div>
+            <div id="refereePlayerStats" style="margin-top:16px;"></div>
+            <div id="refereeResultMessage" style="color:#ef4444; font-size:0.85rem; margin-top:10px; display:none;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="ak-btn-pill" id="cancelRefereeResultModal">Hủy</button>
+            <button class="ak-btn-primary" id="submitRefereeResult">Gửi kết quả</button>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/app-trong-tai.js?v=@DateTime.Now.Ticks"></script>
+}

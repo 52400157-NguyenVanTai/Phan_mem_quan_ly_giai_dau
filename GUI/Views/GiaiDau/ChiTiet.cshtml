@@ -158,6 +158,41 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="setupMatchModal" style="display:none;">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-header">
+            <h3>Chuẩn bị trận đấu</h3>
+            <button class="modal-close" id="closeSetupMatchModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="setupMatchId">
+            <div class="form-group">
+                <label>Trọng tài <span class="required">*</span></label>
+                <select id="setupMatchReferee" class="form-control"></select>
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Thể thức trận <span class="required">*</span></label>
+                <select id="setupMatchFormat" class="form-control">
+                    <option value="BO1">BO1</option>
+                    <option value="BO3">BO3</option>
+                    <option value="BO5">BO5</option>
+                    <option value="BO7">BO7</option>
+                    <option value="SinhTon">Sinh tồn</option>
+                </select>
+            </div>
+            <div class="form-group" id="setupMatchRoundsGroup" style="display:none; margin-top: 16px;">
+                <label>Số game/map</label>
+                <input type="number" id="setupMatchRounds" class="form-control" min="1" max="20" value="5">
+            </div>
+            <div id="setupMatchValidation" style="color: #ef4444; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="ak-btn-pill" id="cancelSetupMatchModal">Hủy</button>
+            <button class="ak-btn-primary" id="confirmSetupMatchModal">Lưu cấu hình</button>
+        </div>
+    </div>
+</div>
+
 @section scripts {
     <script src="~/Scripts/app-giai-dau-chi-tiet.js?v=@DateTime.Now.Ticks"></script>
 }

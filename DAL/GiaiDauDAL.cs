@@ -855,7 +855,7 @@ namespace DAL
                                     while (r.Read()) teams.Add(Convert.ToInt32(r["ma_doi"]));
                             }
 
-                            foreach (var stage in stages)
+                            foreach (var stage in stages.Count > 0 ? stages.GetRange(0, 1) : stages)
                             {
                                 foreach (var team in teams)
                                 {
@@ -1058,6 +1058,87 @@ namespace DAL
             return matches;
         }
 
+        public List<TranDauDTO> LayTranDauCuaTrongTai(int maTrongTai)
+        {
+            var matches = new List<TranDauDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT td.*, gd.ten_giai_doan, nd.ten_dang_nhap AS ten_trong_tai
+                FROM TRAN_DAU td
+                LEFT JOIN GIAI_DOAN gd ON td.ma_giai_doan = gd.ma_giai_doan
+                LEFT JOIN NGUOI_DUNG nd ON td.ma_trong_tai = nd.ma_nguoi_dung
+                WHERE td.ma_trong_tai=@ref
+                  AND NOT EXISTS (
+                      SELECT 1 FROM THONG_BAO tb
+                      WHERE tb.loai_entity='tran_dau'
+                        AND tb.ma_entity=td.ma_tran
+                        AND tb.ma_nguoi_nhan=@ref
+                        AND tb.loai_thong_bao='phan_cong_trong_tai'
+                        AND tb.hanh_dong='pending'
+                  )
+                ORDER BY td.ma_giai_dau DESC, td.ma_giai_doan, td.ma_tran", conn))
+            {
+                cmd.Parameters.AddWithValue("@ref", maTrongTai);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        matches.Add(new TranDauDTO
+                        {
+                            ma_tran = Convert.ToInt32(r["ma_tran"]),
+                            ma_giai_dau = Convert.ToInt32(r["ma_giai_dau"]),
+                            ma_giai_doan = r["ma_giai_doan"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_giai_doan"]),
+                            ten_giai_doan = r["ten_giai_doan"] == DBNull.Value ? null : r["ten_giai_doan"].ToString(),
+                            ma_trong_tai = r["ma_trong_tai"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_trong_tai"]),
+                            ten_trong_tai = r["ten_trong_tai"] == DBNull.Value ? null : r["ten_trong_tai"].ToString(),
+                            vong_dau = r["vong_dau"] == DBNull.Value ? null : r["vong_dau"].ToString(),
+                            so_vong = r["so_vong"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["so_vong"]),
+                            nhanh_dau = r["nhanh_dau"] == DBNull.Value ? null : r["nhanh_dau"].ToString(),
+                            the_thuc_tran = r["the_thuc_tran"].ToString(),
+                            trang_thai = r["trang_thai"].ToString(),
+                            ma_tran_tiep_theo_thang = r["ma_tran_tiep_theo_thang"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_tran_tiep_theo_thang"]),
+                            ma_tran_tiep_theo_thua = r["ma_tran_tiep_theo_thua"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_tran_tiep_theo_thua"]),
+                            id_phong_game = r["id_phong_game"] == DBNull.Value ? null : r["id_phong_game"].ToString(),
+                            mat_khau_phong = r["mat_khau_phong"] == DBNull.Value ? null : r["mat_khau_phong"].ToString(),
+                            chi_tiet = new List<ChiTietTranDauDTO>(),
+                            nguoi_choi = new List<NguoiChoiTranDTO>()
+                        });
+                    }
+                }
+
+                foreach (var match in matches)
+                {
+                    match.chi_tiet = LayChiTietTran(conn, match.ma_tran);
+                    match.nguoi_choi = LayNguoiChoiTran(conn, match.ma_tran);
+                }
+            }
+            return matches;
+        }
+
+        public bool LaTrongTaiCuaTranDaXacNhan(int maTran, int maTrongTai)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT COUNT(1)
+                FROM TRAN_DAU td
+                WHERE td.ma_tran=@tran AND td.ma_trong_tai=@ref
+                  AND NOT EXISTS (
+                      SELECT 1 FROM THONG_BAO tb
+                      WHERE tb.loai_entity='tran_dau'
+                        AND tb.ma_entity=td.ma_tran
+                        AND tb.ma_nguoi_nhan=@ref
+                        AND tb.loai_thong_bao='phan_cong_trong_tai'
+                        AND tb.hanh_dong='pending'
+                  )", conn))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                cmd.Parameters.AddWithValue("@ref", maTrongTai);
+                conn.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
         private List<ChiTietTranDauDTO> LayChiTietTran(SqlConnection conn, int maTran)
         {
             var items = new List<ChiTietTranDauDTO>();
@@ -1139,11 +1220,30 @@ namespace DAL
             var items = new List<BangXepHangDTO>();
             using (var conn = DbConnectionFactory.CreateConnection())
             using (var cmd = new SqlCommand(@"
-                SELECT bxh.*, d.ten_doi, d.logo_url
-                FROM BANG_XEP_HANG bxh
-                INNER JOIN DOI d ON bxh.ma_doi = d.ma_doi
-                WHERE bxh.ma_giai_dau=@gd
-                ORDER BY bxh.diem_tong_ket DESC, bxh.so_tran_thang DESC, bxh.hieu_so_phu DESC, bxh.thu_hang_hien_tai", conn))
+                WITH ranked AS (
+                    SELECT bxh.*, d.ten_doi, d.logo_url,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY bxh.ma_doi
+                               ORDER BY
+                                   CASE WHEN bxh.ma_giai_doan = first_stage.ma_giai_doan THEN 0 ELSE 1 END,
+                                   ISNULL(gdo.thu_tu, 2147483647),
+                                   bxh.ma_bxh
+                           ) AS row_no
+                    FROM BANG_XEP_HANG bxh
+                    INNER JOIN DOI d ON bxh.ma_doi = d.ma_doi
+                    LEFT JOIN GIAI_DOAN gdo ON bxh.ma_giai_doan = gdo.ma_giai_doan
+                    OUTER APPLY (
+                        SELECT TOP 1 ma_giai_doan
+                        FROM GIAI_DOAN
+                        WHERE ma_giai_dau = @gd
+                        ORDER BY thu_tu
+                    ) first_stage
+                    WHERE bxh.ma_giai_dau=@gd
+                )
+                SELECT *
+                FROM ranked
+                WHERE row_no = 1
+                ORDER BY diem_tong_ket DESC, so_tran_thang DESC, hieu_so_phu DESC, thu_hang_hien_tai", conn))
             {
                 cmd.Parameters.AddWithValue("@gd", maGiaiDau);
                 conn.Open();
@@ -1282,13 +1382,34 @@ namespace DAL
                     }
 
                     using (var cmd = new SqlCommand(@"
+                        DELETE FROM THONG_BAO
+                        WHERE loai_entity='tran_dau' AND ma_entity=@tran AND hanh_dong='pending'
+                          AND loai_thong_bao IN ('phan_cong_trong_tai', 'yeu_cau_lineup')", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    using (var cmd = new SqlCommand(@"
                         INSERT INTO THONG_BAO(ma_nguoi_nhan, tieu_de, noi_dung, loai_thong_bao, loai_entity, ma_entity, hanh_dong)
                         SELECT @ref, N'Bạn được phân công trọng tài', N'Vui lòng xác nhận và chuẩn bị điều hành trận đấu.', 'phan_cong_trong_tai', 'tran_dau', @tran, 'pending'
-                        UNION ALL
-                        SELECT DISTINCT d.ma_doi_truong, N'Yêu cầu chốt đội hình', N'Vui lòng gửi đội hình xuất phát cho trận đấu.', 'yeu_cau_lineup', 'tran_dau', @tran, 'pending'
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM THONG_BAO
+                            WHERE ma_nguoi_nhan=@ref AND loai_thong_bao='phan_cong_trong_tai'
+                              AND loai_entity='tran_dau' AND ma_entity=@tran AND hanh_dong='pending'
+                        );
+
+                        INSERT INTO THONG_BAO(ma_nguoi_nhan, tieu_de, noi_dung, loai_thong_bao, loai_entity, ma_entity, ma_doi, hanh_dong)
+                        SELECT DISTINCT d.ma_doi_truong, N'Yêu cầu chốt đội hình', N'Vui lòng gửi đội hình xuất phát cho trận đấu.', 'yeu_cau_lineup', 'tran_dau', @tran, c.ma_doi, 'pending'
                         FROM CHI_TIET_TRAN_DAU c
                         INNER JOIN DOI d ON c.ma_doi=d.ma_doi
-                        WHERE c.ma_tran=@tran AND d.ma_doi_truong IS NOT NULL", conn, tx))
+                        WHERE c.ma_tran=@tran AND d.ma_doi_truong IS NOT NULL
+                          AND NOT EXISTS (
+                              SELECT 1 FROM THONG_BAO tb
+                              WHERE tb.ma_nguoi_nhan=d.ma_doi_truong AND tb.loai_thong_bao='yeu_cau_lineup'
+                                AND tb.loai_entity='tran_dau' AND tb.ma_entity=@tran AND tb.ma_doi=c.ma_doi
+                                AND tb.hanh_dong='pending'
+                          )", conn, tx))
                     {
                         cmd.Parameters.AddWithValue("@tran", req.ma_tran);
                         cmd.Parameters.AddWithValue("@ref", req.ma_trong_tai);
@@ -1433,6 +1554,12 @@ namespace DAL
                     }
 
                     RebuildBangXepHang(conn, tx, req.ma_tran);
+
+                    using (var cmd = new SqlCommand("UPDATE TRAN_DAU SET trang_thai='cho_ket_qua' WHERE ma_tran=@tran AND trang_thai IN ('dang_dau','san_sang','chua_dau')", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.ExecuteNonQuery();
+                    }
 
                     using (var cmd = new SqlCommand(@"
                         IF EXISTS (SELECT 1 FROM KET_QUA_TRAN WHERE ma_tran=@tran)

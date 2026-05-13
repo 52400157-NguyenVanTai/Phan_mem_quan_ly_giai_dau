@@ -101,12 +101,17 @@ namespace DAL
 
                 // 3. User & Chủ tịch: Lấy từ THONG_BAO (lời mời trọng tài, BTC, tham gia giải)
                 string sqlThongBao = @"
-                    SELECT tb.ma_thong_bao, tb.tieu_de, tb.noi_dung, tb.loai_thong_bao, tb.ma_entity, tb.ngay_tao,
-                           g.ten_giai_dau, g.ma_giai_dau
+                    SELECT tb.ma_thong_bao, tb.tieu_de, tb.noi_dung, tb.loai_thong_bao, tb.ma_entity, tb.ma_doi, tb.ngay_tao,
+                           COALESCE(g.ten_giai_dau, gt.ten_giai_dau) AS ten_giai_dau,
+                           COALESCE(g.ma_giai_dau, gt.ma_giai_dau) AS ma_giai_dau,
+                           d.ten_doi
                     FROM THONG_BAO tb
                     LEFT JOIN GIAI_DAU g ON tb.ma_entity = g.ma_giai_dau AND tb.loai_entity = 'giai_dau'
+                    LEFT JOIN TRAN_DAU td ON tb.ma_entity = td.ma_tran AND tb.loai_entity = 'tran_dau'
+                    LEFT JOIN GIAI_DAU gt ON td.ma_giai_dau = gt.ma_giai_dau
+                    LEFT JOIN DOI d ON tb.ma_doi = d.ma_doi
                     WHERE tb.ma_nguoi_nhan = @UserId AND tb.hanh_dong = 'pending'
-                      AND tb.loai_thong_bao IN ('loi_moi_tham_gia_giai', 'loi_moi_trong_tai', 'loi_moi_btc')";
+                      AND tb.loai_thong_bao IN ('loi_moi_tham_gia_giai', 'loi_moi_trong_tai', 'loi_moi_btc', 'phan_cong_trong_tai', 'yeu_cau_lineup')";
                 using (var cmd = new SqlCommand(sqlThongBao, conn))
                 {
                     cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
@@ -122,7 +127,9 @@ namespace DAL
                                 noi_dung = r["noi_dung"].ToString(),
                                 ngay_tao = Convert.ToDateTime(r["ngay_tao"]),
                                 ma_giai_dau = r["ma_giai_dau"] != DBNull.Value ? (int?)r["ma_giai_dau"] : null,
-                                ten_giai_dau = r["ten_giai_dau"]?.ToString()
+                                ten_giai_dau = r["ten_giai_dau"]?.ToString(),
+                                ma_doi = r["ma_doi"] != DBNull.Value ? (int?)r["ma_doi"] : null,
+                                ten_doi = r["ten_doi"]?.ToString()
                             };
                             ds.Add(dto);
                         }
@@ -369,6 +376,16 @@ namespace DAL
                                 using (var cmd = new SqlCommand("DELETE FROM THONG_BAO WHERE ma_thong_bao = @MaTb", conn, tx))
                                 {
                                     cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
+                                    cmd.ExecuteNonQuery();
+                                }
+                                break;
+
+                            case "phan_cong_trong_tai":
+                            case "yeu_cau_lineup":
+                                using (var cmd = new SqlCommand("DELETE FROM THONG_BAO WHERE ma_thong_bao = @MaTb AND ma_nguoi_nhan = @UserId", conn, tx))
+                                {
+                                    cmd.Parameters.AddWithValue("@MaTb", req.ma_yeu_cau);
+                                    cmd.Parameters.AddWithValue("@UserId", maNguoiDung);
                                     cmd.ExecuteNonQuery();
                                 }
                                 break;

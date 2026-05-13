@@ -50,6 +50,7 @@
         await loadTournamentDetail();
         setupTabs();
         setupInviteModal();
+        setupMatchSetupModal();
     }
 
     function ensureOperationTabs() {
@@ -334,7 +335,7 @@
         
         const rows = [
             { label: "Tựa Game", value: gd.ten_game || "Chưa chọn" },
-            { label: "Thể thức", value: FORMAT_LABELS[gd.the_thuc] || gd.the_thuc },
+            { label: "Thể thức", value: formatStageFormats(stages, gd.the_thuc) },
             { label: "Số đội tối đa", value: gd.so_doi_toi_da || "Không giới hạn" },
             { label: "Đơn vị tổ chức", value: gd.ten_nguoi_tao || "Esport Manager" },
             { label: "Các giai đoạn", value: stages.map(s => s.ten_giai_doan).join(" → ") || "N/A" }
@@ -346,6 +347,20 @@
                 <span class="info-value">${r.value}</span>
             </div>
         `).join("");
+    }
+
+
+    function formatStageFormats(stages, fallbackFormat) {
+        if (!stages || !stages.length) return FORMAT_LABELS[fallbackFormat] || fallbackFormat || "N/A";
+        return stages
+            .slice()
+            .sort((a, b) => (a.so_thu_tu || 0) - (b.so_thu_tu || 0))
+            .map(stage => {
+                const name = stage.ten_giai_doan || ("Vong " + (stage.so_thu_tu || ""));
+                const format = FORMAT_LABELS[stage.the_thuc] || stage.the_thuc || "N/A";
+                return name + ": " + format;
+            })
+            .join(" → ");
     }
 
     function renderTeamsTab() {
@@ -492,12 +507,12 @@
         return '<article class="match-card" data-match-id="' + m.ma_tran + '"><div>' +
             '<div class="match-title">' + escapeHtml(m.vong_dau || m.ten_giai_doan || "Tran dau") + '</div>' +
             '<div class="match-teams">' + (teams || "Dang cho doi") + '</div>' +
-            '<div class="muted">Trong tai: ' + escapeHtml(m.ten_trong_tai || "Chua chon") + ' · ' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div></div>' +
+            '<div class="muted">Trọng tài: ' + escapeHtml(m.ten_trong_tai || "Chưa chọn") + ' · ' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div></div>' +
             '<div class="match-actions">' +
-            (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") +
-            (canStart ? '<button class="hub-btn-primary js-start-match" data-id="' + m.ma_tran + '">Bat dau tran</button>' : "") +
-            (m.trang_thai === "dang_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi ket qua</button>' : "") +
-            (canComplete ? '<button class="hub-btn-warning js-complete-match" data-id="' + m.ma_tran + '">Xac nhan ket thuc</button>' : "") +
+            (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuẩn bị</button>' : "") +
+            (canStart ? '<button class="hub-btn-primary js-start-match" data-id="' + m.ma_tran + '">Bắt đầu trận</button>' : "") +
+            (m.trang_thai === "dang_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi kết quả</button>' : "") +
+            (canComplete ? '<button class="hub-btn-warning js-complete-match" data-id="' + m.ma_tran + '">Xác nhận kết thúc</button>' : "") +
             '</div></article>';
     }
 
@@ -522,29 +537,80 @@
         if (result.success) await loadTournamentDetail();
     }
 
-    async function openSetupMatchModal(maTran) {
+    function openSetupMatchModal(maTran) {
+        const modal = document.getElementById("setupMatchModal");
+        const matchId = document.getElementById("setupMatchId");
+        const refereeSelect = document.getElementById("setupMatchReferee");
+        const formatSelect = document.getElementById("setupMatchFormat");
+        const roundsGroup = document.getElementById("setupMatchRoundsGroup");
+        const roundsInput = document.getElementById("setupMatchRounds");
+        const validation = document.getElementById("setupMatchValidation");
         const refs = (tournamentData.nhan_su || []).filter(x => x.vai_tro_giai === "trong_tai");
         if (!refs.length) {
             notify("Chưa có trọng tài trong giải.");
             return;
         }
-        const refText = refs.map(r => `${r.ma_nguoi_dung}: ${r.ten_dang_nhap}`).join("\n");
-        const maTrongTai = parseInt(prompt("Chọn trọng tài bằng ID:\n" + refText, refs[0].ma_nguoi_dung));
-        if (!maTrongTai) return;
+
+        const match = (tournamentData.tran_dau || []).find(x => x.ma_tran === maTran);
         const gameName = (tournamentData.giai_dau.ten_game || "").toLowerCase();
         const isBR = gameName.indexOf("pubg") >= 0 || gameName.indexOf("free fire") >= 0;
-        const format = isBR ? "SinhTon" : (prompt("Thể thức trận: BO1, BO3, BO5, BO7", "BO1") || "BO1");
-        const rounds = isBR ? parseInt(prompt("Số lượng game/map", "5")) : null;
-        const result = await postApi("/GiaiDauApi/SetupMatch", {
-            ma_tran: maTran,
-            ma_trong_tai: maTrongTai,
-            the_thuc_tran: format,
-            so_vong: rounds
-        });
-        notify(result.message);
-        if (result.success) await loadTournamentDetail();
+        const currentFormat = match && match.the_thuc_tran ? match.the_thuc_tran : (isBR ? "SinhTon" : "BO1");
+
+        matchId.value = maTran;
+        refereeSelect.innerHTML = refs.map(r =>
+            `<option value="${r.ma_nguoi_dung}">${escapeHtml(r.ten_dang_nhap)}${r.email ? " - " + escapeHtml(r.email) : ""}</option>`
+        ).join("");
+        if (match && match.ma_trong_tai) refereeSelect.value = String(match.ma_trong_tai);
+        formatSelect.value = currentFormat;
+        roundsInput.value = match && match.so_vong ? match.so_vong : (isBR ? 5 : "");
+        roundsGroup.style.display = formatSelect.value === "SinhTon" ? "block" : "none";
+        validation.style.display = "none";
+        validation.textContent = "";
+        modal.style.display = "flex";
     }
 
+    function setupMatchSetupModal() {
+        const modal = document.getElementById("setupMatchModal");
+        if (!modal) return;
+        const closeBtn = document.getElementById("closeSetupMatchModal");
+        const cancelBtn = document.getElementById("cancelSetupMatchModal");
+        const confirmBtn = document.getElementById("confirmSetupMatchModal");
+        const formatSelect = document.getElementById("setupMatchFormat");
+        const roundsGroup = document.getElementById("setupMatchRoundsGroup");
+        const validation = document.getElementById("setupMatchValidation");
+
+        const close = () => { modal.style.display = "none"; };
+        closeBtn.onclick = close;
+        cancelBtn.onclick = close;
+        modal.addEventListener("click", e => { if (e.target === modal) close(); });
+        formatSelect.onchange = () => {
+            roundsGroup.style.display = formatSelect.value === "SinhTon" ? "block" : "none";
+        };
+        confirmBtn.onclick = async () => {
+            const maTran = parseInt(document.getElementById("setupMatchId").value, 10);
+            const maTrongTai = parseInt(document.getElementById("setupMatchReferee").value, 10);
+            const format = formatSelect.value;
+            const rounds = format === "SinhTon" ? parseInt(document.getElementById("setupMatchRounds").value, 10) : null;
+            if (!maTran || !maTrongTai || !format || (format === "SinhTon" && (!rounds || rounds < 1))) {
+                validation.textContent = "Vui lòng điền đầy đủ thông tin hợp lệ.";
+                validation.style.display = "block";
+                return;
+            }
+            confirmBtn.disabled = true;
+            const result = await postApi("/GiaiDauApi/SetupMatch", {
+                ma_tran: maTran,
+                ma_trong_tai: maTrongTai,
+                the_thuc_tran: format,
+                so_vong: rounds
+            });
+            confirmBtn.disabled = false;
+            notify(result.message);
+            if (result.success) {
+                close();
+                await loadTournamentDetail();
+            }
+        };
+    }
     async function openStatsModal(maTran) {
         const match = (tournamentData.tran_dau || []).find(x => x.ma_tran === maTran);
         if (!match) return;

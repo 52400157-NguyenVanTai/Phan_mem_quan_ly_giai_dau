@@ -24,12 +24,12 @@
             <a href="@Url.Action("Index", "Dashboard")" class="ak-nav-brand notion-nav-brand">Esport Manager</a>
 
             <ul class="ak-nav-menu notion-nav-menu">
-                <li>@Html.ActionLink("Trang chu", "Index", "Dashboard", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
-                <li>@Html.ActionLink("Giai dau", "Index", "GiaiDau", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
-                <li>@Html.ActionLink("Doi", "Index", "Doi", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
-                <li>@Html.ActionLink("Yeu cau", "Index", "YeuCau", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
-                <li>@Html.ActionLink("Thong bao", "Index", "ThongBao", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
-                <li>@Html.ActionLink("Trong tai", "Index", "TrongTai", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
+                <li>@Html.ActionLink("Trang chủ", "Index", "Dashboard", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
+                <li>@Html.ActionLink("Giải đấu", "Index", "GiaiDau", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
+                <li>@Html.ActionLink("Đội", "Index", "Doi", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
+                <li>@Html.ActionLink("Yêu cầu", "Index", "YeuCau", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
+                <li>@Html.ActionLink("Thông báo", "Index", "ThongBao", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
+                <li>@Html.ActionLink("Trọng tài", "Index", "TrongTai", new { area = "" }, new { @class = "ak-nav-link notion-nav-link" })</li>
             </ul>
 
             <div class="dropdown">
@@ -38,12 +38,12 @@
                     <span>@Session["Username"]</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end notion-dropdown">
-                    <li>@Html.ActionLink("Thong tin ca nhan", "Index", "Profile", new { area = "" }, new { @class = "dropdown-item" })</li>
-                    <li>@Html.ActionLink("Ho so thi dau", "Index", "HoSoThiDau", new { area = "" }, new { @class = "dropdown-item" })</li>
-                    <li>@Html.ActionLink("Doi cua toi", "Index", "DoiCuaToi", new { area = "" }, new { @class = "dropdown-item" })</li>
-                    <li>@Html.ActionLink("Dong gop y kien", "Index", "DongGopYKien", new { area = "" }, new { @class = "dropdown-item" })</li>
+                    <li>@Html.ActionLink("Thông tin cá nhân", "Index", "Profile", new { area = "" }, new { @class = "dropdown-item" })</li>
+                    <li>@Html.ActionLink("Hồ sơ thi đấu", "Index", "HoSoThiDau", new { area = "" }, new { @class = "dropdown-item" })</li>
+                    <li>@Html.ActionLink("Đội của tôi", "Index", "DoiCuaToi", new { area = "" }, new { @class = "dropdown-item" })</li>
+                    <li>@Html.ActionLink("Đóng góp ý kiến", "Index", "DongGopYKien", new { area = "" }, new { @class = "dropdown-item" })</li>
                     <li><hr class="dropdown-divider" /></li>
-                    <li><button class="dropdown-item notion-danger-text" type="button" id="logoutButton">Dang xuat</button></li>
+                    <li><button class="dropdown-item notion-danger-text" type="button" id="logoutButton">Đăng xuất</button></li>
                 </ul>
             </div>
         </nav>

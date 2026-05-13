@@ -49,7 +49,7 @@
 
     let items = state.requests;
     if (state.filter === "giai_dau") {
-      items = items.filter(x => ["yeu_cau_tao_giai_dau", "dang_ky_tham_gia_giai_dau", "loi_moi_tham_gia_giai", "loi_moi_trong_tai", "loi_moi_btc"].includes(x.loai_yeu_cau));
+      items = items.filter(x => ["yeu_cau_tao_giai_dau", "dang_ky_tham_gia_giai_dau", "loi_moi_tham_gia_giai", "loi_moi_trong_tai", "loi_moi_btc", "phan_cong_trong_tai", "yeu_cau_lineup"].includes(x.loai_yeu_cau));
     } else if (state.filter === "doi") {
       items = items.filter(x => ["loi_moi", "xin_gia_nhap"].includes(x.loai_yeu_cau));
     }
@@ -98,6 +98,18 @@
           actionButtons = `
             <button class="btn btn-success" onclick="handleReq('${x.loai_yeu_cau}', ${x.ma_yeu_cau}, true)">Chấp nhận</button>
             <button class="btn btn-danger" onclick="handleReq('${x.loai_yeu_cau}', ${x.ma_yeu_cau}, false)">Từ chối</button>`;
+          break;
+        case "phan_cong_trong_tai":
+          title = x.tieu_de || "Phân công trọng tài";
+          desc = `Giải đấu: ${text(x.ten_giai_dau)} - ${text(x.noi_dung)}`;
+          detailBtn = x.ma_giai_dau ? `<a class="btn btn-outline-info" href="/GiaiDau/ChiTiet/${x.ma_giai_dau}">Vào trận đấu</a>` : "";
+          actionButtons = `<button class="btn btn-success" onclick="handleReq('${x.loai_yeu_cau}', ${x.ma_yeu_cau}, true)">Đã nhận</button>`;
+          break;
+        case "yeu_cau_lineup":
+          title = x.tieu_de || "Yêu cầu chốt đội hình";
+          desc = `Giải đấu: ${text(x.ten_giai_dau)} - Đội: ${text(x.ten_doi)} - ${text(x.noi_dung)}`;
+          detailBtn = x.ma_giai_dau ? `<a class="btn btn-outline-info" href="/GiaiDau/ChiTiet/${x.ma_giai_dau}">Chốt đội hình</a>` : "";
+          actionButtons = `<button class="btn btn-success" onclick="handleReq('${x.loai_yeu_cau}', ${x.ma_yeu_cau}, true)">Đã xem</button>`;
           break;
         case "loi_moi":
           title = `Lời mời vào đội: ${x.ten_doi}`;

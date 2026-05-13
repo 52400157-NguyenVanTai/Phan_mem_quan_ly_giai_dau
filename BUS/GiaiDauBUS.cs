@@ -264,6 +264,11 @@ namespace BUS
             });
         }
 
+        public ApiResponseDTO LayTranDauCuaTrongTai(int maNguoiDung)
+        {
+            return Ok("Lấy danh sách trận được phân công thành công.", dal.LayTranDauCuaTrongTai(maNguoiDung));
+        }
+
         public ApiResponseDTO LayDanhSachChoPheDuyet(int maNguoiDung)
         {
             if (!dal.LaAdmin(maNguoiDung)) return Loi("Chỉ Admin mới xem được danh sách này.");
@@ -419,6 +424,14 @@ namespace BUS
             if (req == null || req.ma_tran <= 0) return Loi("Dữ liệu không hợp lệ.");
             dal.UpdateMatchStats(req);
             return Ok("Đã lưu kết quả ván đấu và cập nhật bảng xếp hạng.", null);
+        }
+
+        public ApiResponseDTO UpdateMatchStatsTrongTai(int maNguoiDung, UpdateMatchStatsRequestDTO req)
+        {
+            if (req == null || req.ma_tran <= 0) return Loi("Dữ liệu không hợp lệ.");
+            if (!dal.LaTrongTaiCuaTranDaXacNhan(req.ma_tran, maNguoiDung)) return Loi("Bạn chưa được xác nhận điều hành trận đấu này.");
+            dal.UpdateMatchStats(req);
+            return Ok("Đã gửi kết quả trận đấu cho Ban tổ chức xác nhận.", null);
         }
 
         public ApiResponseDTO ChotKetQuaTran(int maNguoiDung, GiaiDauActionRequestDTO req)
