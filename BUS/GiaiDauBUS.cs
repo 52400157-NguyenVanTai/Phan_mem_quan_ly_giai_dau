@@ -174,8 +174,15 @@ namespace BUS
             int soDoi = dal.DemDoiDaDuyet(maGiaiDau);
             if (soDoi < gd.so_doi_toi_thieu)
                 return Loi("Chưa đủ số đội tối thiểu (" + gd.so_doi_toi_thieu + " đội). Hiện có " + soDoi + " đội.");
-            dal.KhoiTranhVaSinhTran(maGiaiDau);
-            return Ok("Đã khởi tranh giải đấu!", null);
+            try
+            {
+                dal.KhoiTranhVaSinhTran(maGiaiDau);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Loi(ex.Message);
+            }
+            return Ok("Da khoi tranh giai dau!", null);
         }
 
         public ApiResponseDTO BeMac(int maNguoiDung, int maGiaiDau)

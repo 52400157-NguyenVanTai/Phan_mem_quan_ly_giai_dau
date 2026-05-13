@@ -98,7 +98,9 @@ namespace GUI.Controllers
         {
             int? userId = Session["UserId"] as int?;
             if (!userId.HasValue) return Json(ChuaDangNhap());
-            return Json(bus.KhoiTranh(userId.Value, request.ma_giai_dau));
+            var result = bus.KhoiTranh(userId.Value, request.ma_giai_dau);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
         }
 
         [HttpPost]

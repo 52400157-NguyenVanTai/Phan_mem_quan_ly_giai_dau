@@ -9,6 +9,7 @@
 
     const maGiaiDau = parseInt(hub.getAttribute("data-id"));
     let tournamentData = null;
+    const pendingActions = new Set();
 
     const STATE_LABELS = {
         nhap: "Bản nháp",
@@ -427,40 +428,96 @@
     }
 
     function renderScheduleTab() {
-        const matches = tournamentData.tran_dau || [];
+        const matches = uniqueMatches(tournamentData.tran_dau || []);
         const container = document.getElementById("matchList") || document.querySelector("#pane-bracket");
         if (!container) return;
         if (!matches.length) {
-            container.innerHTML = '<div class="empty-state">Lịch thi đấu sẽ hiển thị khi giải đấu bắt đầu.</div>';
+            container.innerHTML = '<div class="empty-state">Lich thi dau se hien thi khi giai dau bat dau.</div>';
             return;
         }
-        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
-        container.innerHTML = matches.map(m => {
-            const teams = (m.chi_tiet || []).map(c => escapeHtml(c.ten_doi)).join(" vs ");
-            const canStart = isBTC && m.trang_thai === "san_sang";
-            const canComplete = isBTC && (m.trang_thai === "dang_thi_dau" || m.trang_thai === "cho_ket_qua");
-            return `
-                <article class="match-card" data-match-id="${m.ma_tran}">
-                    <div>
-                        <div class="match-title">${escapeHtml(m.vong_dau || m.ten_giai_doan || "Trận đấu")}</div>
-                        <div class="match-teams">${teams || "Đang chờ đội"}</div>
-                        <div class="muted">Trọng tài: ${escapeHtml(m.ten_trong_tai || "Chưa chọn")} · ${MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai}</div>
-                    </div>
-                    <div class="match-actions">
-                        ${isBTC ? `<button class="hub-btn-outline js-setup-match" data-id="${m.ma_tran}">Chuẩn bị</button>` : ""}
-                        ${canStart ? `<button class="hub-btn-primary js-start-match" data-id="${m.ma_tran}">Bắt đầu trận</button>` : ""}
-                        ${m.trang_thai === "dang_thi_dau" ? `<button class="hub-btn-outline js-stats-match" data-id="${m.ma_tran}">Ghi kết quả</button>` : ""}
-                        ${canComplete ? `<button class="hub-btn-warning js-complete-match" data-id="${m.ma_tran}">Xác nhận kết thúc</button>` : ""}
-                    </div>
-                </article>`;
-        }).join("");
+        const format = tournamentData.giai_dau.the_thuc;
+        if (format === "loai_truc_tiep") { renderKnockoutBracket(container, matches); return; }
+        if (format === "thuy_si") { renderSwissRounds(container, matches); return; }
+        renderMatchList(container, matches);
+    }
 
+    function uniqueMatches(matches) {
+        const byId = new Map();
+        (matches || []).forEach(m => { if (m && !byId.has(m.ma_tran)) byId.set(m.ma_tran, m); });
+        return Array.from(byId.values());
+    }
+
+    function renderMatchList(container, matches) {
+        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
+        container.innerHTML = matches.map(m => renderMatchCard(m, isBTC)).join("");
+        bindMatchButtons(container);
+    }
+
+    function renderSwissRounds(container, matches) {
+        const rounds = groupBy(matches, m => m.vong_dau || "Vong chua xep");
+        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
+        container.innerHTML = '<div class="round-list">' + Object.keys(rounds).map(round =>
+            '<section class="round-section"><h3>' + escapeHtml(round) + '</h3><div class="match-list compact">' +
+            rounds[round].map(m => renderMatchCard(m, isBTC)).join("") + '</div></section>'
+        ).join("") + '</div>';
+        bindMatchButtons(container);
+    }
+
+    function renderKnockoutBracket(container, matches) {
+        const roundNames = [];
+        matches.forEach(m => { const name = m.vong_dau || "Vong dau"; if (roundNames.indexOf(name) < 0) roundNames.push(name); });
+        const rounds = groupBy(matches, m => m.vong_dau || "Vong dau");
+        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
+        container.innerHTML = '<div class="bracket-board">' + roundNames.map(name =>
+            '<section class="bracket-round"><h3>' + escapeHtml(name) + '</h3><div class="bracket-stack">' +
+            (rounds[name] || []).map(m => renderBracketMatch(m, isBTC)).join("") + '</div></section>'
+        ).join("") + '</div>';
+        bindMatchButtons(container);
+    }
+
+    function renderBracketMatch(m, isBTC) {
+        const teams = m.chi_tiet || [];
+        const next = m.ma_tran_tiep_theo_thang ? '<div class="bracket-next">Thang -> #' + m.ma_tran_tiep_theo_thang + '</div>' : "";
+        return '<article class="bracket-match" data-match-id="' + m.ma_tran + '">' +
+            '<div class="bracket-match-code">#' + m.ma_tran + '</div>' +
+            '<div class="bracket-team">' + escapeHtml(teams[0] && teams[0].ten_doi || "Cho doi thang") + '</div>' +
+            '<div class="bracket-team">' + escapeHtml(teams[1] && teams[1].ten_doi || "Cho doi thang") + '</div>' +
+            '<div class="muted">' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div>' + next +
+            '<div class="match-actions bracket-actions">' + (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") + '</div>' +
+            '</article>';
+    }
+
+    function renderMatchCard(m, isBTC) {
+        const teams = (m.chi_tiet || []).map(c => escapeHtml(c.ten_doi)).join(" vs ");
+        const canStart = isBTC && m.trang_thai === "san_sang";
+        const canComplete = isBTC && (m.trang_thai === "dang_thi_dau" || m.trang_thai === "cho_ket_qua");
+        return '<article class="match-card" data-match-id="' + m.ma_tran + '"><div>' +
+            '<div class="match-title">' + escapeHtml(m.vong_dau || m.ten_giai_doan || "Tran dau") + '</div>' +
+            '<div class="match-teams">' + (teams || "Dang cho doi") + '</div>' +
+            '<div class="muted">Trong tai: ' + escapeHtml(m.ten_trong_tai || "Chua chon") + ' · ' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div></div>' +
+            '<div class="match-actions">' +
+            (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") +
+            (canStart ? '<button class="hub-btn-primary js-start-match" data-id="' + m.ma_tran + '">Bat dau tran</button>' : "") +
+            (m.trang_thai === "dang_thi_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi ket qua</button>' : "") +
+            (canComplete ? '<button class="hub-btn-warning js-complete-match" data-id="' + m.ma_tran + '">Xac nhan ket thuc</button>' : "") +
+            '</div></article>';
+    }
+
+    function bindMatchButtons(container) {
         container.querySelectorAll(".js-setup-match").forEach(btn => btn.onclick = () => openSetupMatchModal(parseInt(btn.dataset.id)));
         container.querySelectorAll(".js-start-match").forEach(btn => btn.onclick = () => postMatchAction("/GiaiDauApi/StartMatch", parseInt(btn.dataset.id)));
         container.querySelectorAll(".js-complete-match").forEach(btn => btn.onclick = () => postMatchAction("/GiaiDauApi/CompleteMatch", parseInt(btn.dataset.id)));
         container.querySelectorAll(".js-stats-match").forEach(btn => btn.onclick = () => openStatsModal(parseInt(btn.dataset.id)));
     }
 
+    function groupBy(items, selector) {
+        return (items || []).reduce((acc, item) => {
+            const key = selector(item);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(item);
+            return acc;
+        }, {});
+    }
     async function postMatchAction(url, maTran) {
         const result = await postApi(url, { ma_giai_dau: maTran });
         notify(result.message || "Đã xử lý.");
@@ -534,13 +591,15 @@
 
     // ACTIONS HELPERS
     async function handleAction(action, id, extraPayload) {
+        const actionKey = action + ":" + id;
+        if (pendingActions.has(actionKey)) return;
         const confirmMessages = {
-            "close-reg": "Chốt sổ đăng ký ngay bây giờ?",
-            "open-reg": "Bạn muốn mở đăng ký cho giải đấu này?",
-            "cancel": "Hủy giải đấu? Hành động này không thể hoàn tác.",
+            "close-reg": "Chot so dang ky ngay bay gio?",
+            "open-reg": "Ban muon mo dang ky cho giai dau nay?",
+            "cancel": "Huy giai dau? Hanh dong nay khong the hoan tac.",
         };
         if (action === "cancel" && tournamentData && tournamentData.giai_dau && tournamentData.giai_dau.trang_thai === "sap_dien_ra") {
-            confirmMessages.cancel = "Hủy giải đấu sắp diễn ra? Giải đấu sẽ bị xóa hoàn toàn khỏi database.";
+            confirmMessages.cancel = "Huy giai dau sap dien ra? Giai dau se bi xoa hoan toan khoi database.";
         }
         confirmMessages["toggle-reg"] = extraPayload && extraPayload.mo_dang_ky ? "Mo dang ky cho giai dau nay?" : "Dung dang ky giai dau nay?";
         confirmMessages["start"] = "Khoi tranh giai dau va sinh lich thi dau tu dong?";
@@ -553,13 +612,20 @@
             "start": "/GiaiDauApi/Start",
             "cancel": "/GiaiDauApi/Cancel",
         };
-
         if (!endpoints[action]) return;
 
-        const result = await postApi(endpoints[action], Object.assign({ ma_giai_dau: id }, extraPayload || {}));
-        notify(result.message);
-        
-        if (result.success) {
+        const activeButton = document.activeElement && document.activeElement.tagName === "BUTTON" ? document.activeElement : null;
+        pendingActions.add(actionKey);
+        if (activeButton) {
+            activeButton.disabled = true;
+            activeButton.classList.add("notion-is-loading");
+        }
+
+        try {
+            const result = await postApi(endpoints[action], Object.assign({ ma_giai_dau: id }, extraPayload || {}));
+            notify(result.message);
+            if (!result.success) return;
+
             if (action === "cancel") {
                 window.location.href = "/GiaiDau";
                 return;
@@ -574,9 +640,8 @@
             }
             if (action === "toggle-reg") {
                 const fresh = getResponseData(result);
-                if (fresh) {
-                    tournamentData.giai_dau = Object.assign(tournamentData.giai_dau, fresh);
-                } else {
+                if (fresh) tournamentData.giai_dau = Object.assign(tournamentData.giai_dau, fresh);
+                else {
                     tournamentData.giai_dau.trang_thai = extraPayload && extraPayload.mo_dang_ky ? "mo_dang_ky" : "khoa_dang_ky";
                     tournamentData.giai_dau.dang_mo_dang_ky = tournamentData.giai_dau.trang_thai === "mo_dang_ky";
                 }
@@ -587,8 +652,14 @@
                 await loadTournamentDetail();
                 return;
             }
-            renderHeader(); // Cập nhật badge trạng thái
-            renderActions(); // Re-render các nút
+            renderHeader();
+            renderActions();
+        } finally {
+            pendingActions.delete(actionKey);
+            if (activeButton) {
+                activeButton.disabled = false;
+                activeButton.classList.remove("notion-is-loading");
+            }
         }
     }
 

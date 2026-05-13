@@ -2366,6 +2366,80 @@ textarea {
     border-bottom: 1px solid color-mix(in srgb, var(--color-paper-white) 8%, transparent);
 }
 
+.bracket-board {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 1fr);
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+}
+
+.bracket-round {
+    min-width: 220px;
+}
+
+.bracket-round h3,
+.round-section h3 {
+    margin: 0 0 12px;
+    color: var(--hub-accent-yellow);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.bracket-stack,
+.round-list {
+    display: grid;
+    gap: 14px;
+}
+
+.bracket-match {
+    position: relative;
+    padding: 14px;
+    border: 1px solid color-mix(in srgb, var(--color-paper-white) 10%, transparent);
+    border-radius: 8px;
+    background: var(--hub-surface);
+}
+
+.bracket-match::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -18px;
+    width: 18px;
+    height: 1px;
+    background: color-mix(in srgb, var(--hub-accent-cyan) 45%, transparent);
+}
+
+.bracket-round:last-child .bracket-match::after {
+    content: none;
+}
+
+.bracket-match-code,
+.bracket-next {
+    color: var(--hub-text-muted);
+    font-size: 0.75rem;
+}
+
+.bracket-team {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--color-paper-white) 6%, transparent);
+    font-weight: 700;
+}
+
+.bracket-actions {
+    margin-top: 10px;
+}
+
+.round-section {
+    padding: 16px;
+    border: 1px solid color-mix(in srgb, var(--color-paper-white) 8%, transparent);
+    border-radius: 8px;
+    background: var(--hub-surface);
+}
+
 @media (max-width: 1024px) {
     .hub-body { grid-template-columns: 1fr; }
     .prize-banner { flex-direction: column; gap: 20px; align-items: stretch; margin-left: 20px; margin-right: 20px; width: auto; }

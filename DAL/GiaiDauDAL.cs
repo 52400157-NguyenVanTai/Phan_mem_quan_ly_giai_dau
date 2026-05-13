@@ -721,11 +721,26 @@ namespace DAL
             var items = new List<NhanSuGiaiDauDTO>();
             using (var conn = DbConnectionFactory.CreateConnection())
             using (var cmd = new SqlCommand(@"
-                SELECT qt.ma_nguoi_dung, nd.ten_dang_nhap, nd.email, nd.avatar_url, qt.vai_tro_giai
-                FROM QUAN_TRI_GIAI_DAU qt
-                INNER JOIN NGUOI_DUNG nd ON qt.ma_nguoi_dung = nd.ma_nguoi_dung
-                WHERE qt.ma_giai_dau = @gd
-                ORDER BY CASE qt.vai_tro_giai WHEN 'ban_to_chuc' THEN 0 ELSE 1 END, nd.ten_dang_nhap", conn))
+                SELECT DISTINCT x.ma_nguoi_dung, nd.ten_dang_nhap, nd.email, nd.avatar_url, x.vai_tro_giai
+                FROM (
+                    SELECT ma_nguoi_tao AS ma_nguoi_dung, CAST('ban_to_chuc' AS NVARCHAR(50)) AS vai_tro_giai
+                    FROM GIAI_DAU
+                    WHERE ma_giai_dau = @gd AND ma_nguoi_tao IS NOT NULL
+
+                    UNION
+
+                    SELECT ma_nguoi_dung, CAST('ban_to_chuc' AS NVARCHAR(50)) AS vai_tro_giai
+                    FROM QUAN_TRI_GIAI_DAU
+                    WHERE ma_giai_dau = @gd AND vai_tro_giai = 'ban_to_chuc'
+
+                    UNION
+
+                    SELECT ma_nguoi_dung, CAST('trong_tai' AS NVARCHAR(50)) AS vai_tro_giai
+                    FROM TRONG_TAI_GIAI_DAU
+                    WHERE ma_giai_dau = @gd AND trang_thai = 'da_chap_nhan'
+                ) x
+                INNER JOIN NGUOI_DUNG nd ON x.ma_nguoi_dung = nd.ma_nguoi_dung
+                ORDER BY CASE x.vai_tro_giai WHEN 'ban_to_chuc' THEN 0 ELSE 1 END, nd.ten_dang_nhap", conn))
             {
                 cmd.Parameters.AddWithValue("@gd", maGiaiDau);
                 conn.Open();
@@ -858,16 +873,25 @@ namespace DAL
                                 }
                                 else
                                 {
-                                    int round = 1;
-                                    for (int i = 0; i < teams.Count; i += 2)
+                                    if (stage.the_thuc == "loai_truc_tiep")
+                                        SinhNhanhLoaiTrucTiep(conn, tx, maGiaiDau, stage.ma_giai_doan, teams);
+                                    else
                                     {
-                                        if (i + 1 < teams.Count)
-                                            InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vòng " + round, "BO1", null, stage.the_thuc == "nhanh_thang_nhanh_thua" ? "winners" : null, new[] { teams[i], teams[i + 1] });
-                                        else
-                                            InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vòng " + round, "BO1", null, "bye", new[] { teams[i] }, "bye");
+                                        int round = 1;
+                                        for (int i = 0; i < teams.Count; i += 2)
+                                        {
+                                            if (i + 1 < teams.Count)
+                                                InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vong " + round, "BO1", null, stage.the_thuc == "nhanh_thang_nhanh_thua" ? "winners" : null, new[] { teams[i], teams[i + 1] });
+                                            else
+                                                InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vong " + round, "BO1", null, "bye", new[] { teams[i] }, "bye");
+                                        }
                                     }
                                 }
                             }
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Giai dau da sinh lich thi dau, khong the khoi tranh lai.");
                         }
 
                         using (var cmd = new SqlCommand("UPDATE GIAI_DAU SET trang_thai='dang_dien_ra' WHERE ma_giai_dau=@gd", conn, tx))
@@ -884,6 +908,58 @@ namespace DAL
                         throw;
                     }
                 }
+            }
+        }
+
+        private void SinhNhanhLoaiTrucTiep(SqlConnection conn, SqlTransaction tx, int maGiaiDau, int maGiaiDoan, List<int> teams)
+        {
+            var previousRound = new List<int>();
+            int firstRoundSize = Math.Max(1, (int)Math.Ceiling(teams.Count / 2.0));
+
+            for (int i = 0; i < teams.Count; i += 2)
+            {
+                if (i + 1 < teams.Count)
+                    previousRound.Add(InsertTran(conn, tx, maGiaiDau, maGiaiDoan, "Vong 1", "BO1", null, null, new[] { teams[i], teams[i + 1] }));
+                else
+                    previousRound.Add(InsertTran(conn, tx, maGiaiDau, maGiaiDoan, "Vong 1", "BO1", null, "bye", new[] { teams[i] }, "bye"));
+            }
+
+            int round = 2;
+            while (previousRound.Count > 1)
+            {
+                var nextRound = new List<int>();
+                for (int i = 0; i < previousRound.Count; i += 2)
+                {
+                    string label = GetKnockoutRoundLabel(previousRound.Count, round, firstRoundSize);
+                    int nextMatch = InsertTran(conn, tx, maGiaiDau, maGiaiDoan, label, "BO1", null, null, new int[0]);
+                    nextRound.Add(nextMatch);
+
+                    CapNhatTranTiepTheo(conn, tx, previousRound[i], nextMatch);
+                    if (i + 1 < previousRound.Count) CapNhatTranTiepTheo(conn, tx, previousRound[i + 1], nextMatch);
+                }
+                previousRound = nextRound;
+                round++;
+            }
+        }
+
+        private string GetKnockoutRoundLabel(int currentMatchCount, int round, int firstRoundSize)
+        {
+            if (currentMatchCount == 2) return "Chung ket";
+            if (currentMatchCount == 4) return "Ban ket";
+            if (currentMatchCount == 8) return "Tu ket";
+            return "Vong " + round;
+        }
+
+        private void CapNhatTranTiepTheo(SqlConnection conn, SqlTransaction tx, int maTran, int maTranTiepTheo)
+        {
+            using (var cmd = new SqlCommand(@"
+                UPDATE TRAN_DAU
+                SET ma_tran_tiep_theo_thang = @next
+                WHERE ma_tran = @tran", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@next", maTranTiepTheo);
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                cmd.ExecuteNonQuery();
             }
         }
 
@@ -948,6 +1024,8 @@ namespace DAL
                             nhanh_dau = r["nhanh_dau"] == DBNull.Value ? null : r["nhanh_dau"].ToString(),
                             the_thuc_tran = r["the_thuc_tran"].ToString(),
                             trang_thai = r["trang_thai"].ToString(),
+                            ma_tran_tiep_theo_thang = r["ma_tran_tiep_theo_thang"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_tran_tiep_theo_thang"]),
+                            ma_tran_tiep_theo_thua = r["ma_tran_tiep_theo_thua"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_tran_tiep_theo_thua"]),
                             id_phong_game = r["id_phong_game"] == DBNull.Value ? null : r["id_phong_game"].ToString(),
                             mat_khau_phong = r["mat_khau_phong"] == DBNull.Value ? null : r["mat_khau_phong"].ToString(),
                             chi_tiet = new List<ChiTietTranDauDTO>(),

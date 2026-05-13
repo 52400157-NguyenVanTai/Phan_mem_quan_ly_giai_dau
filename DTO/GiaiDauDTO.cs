@@ -168,6 +168,8 @@ namespace DTO
         public string nhanh_dau { get; set; }
         public string the_thuc_tran { get; set; }
         public string trang_thai { get; set; }
+        public int? ma_tran_tiep_theo_thang { get; set; }
+        public int? ma_tran_tiep_theo_thua { get; set; }
         public string id_phong_game { get; set; }
         public string mat_khau_phong { get; set; }
         // Không lưu thời gian — BTC bấm nút để bắt đầu/kết thúc trận (Manual-Trigger)
