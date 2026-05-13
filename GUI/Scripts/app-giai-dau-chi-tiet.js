@@ -221,7 +221,7 @@
         const isBTC = gd.is_btc || gd.ma_nguoi_tao === parseInt(hub.dataset.userId);
 
         // 1. KHU VỰC ĐẠI CHÚNG (Public Action)
-        if (tt === "mo_dang_ky" || gd.dang_mo_dang_ky) {
+        if (tt === "mo_dang_ky") {
             const regBtn = document.createElement("button");
             regBtn.className = "hub-btn-primary";
             regBtn.textContent = "ĐĂNG KÝ THAM GIA";
@@ -236,18 +236,20 @@
             adminBox.innerHTML = `<h4 class="block-title">BẢNG ĐIỀU KHIỂN BTC</h4>`;
 
             // Mở/Đóng Đăng Ký Toggle
-            if (tt !== "nhap" && tt !== "bi_tu_choi" && tt !== "da_huy" && tt !== "ket_thuc") {
+            if (tt === "sap_dien_ra" || tt === "mo_dang_ky" || tt === "khoa_dang_ky") {
                 const toggleRegBtn = document.createElement("button");
-                if (gd.dang_mo_dang_ky) {
+                if (tt === "mo_dang_ky") {
                     toggleRegBtn.className = "hub-btn-warning";
-                    toggleRegBtn.textContent = "ĐÓNG ĐĂNG KÝ / CHỐT SỔ";
                     toggleRegBtn.textContent = "DUNG DANG KY";
                     toggleRegBtn.onclick = () => handleAction("toggle-reg", maGiaiDau, { mo_dang_ky: false });
-                } else {
+                } else if (tt === "sap_dien_ra") {
                     toggleRegBtn.className = "hub-btn-primary";
-                    toggleRegBtn.textContent = "MỞ ĐĂNG KÝ";
                     toggleRegBtn.textContent = "MO DANG KY";
                     toggleRegBtn.onclick = () => handleAction("toggle-reg", maGiaiDau, { mo_dang_ky: true });
+                } else {
+                    toggleRegBtn.className = "hub-btn-outline";
+                    toggleRegBtn.textContent = "DA KHOA DANG KY";
+                    toggleRegBtn.disabled = true;
                 }
                 adminBox.appendChild(toggleRegBtn);
             }
@@ -376,10 +378,21 @@
         container.innerHTML = [renderPeopleList("Ban Tổ Chức (BTC)", btc), renderPeopleList("Trọng Tài", refs)].join("");
     }
 
+    function avatarFallbackHtml() {
+        return '<span class="operator-avatar operator-avatar-fallback"><i class="fas fa-user"></i></span>';
+    }
+
+    function createAvatarFallback() {
+        const span = document.createElement("span");
+        span.className = "operator-avatar operator-avatar-fallback";
+        span.innerHTML = '<i class="fas fa-user"></i>';
+        return span;
+    }
+
     function renderPeopleList(title, items) {
         const body = items.length ? items.map(p => `
             <div class="operator-row">
-                <img class="operator-avatar" src="${p.avatar_url || "/Content/images/default-avatar.png"}" onerror="this.style.display='none'" alt="">
+                ${p.avatar_url ? `<img class="operator-avatar" src="${p.avatar_url}" onerror="this.replaceWith(createAvatarFallback())" alt="">` : avatarFallbackHtml()}
                 <div>
                     <strong>${escapeHtml(p.ten_dang_nhap)}</strong>
                     <div class="muted">${escapeHtml(p.email || "")}</div>
@@ -560,8 +573,15 @@
                 tournamentData.giai_dau.trang_thai = "khoa_dang_ky";
             }
             if (action === "toggle-reg") {
-                tournamentData.giai_dau.dang_mo_dang_ky = !!(extraPayload && extraPayload.mo_dang_ky);
-                tournamentData.giai_dau.trang_thai = tournamentData.giai_dau.dang_mo_dang_ky ? "mo_dang_ky" : "khoa_dang_ky";
+                const fresh = getResponseData(result);
+                if (fresh) {
+                    tournamentData.giai_dau = Object.assign(tournamentData.giai_dau, fresh);
+                } else {
+                    tournamentData.giai_dau.trang_thai = extraPayload && extraPayload.mo_dang_ky ? "mo_dang_ky" : "khoa_dang_ky";
+                    tournamentData.giai_dau.dang_mo_dang_ky = tournamentData.giai_dau.trang_thai === "mo_dang_ky";
+                }
+                await loadTournamentDetail();
+                return;
             }
             if (action === "start") {
                 await loadTournamentDetail();

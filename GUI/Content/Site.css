@@ -2323,6 +2323,14 @@ textarea {
     object-fit: cover;
 }
 
+.operator-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-paper-white);
+    background: var(--color-action-indigo);
+}
+
 .match-card {
     display: flex;
     justify-content: space-between;

@@ -118,7 +118,7 @@ namespace BUS
             if (gd != null && gd.so_doi_toi_da.HasValue && soDoi >= gd.so_doi_toi_da.Value)
                 return Loi("Giải đấu đã đủ số lượng đội, không thể mở đăng ký");
             dal.CapNhatTrangThai(maGiaiDau, "mo_dang_ky");
-            return Ok("Đã mở đăng ký.", null);
+            return Ok("Da mo dang ky.", dal.LayGiaiDau(maGiaiDau));
         }
 
         public ApiResponseDTO DongDangKy(int maNguoiDung, int maGiaiDau)
@@ -127,7 +127,7 @@ namespace BUS
             string tt = dal.LayTrangThai(maGiaiDau);
             if (tt != "mo_dang_ky") return Loi("Chỉ đóng đăng ký từ trạng thái Mở đăng ký.");
             dal.CapNhatTrangThai(maGiaiDau, "khoa_dang_ky");
-            return Ok("Đã chốt sổ đăng ký.", null);
+            return Ok("Da chot so dang ky.", dal.LayGiaiDau(maGiaiDau));
         }
 
         public ApiResponseDTO MoLaiDangKy(int maNguoiDung, int maGiaiDau)
@@ -140,7 +140,7 @@ namespace BUS
             if (gd != null && gd.so_doi_toi_da.HasValue && soDoi >= gd.so_doi_toi_da.Value)
                 return Loi("Giải đấu đã đủ số lượng đội, không thể mở đăng ký");
             dal.CapNhatTrangThai(maGiaiDau, "mo_dang_ky");
-            return Ok("Đã mở lại đăng ký.", null);
+            return Ok("Da mo lai dang ky.", dal.LayGiaiDau(maGiaiDau));
         }
 
         public ApiResponseDTO ToggleRegistration(int maNguoiDung, ToggleRegistrationRequestDTO req)
@@ -157,12 +157,12 @@ namespace BUS
                 if (gd != null && gd.so_doi_toi_da.HasValue && soDoi >= gd.so_doi_toi_da.Value)
                     return Loi("Giải đấu đã đủ số lượng đội, không thể mở đăng ký");
                 dal.ToggleRegistration(req.ma_giai_dau, true);
-                return Ok("Đã mở đăng ký.", null);
+                return Ok("Da mo dang ky.", dal.LayGiaiDau(req.ma_giai_dau));
             }
 
             if (tt != "mo_dang_ky") return Loi("Chỉ dừng đăng ký khi giải đang mở đăng ký.");
             dal.ToggleRegistration(req.ma_giai_dau, false);
-            return Ok("Đã dừng đăng ký.", null);
+            return Ok("Da dung dang ky.", dal.LayGiaiDau(req.ma_giai_dau));
         }
 
         public ApiResponseDTO KhoiTranh(int maNguoiDung, int maGiaiDau)

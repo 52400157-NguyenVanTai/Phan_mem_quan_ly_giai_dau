@@ -605,7 +605,7 @@ namespace DAL
                 ten_nguoi_tao = r["ten_nguoi_tao"] == DBNull.Value ? null : r["ten_nguoi_tao"].ToString(),
                 ly_do_tu_choi = r["ly_do_tu_choi"] == DBNull.Value ? null : r["ly_do_tu_choi"].ToString(),
                 is_registration_locked = r["is_registration_locked"] != DBNull.Value && Convert.ToBoolean(r["is_registration_locked"]),
-                dang_mo_dang_ky = r["dang_mo_dang_ky"] != DBNull.Value && Convert.ToBoolean(r["dang_mo_dang_ky"]),
+                dang_mo_dang_ky = r["trang_thai"].ToString() == "mo_dang_ky",
                 tong_giai_thuong = r["tong_giai_thuong"] == DBNull.Value ? 0 : Convert.ToDecimal(r["tong_giai_thuong"]),
                 // Đọc ngay_tao an toàn — cột có thể chưa tồn tại trong DB cũ (chưa chạy migration)
                 ngay_tao = HasColumn(r, "ngay_tao") && r["ngay_tao"] != DBNull.Value
