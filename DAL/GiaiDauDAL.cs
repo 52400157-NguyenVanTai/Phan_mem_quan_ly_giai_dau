@@ -721,7 +721,7 @@ namespace DAL
             var items = new List<NhanSuGiaiDauDTO>();
             using (var conn = DbConnectionFactory.CreateConnection())
             using (var cmd = new SqlCommand(@"
-                SELECT DISTINCT x.ma_nguoi_dung, nd.ten_dang_nhap, nd.email, nd.avatar_url, x.vai_tro_giai
+                SELECT x.ma_nguoi_dung, nd.ten_dang_nhap, nd.email, nd.avatar_url, x.vai_tro_giai
                 FROM (
                     SELECT ma_nguoi_tao AS ma_nguoi_dung, CAST('ban_to_chuc' AS NVARCHAR(50)) AS vai_tro_giai
                     FROM GIAI_DAU
