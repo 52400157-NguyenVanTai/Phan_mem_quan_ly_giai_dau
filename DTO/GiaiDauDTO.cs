@@ -37,6 +37,9 @@ namespace DTO
         public List<GiaiDoanDTO> giai_doan { get; set; }
         public List<DoiThamGiaDTO> doi_tham_gia { get; set; }
         public List<GiaiThuongDTO> danh_sach_giai_thuong { get; set; }
+        public List<NhanSuGiaiDauDTO> nhan_su { get; set; }
+        public List<TranDauDTO> tran_dau { get; set; }
+        public List<BangXepHangDTO> bang_xep_hang { get; set; }
     }
 
     // DTO cho giai doan thi dau
@@ -64,6 +67,15 @@ namespace DTO
         public string ten_game { get; set; }
         public string trang_thai_duyet { get; set; }
         public string trang_thai_tham_gia { get; set; }
+    }
+
+    public class NhanSuGiaiDauDTO
+    {
+        public int ma_nguoi_dung { get; set; }
+        public string ten_dang_nhap { get; set; }
+        public string email { get; set; }
+        public string avatar_url { get; set; }
+        public string vai_tro_giai { get; set; }
     }
 
     // Giai thuong
@@ -160,6 +172,7 @@ namespace DTO
         public string mat_khau_phong { get; set; }
         // Không lưu thời gian — BTC bấm nút để bắt đầu/kết thúc trận (Manual-Trigger)
         public List<ChiTietTranDauDTO> chi_tiet { get; set; }
+        public List<NguoiChoiTranDTO> nguoi_choi { get; set; }
     }
 
     public class ChiTietTranDauDTO
@@ -173,6 +186,24 @@ namespace DTO
         public string ket_qua { get; set; }
         public int so_kill { get; set; }
         public bool is_check_in { get; set; }
+    }
+
+    public class NguoiChoiTranDTO
+    {
+        public int ma_tran { get; set; }
+        public int ma_nguoi_dung { get; set; }
+        public int? ma_doi { get; set; }
+        public string ten_doi { get; set; }
+        public string ten_dang_nhap { get; set; }
+        public string avatar_url { get; set; }
+        public int? ma_vi_tri { get; set; }
+        public string ten_vi_tri { get; set; }
+        public string ky_hieu_vi_tri { get; set; }
+        public int so_kill { get; set; }
+        public int so_death { get; set; }
+        public int so_assist { get; set; }
+        public double diem_kda_tran { get; set; }
+        public bool is_mvp_tran { get; set; }
     }
 
     public class BangXepHangDTO
@@ -227,6 +258,53 @@ namespace DTO
     {
         public int ma_tran { get; set; }
         public int ma_nhom { get; set; }
+    }
+
+    public class ToggleRegistrationRequestDTO
+    {
+        public int ma_giai_dau { get; set; }
+        public bool mo_dang_ky { get; set; }
+    }
+
+    public class SetupTranDauRequestDTO
+    {
+        public int ma_tran { get; set; }
+        public int ma_trong_tai { get; set; }
+        public string the_thuc_tran { get; set; }
+        public int? so_vong { get; set; }
+    }
+
+    public class SubmitLineupRequestDTO
+    {
+        public int ma_tran { get; set; }
+        public int ma_doi { get; set; }
+        public List<LineupPlayerDTO> thanh_vien { get; set; }
+    }
+
+    public class LineupPlayerDTO
+    {
+        public int ma_nguoi_dung { get; set; }
+        public int? ma_vi_tri { get; set; }
+    }
+
+    public class UpdateMatchStatsRequestDTO
+    {
+        public int ma_tran { get; set; }
+        public int? ma_doi_thang { get; set; }
+        public int? ma_doi_thua { get; set; }
+        public int? ty_so_doi_1 { get; set; }
+        public int? ty_so_doi_2 { get; set; }
+        public List<PlayerStatsDTO> nguoi_choi { get; set; }
+        public List<KetQuaDoiBRDTO> ket_qua_br { get; set; }
+    }
+
+    public class PlayerStatsDTO
+    {
+        public int ma_nguoi_dung { get; set; }
+        public int so_kill { get; set; }
+        public int so_death { get; set; }
+        public int so_assist { get; set; }
+        public bool is_mvp_tran { get; set; }
     }
 
     // Request: Invite referee

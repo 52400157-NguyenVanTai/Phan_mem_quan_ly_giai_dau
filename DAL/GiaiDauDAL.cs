@@ -715,5 +715,700 @@ namespace DAL
                 }
             }
         }
+
+        public List<NhanSuGiaiDauDTO> LayNhanSu(int maGiaiDau)
+        {
+            var items = new List<NhanSuGiaiDauDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT qt.ma_nguoi_dung, nd.ten_dang_nhap, nd.email, nd.avatar_url, qt.vai_tro_giai
+                FROM QUAN_TRI_GIAI_DAU qt
+                INNER JOIN NGUOI_DUNG nd ON qt.ma_nguoi_dung = nd.ma_nguoi_dung
+                WHERE qt.ma_giai_dau = @gd
+                ORDER BY CASE qt.vai_tro_giai WHEN 'ban_to_chuc' THEN 0 ELSE 1 END, nd.ten_dang_nhap", conn))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new NhanSuGiaiDauDTO
+                        {
+                            ma_nguoi_dung = Convert.ToInt32(r["ma_nguoi_dung"]),
+                            ten_dang_nhap = r["ten_dang_nhap"].ToString(),
+                            email = r["email"] == DBNull.Value ? null : r["email"].ToString(),
+                            avatar_url = r["avatar_url"] == DBNull.Value ? null : r["avatar_url"].ToString(),
+                            vai_tro_giai = r["vai_tro_giai"].ToString()
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
+        public string LayLoaiGame(int maGiaiDau)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT tc.the_loai
+                FROM GIAI_DAU gd
+                LEFT JOIN DANH_MUC_TRO_CHOI tc ON gd.ma_tro_choi = tc.ma_tro_choi
+                WHERE gd.ma_giai_dau = @gd", conn))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                conn.Open();
+                var val = cmd.ExecuteScalar();
+                return val == null || val == DBNull.Value ? null : val.ToString();
+            }
+        }
+
+        public string LayLoaiGameTheoTran(int maTran)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT tc.the_loai
+                FROM TRAN_DAU td
+                INNER JOIN GIAI_DAU gd ON td.ma_giai_dau = gd.ma_giai_dau
+                LEFT JOIN DANH_MUC_TRO_CHOI tc ON gd.ma_tro_choi = tc.ma_tro_choi
+                WHERE td.ma_tran = @tran", conn))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                conn.Open();
+                var val = cmd.ExecuteScalar();
+                return val == null || val == DBNull.Value ? null : val.ToString();
+            }
+        }
+
+        public void ToggleRegistration(int maGiaiDau, bool open)
+        {
+            CapNhatTrangThai(maGiaiDau, open ? "mo_dang_ky" : "khoa_dang_ky");
+        }
+
+        public void KhoiTranhVaSinhTran(int maGiaiDau)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        int existed;
+                        using (var cmd = new SqlCommand("SELECT COUNT(1) FROM TRAN_DAU WHERE ma_giai_dau=@gd", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                            existed = Convert.ToInt32(cmd.ExecuteScalar());
+                        }
+
+                        if (existed == 0)
+                        {
+                            var stages = new List<GiaiDoanDTO>();
+                            using (var cmd = new SqlCommand("SELECT * FROM GIAI_DOAN WHERE ma_giai_dau=@gd ORDER BY thu_tu", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                                using (var r = cmd.ExecuteReader())
+                                {
+                                    while (r.Read())
+                                    {
+                                        stages.Add(new GiaiDoanDTO
+                                        {
+                                            ma_giai_doan = Convert.ToInt32(r["ma_giai_doan"]),
+                                            the_thuc = r["the_thuc"].ToString(),
+                                            ten_giai_doan = r["ten_giai_doan"].ToString()
+                                        });
+                                    }
+                                }
+                            }
+
+                            var teams = new List<int>();
+                            using (var cmd = new SqlCommand("SELECT ma_doi FROM THAM_GIA_GIAI WHERE ma_giai_dau=@gd AND trang_thai_duyet='da_duyet' ORDER BY ma_tham_gia", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                                using (var r = cmd.ExecuteReader())
+                                    while (r.Read()) teams.Add(Convert.ToInt32(r["ma_doi"]));
+                            }
+
+                            foreach (var stage in stages)
+                            {
+                                foreach (var team in teams)
+                                {
+                                    using (var cmd = new SqlCommand(@"
+                                        IF NOT EXISTS (SELECT 1 FROM BANG_XEP_HANG WHERE ma_giai_doan=@stage AND ma_doi=@doi)
+                                        INSERT INTO BANG_XEP_HANG(ma_giai_dau, ma_giai_doan, ma_doi, thu_hang_hien_tai)
+                                        VALUES(@gd, @stage, @doi, @rank)", conn, tx))
+                                    {
+                                        cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                                        cmd.Parameters.AddWithValue("@stage", stage.ma_giai_doan);
+                                        cmd.Parameters.AddWithValue("@doi", team);
+                                        cmd.Parameters.AddWithValue("@rank", teams.IndexOf(team) + 1);
+                                        cmd.ExecuteNonQuery();
+                                    }
+                                }
+
+                                if (stage.the_thuc == "vong_tron")
+                                {
+                                    for (int i = 0; i < teams.Count; i++)
+                                        for (int j = i + 1; j < teams.Count; j++)
+                                            InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vòng bảng", "BO1", null, null, new[] { teams[i], teams[j] });
+                                }
+                                else if (stage.the_thuc == "battle_royale" || stage.the_thuc == "champion_rush")
+                                {
+                                    InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, stage.ten_giai_doan, "SinhTon", 1, null, teams.ToArray());
+                                }
+                                else
+                                {
+                                    int round = 1;
+                                    for (int i = 0; i < teams.Count; i += 2)
+                                    {
+                                        if (i + 1 < teams.Count)
+                                            InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vòng " + round, "BO1", null, stage.the_thuc == "nhanh_thang_nhanh_thua" ? "winners" : null, new[] { teams[i], teams[i + 1] });
+                                        else
+                                            InsertTran(conn, tx, maGiaiDau, stage.ma_giai_doan, "Vòng " + round, "BO1", null, "bye", new[] { teams[i] }, "bye");
+                                    }
+                                }
+                            }
+                        }
+
+                        using (var cmd = new SqlCommand("UPDATE GIAI_DAU SET trang_thai='dang_dien_ra' WHERE ma_giai_dau=@gd", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        tx.Commit();
+                    }
+                    catch
+                    {
+                        tx.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
+        private int InsertTran(SqlConnection conn, SqlTransaction tx, int maGiaiDau, int maGiaiDoan, string vongDau, string theThucTran, int? soVong, string nhanhDau, int[] teams, string trangThai = "chua_dau")
+        {
+            int maTran;
+            using (var cmd = new SqlCommand(@"
+                INSERT INTO TRAN_DAU(ma_giai_dau, ma_giai_doan, vong_dau, the_thuc_tran, so_vong, nhanh_dau, trang_thai)
+                VALUES(@gd, @stage, @vong, @format, @soVong, @nhanh, @tt);
+                SELECT SCOPE_IDENTITY();", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                cmd.Parameters.AddWithValue("@stage", maGiaiDoan);
+                cmd.Parameters.AddWithValue("@vong", vongDau);
+                cmd.Parameters.AddWithValue("@format", theThucTran);
+                cmd.Parameters.AddWithValue("@soVong", (object)soVong ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@nhanh", (object)nhanhDau ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@tt", trangThai);
+                maTran = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            foreach (var team in teams)
+            {
+                using (var cmd = new SqlCommand("INSERT INTO CHI_TIET_TRAN_DAU(ma_tran, ma_doi) VALUES(@tran, @doi)", conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("@tran", maTran);
+                    cmd.Parameters.AddWithValue("@doi", team);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            return maTran;
+        }
+
+        public List<TranDauDTO> LayTranDau(int maGiaiDau)
+        {
+            var matches = new List<TranDauDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT td.*, gd.ten_giai_doan, nd.ten_dang_nhap AS ten_trong_tai
+                FROM TRAN_DAU td
+                LEFT JOIN GIAI_DOAN gd ON td.ma_giai_doan = gd.ma_giai_doan
+                LEFT JOIN NGUOI_DUNG nd ON td.ma_trong_tai = nd.ma_nguoi_dung
+                WHERE td.ma_giai_dau=@gd
+                ORDER BY td.ma_giai_doan, td.ma_tran", conn))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        matches.Add(new TranDauDTO
+                        {
+                            ma_tran = Convert.ToInt32(r["ma_tran"]),
+                            ma_giai_dau = Convert.ToInt32(r["ma_giai_dau"]),
+                            ma_giai_doan = r["ma_giai_doan"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_giai_doan"]),
+                            ten_giai_doan = r["ten_giai_doan"] == DBNull.Value ? null : r["ten_giai_doan"].ToString(),
+                            ma_trong_tai = r["ma_trong_tai"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_trong_tai"]),
+                            ten_trong_tai = r["ten_trong_tai"] == DBNull.Value ? null : r["ten_trong_tai"].ToString(),
+                            vong_dau = r["vong_dau"] == DBNull.Value ? null : r["vong_dau"].ToString(),
+                            so_vong = r["so_vong"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["so_vong"]),
+                            nhanh_dau = r["nhanh_dau"] == DBNull.Value ? null : r["nhanh_dau"].ToString(),
+                            the_thuc_tran = r["the_thuc_tran"].ToString(),
+                            trang_thai = r["trang_thai"].ToString(),
+                            id_phong_game = r["id_phong_game"] == DBNull.Value ? null : r["id_phong_game"].ToString(),
+                            mat_khau_phong = r["mat_khau_phong"] == DBNull.Value ? null : r["mat_khau_phong"].ToString(),
+                            chi_tiet = new List<ChiTietTranDauDTO>(),
+                            nguoi_choi = new List<NguoiChoiTranDTO>()
+                        });
+                    }
+                }
+
+                foreach (var match in matches)
+                {
+                    match.chi_tiet = LayChiTietTran(conn, match.ma_tran);
+                    match.nguoi_choi = LayNguoiChoiTran(conn, match.ma_tran);
+                }
+            }
+            return matches;
+        }
+
+        private List<ChiTietTranDauDTO> LayChiTietTran(SqlConnection conn, int maTran)
+        {
+            var items = new List<ChiTietTranDauDTO>();
+            using (var cmd = new SqlCommand(@"
+                SELECT c.*, d.ten_doi, d.logo_url
+                FROM CHI_TIET_TRAN_DAU c
+                INNER JOIN DOI d ON c.ma_doi = d.ma_doi
+                WHERE c.ma_tran=@tran
+                ORDER BY c.ma_doi", conn))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new ChiTietTranDauDTO
+                        {
+                            ma_tran = maTran,
+                            ma_nhom = Convert.ToInt32(r["ma_doi"]),
+                            ten_doi = r["ten_doi"].ToString(),
+                            logo_url = r["logo_url"] == DBNull.Value ? null : r["logo_url"].ToString(),
+                            diem_so = Convert.ToDouble(r["diem_so"]),
+                            thu_hang = r["thu_hang"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["thu_hang"]),
+                            ket_qua = r["ket_qua"] == DBNull.Value ? null : r["ket_qua"].ToString(),
+                            so_kill = r["so_kill"] == DBNull.Value ? 0 : Convert.ToInt32(r["so_kill"]),
+                            is_check_in = r["is_check_in"] != DBNull.Value && Convert.ToBoolean(r["is_check_in"])
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
+        private List<NguoiChoiTranDTO> LayNguoiChoiTran(SqlConnection conn, int maTran)
+        {
+            var items = new List<NguoiChoiTranDTO>();
+            using (var cmd = new SqlCommand(@"
+                SELECT nc.*, nd.ten_dang_nhap, nd.avatar_url, vt.ten_vi_tri, vt.ky_hieu,
+                       tv.ma_doi, d.ten_doi
+                FROM CHI_TIET_NGUOI_CHOI_TRAN nc
+                INNER JOIN NGUOI_DUNG nd ON nc.ma_nguoi_dung = nd.ma_nguoi_dung
+                LEFT JOIN DANH_MUC_VI_TRI vt ON nc.ma_vi_tri = vt.ma_vi_tri
+                LEFT JOIN THANH_VIEN_DOI tv ON nc.ma_nguoi_dung = tv.ma_nguoi_dung AND tv.trang_thai_duyet='da_duyet'
+                LEFT JOIN CHI_TIET_TRAN_DAU ctd ON ctd.ma_tran = nc.ma_tran AND ctd.ma_doi = tv.ma_doi
+                LEFT JOIN DOI d ON ctd.ma_doi = d.ma_doi
+                WHERE nc.ma_tran=@tran
+                ORDER BY d.ten_doi, vt.ky_hieu, nd.ten_dang_nhap", conn))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new NguoiChoiTranDTO
+                        {
+                            ma_tran = maTran,
+                            ma_nguoi_dung = Convert.ToInt32(r["ma_nguoi_dung"]),
+                            ma_doi = r["ma_doi"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_doi"]),
+                            ten_doi = r["ten_doi"] == DBNull.Value ? null : r["ten_doi"].ToString(),
+                            ten_dang_nhap = r["ten_dang_nhap"].ToString(),
+                            avatar_url = r["avatar_url"] == DBNull.Value ? null : r["avatar_url"].ToString(),
+                            ma_vi_tri = r["ma_vi_tri"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_vi_tri"]),
+                            ten_vi_tri = r["ten_vi_tri"] == DBNull.Value ? null : r["ten_vi_tri"].ToString(),
+                            ky_hieu_vi_tri = r["ky_hieu"] == DBNull.Value ? null : r["ky_hieu"].ToString(),
+                            so_kill = Convert.ToInt32(r["so_kill"]),
+                            so_death = Convert.ToInt32(r["so_death"]),
+                            so_assist = Convert.ToInt32(r["so_assist"]),
+                            diem_kda_tran = r["diem_kda_tran"] == DBNull.Value ? 0 : Convert.ToDouble(r["diem_kda_tran"]),
+                            is_mvp_tran = Convert.ToBoolean(r["is_mvp_tran"])
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
+        public List<BangXepHangDTO> LayBangXepHang(int maGiaiDau)
+        {
+            var items = new List<BangXepHangDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT bxh.*, d.ten_doi, d.logo_url
+                FROM BANG_XEP_HANG bxh
+                INNER JOIN DOI d ON bxh.ma_doi = d.ma_doi
+                WHERE bxh.ma_giai_dau=@gd
+                ORDER BY bxh.diem_tong_ket DESC, bxh.so_tran_thang DESC, bxh.hieu_so_phu DESC, bxh.thu_hang_hien_tai", conn))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new BangXepHangDTO
+                        {
+                            ma_nhom = Convert.ToInt32(r["ma_doi"]),
+                            ten_doi = r["ten_doi"].ToString(),
+                            logo_url = r["logo_url"] == DBNull.Value ? null : r["logo_url"].ToString(),
+                            so_tran_da_dau = Convert.ToInt32(r["so_tran_da_dau"]),
+                            so_tran_thang = Convert.ToInt32(r["so_tran_thang"]),
+                            so_tran_thua = Convert.ToInt32(r["so_tran_thua"]),
+                            hieu_so_phu = Convert.ToInt32(r["hieu_so_phu"]),
+                            tong_diem_hang = Convert.ToDouble(r["tong_diem_hang"]),
+                            tong_diem_kill = Convert.ToDouble(r["tong_diem_kill"]),
+                            diem_tong_ket = Convert.ToDouble(r["diem_tong_ket"]),
+                            thu_hang_hien_tai = Convert.ToInt32(r["thu_hang_hien_tai"]),
+                            is_match_point = Convert.ToBoolean(r["is_match_point"])
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
+        public List<NguoiChoiTranDTO> LayThanhVienDoi(int maDoi)
+        {
+            var items = new List<NguoiChoiTranDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT tv.ma_nguoi_dung, tv.ma_vi_tri, nd.ten_dang_nhap, nd.avatar_url, vt.ten_vi_tri, vt.ky_hieu
+                FROM THANH_VIEN_DOI tv
+                INNER JOIN NGUOI_DUNG nd ON tv.ma_nguoi_dung = nd.ma_nguoi_dung
+                LEFT JOIN DANH_MUC_VI_TRI vt ON tv.ma_vi_tri = vt.ma_vi_tri
+                WHERE tv.ma_doi=@doi AND tv.trang_thai_duyet='da_duyet'
+                ORDER BY vt.ky_hieu, nd.ten_dang_nhap", conn))
+            {
+                cmd.Parameters.AddWithValue("@doi", maDoi);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new NguoiChoiTranDTO
+                        {
+                            ma_nguoi_dung = Convert.ToInt32(r["ma_nguoi_dung"]),
+                            ma_doi = maDoi,
+                            ten_dang_nhap = r["ten_dang_nhap"].ToString(),
+                            avatar_url = r["avatar_url"] == DBNull.Value ? null : r["avatar_url"].ToString(),
+                            ma_vi_tri = r["ma_vi_tri"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ma_vi_tri"]),
+                            ten_vi_tri = r["ten_vi_tri"] == DBNull.Value ? null : r["ten_vi_tri"].ToString(),
+                            ky_hieu_vi_tri = r["ky_hieu"] == DBNull.Value ? null : r["ky_hieu"].ToString()
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
+        public List<NguoiChoiTranDTO> LayViTriTheoGame(int maGiaiDau)
+        {
+            var items = new List<NguoiChoiTranDTO>();
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT vt.ma_vi_tri, vt.ten_vi_tri, vt.ky_hieu
+                FROM GIAI_DAU gd
+                INNER JOIN DANH_MUC_VI_TRI vt ON gd.ma_tro_choi = vt.ma_tro_choi
+                WHERE gd.ma_giai_dau=@gd AND vt.loai_vi_tri='TuyenThu'
+                ORDER BY vt.ma_vi_tri", conn))
+            {
+                cmd.Parameters.AddWithValue("@gd", maGiaiDau);
+                conn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        items.Add(new NguoiChoiTranDTO
+                        {
+                            ma_vi_tri = Convert.ToInt32(r["ma_vi_tri"]),
+                            ten_vi_tri = r["ten_vi_tri"].ToString(),
+                            ky_hieu_vi_tri = r["ky_hieu"].ToString()
+                        });
+                    }
+                }
+            }
+            return items;
+        }
+
+        public bool DoiThuocTran(int maTran, int maDoi)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM CHI_TIET_TRAN_DAU WHERE ma_tran=@tran AND ma_doi=@doi", conn))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                cmd.Parameters.AddWithValue("@doi", maDoi);
+                conn.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        public bool LaDoiTruong(int maDoi, int maNguoiDung)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT COUNT(1)
+                FROM DOI d
+                WHERE d.ma_doi=@doi AND d.ma_doi_truong=@nd", conn))
+            {
+                cmd.Parameters.AddWithValue("@doi", maDoi);
+                cmd.Parameters.AddWithValue("@nd", maNguoiDung);
+                conn.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        public void SetupTranDau(SetupTranDauRequestDTO req)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    using (var cmd = new SqlCommand(@"
+                        UPDATE TRAN_DAU
+                        SET ma_trong_tai=@ref, the_thuc_tran=@format, so_vong=@soVong, trang_thai='chuan_bi'
+                        WHERE ma_tran=@tran", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.Parameters.AddWithValue("@ref", req.ma_trong_tai);
+                        cmd.Parameters.AddWithValue("@format", req.the_thuc_tran);
+                        cmd.Parameters.AddWithValue("@soVong", (object)req.so_vong ?? DBNull.Value);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    using (var cmd = new SqlCommand(@"
+                        INSERT INTO THONG_BAO(ma_nguoi_nhan, tieu_de, noi_dung, loai_thong_bao, loai_entity, ma_entity, hanh_dong)
+                        SELECT @ref, N'Bạn được phân công trọng tài', N'Vui lòng xác nhận và chuẩn bị điều hành trận đấu.', 'phan_cong_trong_tai', 'tran_dau', @tran, 'pending'
+                        UNION ALL
+                        SELECT DISTINCT d.ma_doi_truong, N'Yêu cầu chốt đội hình', N'Vui lòng gửi đội hình xuất phát cho trận đấu.', 'yeu_cau_lineup', 'tran_dau', @tran, 'pending'
+                        FROM CHI_TIET_TRAN_DAU c
+                        INNER JOIN DOI d ON c.ma_doi=d.ma_doi
+                        WHERE c.ma_tran=@tran AND d.ma_doi_truong IS NOT NULL", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.Parameters.AddWithValue("@ref", req.ma_trong_tai);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
+                }
+            }
+        }
+
+        public void SubmitLineup(SubmitLineupRequestDTO req)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    using (var cmd = new SqlCommand(@"
+                        DELETE nc
+                        FROM CHI_TIET_NGUOI_CHOI_TRAN nc
+                        INNER JOIN THANH_VIEN_DOI tv ON nc.ma_nguoi_dung=tv.ma_nguoi_dung
+                        WHERE nc.ma_tran=@tran AND tv.ma_doi=@doi", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.Parameters.AddWithValue("@doi", req.ma_doi);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    foreach (var p in req.thanh_vien)
+                    {
+                        using (var cmd = new SqlCommand(@"
+                            INSERT INTO CHI_TIET_NGUOI_CHOI_TRAN(ma_tran, ma_nguoi_dung, ma_vi_tri)
+                            VALUES(@tran, @nd, @vt)", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                            cmd.Parameters.AddWithValue("@nd", p.ma_nguoi_dung);
+                            cmd.Parameters.AddWithValue("@vt", (object)p.ma_vi_tri ?? DBNull.Value);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    using (var cmd = new SqlCommand("UPDATE CHI_TIET_TRAN_DAU SET is_check_in=1 WHERE ma_tran=@tran AND ma_doi=@doi", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.Parameters.AddWithValue("@doi", req.ma_doi);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    using (var cmd = new SqlCommand(@"
+                        IF NOT EXISTS (SELECT 1 FROM CHI_TIET_TRAN_DAU WHERE ma_tran=@tran AND is_check_in=0)
+                            UPDATE TRAN_DAU SET trang_thai='san_sang' WHERE ma_tran=@tran", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
+                }
+            }
+        }
+
+        public void BatDauTran(int maTran)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            using (var cmd = new SqlCommand("UPDATE TRAN_DAU SET trang_thai='dang_thi_dau' WHERE ma_tran=@tran AND trang_thai='san_sang'", conn))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public void UpdateMatchStats(UpdateMatchStatsRequestDTO req)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    if (req.nguoi_choi != null)
+                    {
+                        using (var cmd = new SqlCommand("UPDATE CHI_TIET_NGUOI_CHOI_TRAN SET is_mvp_tran=0 WHERE ma_tran=@tran", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        foreach (var p in req.nguoi_choi)
+                        {
+                            using (var cmd = new SqlCommand(@"
+                                UPDATE CHI_TIET_NGUOI_CHOI_TRAN
+                                SET so_kill=@k, so_death=@d, so_assist=@a,
+                                    diem_kda_tran=CAST((@k + @a) AS FLOAT) / CASE WHEN @d < 1 THEN 1 ELSE @d END,
+                                    is_mvp_tran=@mvp
+                                WHERE ma_tran=@tran AND ma_nguoi_dung=@nd", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                                cmd.Parameters.AddWithValue("@nd", p.ma_nguoi_dung);
+                                cmd.Parameters.AddWithValue("@k", p.so_kill);
+                                cmd.Parameters.AddWithValue("@d", p.so_death);
+                                cmd.Parameters.AddWithValue("@a", p.so_assist);
+                                cmd.Parameters.AddWithValue("@mvp", p.is_mvp_tran);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+
+                    if (req.ma_doi_thang.HasValue)
+                    {
+                        using (var cmd = new SqlCommand(@"
+                            UPDATE CHI_TIET_TRAN_DAU
+                            SET ket_qua = CASE WHEN ma_doi=@win THEN 'thang' ELSE 'thua' END,
+                                diem_so = CASE WHEN ma_doi=@win THEN 3 ELSE 0 END,
+                                so_kill = CASE WHEN ma_doi=@win THEN ISNULL(@score1,0) ELSE ISNULL(@score2,0) END
+                            WHERE ma_tran=@tran", conn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                            cmd.Parameters.AddWithValue("@win", req.ma_doi_thang.Value);
+                            cmd.Parameters.AddWithValue("@score1", (object)req.ty_so_doi_1 ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@score2", (object)req.ty_so_doi_2 ?? DBNull.Value);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    if (req.ket_qua_br != null)
+                    {
+                        foreach (var row in req.ket_qua_br)
+                        {
+                            using (var cmd = new SqlCommand(@"
+                                UPDATE CHI_TIET_TRAN_DAU
+                                SET thu_hang=@rank, so_kill=@kill, diem_so=(CASE @rank WHEN 1 THEN 10 WHEN 2 THEN 6 WHEN 3 THEN 5 WHEN 4 THEN 4 WHEN 5 THEN 3 ELSE 1 END) + @kill
+                                WHERE ma_tran=@tran AND ma_doi=@doi", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                                cmd.Parameters.AddWithValue("@doi", row.ma_nhom);
+                                cmd.Parameters.AddWithValue("@rank", row.thu_hang);
+                                cmd.Parameters.AddWithValue("@kill", row.so_kill);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+
+                    RebuildBangXepHang(conn, tx, req.ma_tran);
+
+                    using (var cmd = new SqlCommand(@"
+                        IF EXISTS (SELECT 1 FROM KET_QUA_TRAN WHERE ma_tran=@tran)
+                            UPDATE KET_QUA_TRAN SET so_lan_chinh_sua=so_lan_chinh_sua+1, thoi_gian_sua_cuoi=GETDATE() WHERE ma_tran=@tran
+                        ELSE
+                            INSERT INTO KET_QUA_TRAN(ma_tran, chi_tiet_phu) VALUES(@tran, N'{}')", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
+                }
+            }
+        }
+
+        private void RebuildBangXepHang(SqlConnection conn, SqlTransaction tx, int maTran)
+        {
+            using (var cmd = new SqlCommand(@"
+                DECLARE @gd INT, @stage INT;
+                SELECT @gd=ma_giai_dau, @stage=ma_giai_doan FROM TRAN_DAU WHERE ma_tran=@tran;
+
+                UPDATE bxh
+                SET so_tran_da_dau = x.so_tran,
+                    so_tran_thang = x.thang,
+                    so_tran_thua = x.thua,
+                    hieu_so_phu = x.kill,
+                    tong_diem_hang = x.diem_hang,
+                    tong_diem_kill = x.kill,
+                    diem_tong_ket = x.diem,
+                    thu_hang_hien_tai = x.rank_no
+                FROM BANG_XEP_HANG bxh
+                INNER JOIN (
+                    SELECT c.ma_doi,
+                           COUNT(CASE WHEN c.ket_qua IS NOT NULL OR c.thu_hang IS NOT NULL THEN 1 END) AS so_tran,
+                           SUM(CASE WHEN c.ket_qua='thang' THEN 1 ELSE 0 END) AS thang,
+                           SUM(CASE WHEN c.ket_qua='thua' THEN 1 ELSE 0 END) AS thua,
+                           SUM(ISNULL(c.so_kill,0)) AS kill,
+                           SUM(CASE WHEN c.thu_hang IS NULL THEN 0 ELSE c.diem_so END) AS diem_hang,
+                           SUM(c.diem_so) AS diem,
+                           ROW_NUMBER() OVER (ORDER BY SUM(c.diem_so) DESC, SUM(ISNULL(c.so_kill,0)) DESC) AS rank_no
+                    FROM CHI_TIET_TRAN_DAU c
+                    INNER JOIN TRAN_DAU td ON c.ma_tran=td.ma_tran
+                    WHERE td.ma_giai_dau=@gd AND (@stage IS NULL OR td.ma_giai_doan=@stage)
+                    GROUP BY c.ma_doi
+                ) x ON bxh.ma_doi=x.ma_doi AND bxh.ma_giai_doan=@stage
+                WHERE bxh.ma_giai_dau=@gd;", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public void ChotKetQuaTran(int maTran)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    using (var cmd = new SqlCommand("UPDATE TRAN_DAU SET trang_thai='da_hoan_thanh' WHERE ma_tran=@tran", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", maTran);
+                        cmd.ExecuteNonQuery();
+                    }
+                    RebuildBangXepHang(conn, tx, maTran);
+                    tx.Commit();
+                }
+            }
+        }
     }
 }

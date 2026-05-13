@@ -113,6 +113,10 @@ namespace BUS
             if (!dal.LaBTC(maGiaiDau, maNguoiDung)) return Loi("Bạn không có quyền.");
             string tt = dal.LayTrangThai(maGiaiDau);
             if (tt != "sap_dien_ra") return Loi("Chỉ mở đăng ký từ trạng thái Sắp diễn ra.");
+            GiaiDauDTO gd = dal.LayGiaiDau(maGiaiDau);
+            int soDoi = dal.DemDoiDaDuyet(maGiaiDau);
+            if (gd != null && gd.so_doi_toi_da.HasValue && soDoi >= gd.so_doi_toi_da.Value)
+                return Loi("Giải đấu đã đủ số lượng đội, không thể mở đăng ký");
             dal.CapNhatTrangThai(maGiaiDau, "mo_dang_ky");
             return Ok("Đã mở đăng ký.", null);
         }
@@ -131,8 +135,34 @@ namespace BUS
             if (!dal.LaBTC(maGiaiDau, maNguoiDung)) return Loi("Bạn không có quyền.");
             string tt = dal.LayTrangThai(maGiaiDau);
             if (tt != "khoa_dang_ky") return Loi("Chỉ mở lại từ trạng thái Khóa đăng ký.");
+            GiaiDauDTO gd = dal.LayGiaiDau(maGiaiDau);
+            int soDoi = dal.DemDoiDaDuyet(maGiaiDau);
+            if (gd != null && gd.so_doi_toi_da.HasValue && soDoi >= gd.so_doi_toi_da.Value)
+                return Loi("Giải đấu đã đủ số lượng đội, không thể mở đăng ký");
             dal.CapNhatTrangThai(maGiaiDau, "mo_dang_ky");
             return Ok("Đã mở lại đăng ký.", null);
+        }
+
+        public ApiResponseDTO ToggleRegistration(int maNguoiDung, ToggleRegistrationRequestDTO req)
+        {
+            if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
+            if (!dal.LaBTC(req.ma_giai_dau, maNguoiDung)) return Loi("Bạn không có quyền.");
+            string tt = dal.LayTrangThai(req.ma_giai_dau);
+
+            if (req.mo_dang_ky)
+            {
+                if (tt != "sap_dien_ra" && tt != "khoa_dang_ky") return Loi("Chỉ mở đăng ký từ trạng thái Sắp diễn ra hoặc Đã dừng đăng ký.");
+                GiaiDauDTO gd = dal.LayGiaiDau(req.ma_giai_dau);
+                int soDoi = dal.DemDoiDaDuyet(req.ma_giai_dau);
+                if (gd != null && gd.so_doi_toi_da.HasValue && soDoi >= gd.so_doi_toi_da.Value)
+                    return Loi("Giải đấu đã đủ số lượng đội, không thể mở đăng ký");
+                dal.ToggleRegistration(req.ma_giai_dau, true);
+                return Ok("Đã mở đăng ký.", null);
+            }
+
+            if (tt != "mo_dang_ky") return Loi("Chỉ dừng đăng ký khi giải đang mở đăng ký.");
+            dal.ToggleRegistration(req.ma_giai_dau, false);
+            return Ok("Đã dừng đăng ký.", null);
         }
 
         public ApiResponseDTO KhoiTranh(int maNguoiDung, int maGiaiDau)
@@ -144,7 +174,7 @@ namespace BUS
             int soDoi = dal.DemDoiDaDuyet(maGiaiDau);
             if (soDoi < gd.so_doi_toi_thieu)
                 return Loi("Chưa đủ số đội tối thiểu (" + gd.so_doi_toi_thieu + " đội). Hiện có " + soDoi + " đội.");
-            dal.CapNhatTrangThai(maGiaiDau, "dang_dien_ra");
+            dal.KhoiTranhVaSinhTran(maGiaiDau);
             return Ok("Đã khởi tranh giải đấu!", null);
         }
 
@@ -220,7 +250,10 @@ namespace BUS
                 giai_dau = gd,
                 giai_doan = dal.LayGiaiDoan(maGiaiDau),
                 doi_tham_gia = dal.LayDoiThamGia(maGiaiDau),
-                danh_sach_giai_thuong = dal.LayDanhSachGiaiThuong(maGiaiDau)
+                danh_sach_giai_thuong = dal.LayDanhSachGiaiThuong(maGiaiDau),
+                nhan_su = dal.LayNhanSu(maGiaiDau),
+                tran_dau = dal.LayTranDau(maGiaiDau),
+                bang_xep_hang = dal.LayBangXepHang(maGiaiDau)
             });
         }
 
@@ -327,6 +360,64 @@ namespace BUS
 
             dal.MoiNhanSu(req.ma_giai_dau, req.username_or_email, req.vai_tro, req.loi_nhan);
             return Ok("Đã gửi lời mời.", null);
+        }
+
+        public ApiResponseDTO LayThanhVienDoi(int maNguoiDung, int maTran, int maDoi)
+        {
+            if (!dal.DoiThuocTran(maTran, maDoi)) return Loi("Đội không thuộc trận đấu này.");
+            if (!dal.LaDoiTruong(maDoi, maNguoiDung)) return Loi("Chỉ đội trưởng mới được chốt đội hình.");
+            return Ok("Lấy danh sách thành viên thành công.", dal.LayThanhVienDoi(maDoi));
+        }
+
+        public ApiResponseDTO LayViTriTheoGiai(int maGiaiDau)
+        {
+            return Ok("Lấy danh sách vị trí thành công.", dal.LayViTriTheoGame(maGiaiDau));
+        }
+
+        public ApiResponseDTO SetupTranDau(int maNguoiDung, SetupTranDauRequestDTO req)
+        {
+            if (req == null || req.ma_tran <= 0) return Loi("Dữ liệu không hợp lệ.");
+            if (req.ma_trong_tai <= 0) return Loi("Vui lòng chọn trọng tài.");
+            if (string.IsNullOrWhiteSpace(req.the_thuc_tran)) return Loi("Vui lòng chọn thể thức trận.");
+            dal.SetupTranDau(req);
+            return Ok("Đã lưu cấu hình trận và gửi thông báo xác nhận.", null);
+        }
+
+        public ApiResponseDTO SubmitLineup(int maNguoiDung, SubmitLineupRequestDTO req)
+        {
+            if (req == null || req.ma_tran <= 0 || req.ma_doi <= 0) return Loi("Dữ liệu không hợp lệ.");
+            if (!dal.DoiThuocTran(req.ma_tran, req.ma_doi)) return Loi("Đội không thuộc trận đấu này.");
+            if (!dal.LaDoiTruong(req.ma_doi, maNguoiDung)) return Loi("Chỉ đội trưởng mới được gửi đội hình.");
+            if (req.thanh_vien == null || req.thanh_vien.Count == 0) return Loi("Vui lòng chọn đội hình xuất phát.");
+
+            string loaiGame = dal.LayLoaiGameTheoTran(req.ma_tran);
+            int required = (loaiGame == "MOBA" || loaiGame == "FPS") ? 5 : 0;
+            if (required > 0 && req.thanh_vien.Count != required) return Loi("Đội hình phải có đúng " + required + " người.");
+            if (loaiGame == "BATTLEROYALE" && req.thanh_vien.Count > 4) return Loi("Đội hình sinh tồn tối đa 4 người.");
+
+            dal.SubmitLineup(req);
+            return Ok("Đã gửi đội hình xuất phát.", null);
+        }
+
+        public ApiResponseDTO BatDauTran(int maNguoiDung, GiaiDauActionRequestDTO req)
+        {
+            if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
+            dal.BatDauTran(req.ma_giai_dau);
+            return Ok("Trận đấu đã bắt đầu.", null);
+        }
+
+        public ApiResponseDTO UpdateMatchStats(int maNguoiDung, UpdateMatchStatsRequestDTO req)
+        {
+            if (req == null || req.ma_tran <= 0) return Loi("Dữ liệu không hợp lệ.");
+            dal.UpdateMatchStats(req);
+            return Ok("Đã lưu kết quả ván đấu và cập nhật bảng xếp hạng.", null);
+        }
+
+        public ApiResponseDTO ChotKetQuaTran(int maNguoiDung, GiaiDauActionRequestDTO req)
+        {
+            if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
+            dal.ChotKetQuaTran(req.ma_giai_dau);
+            return Ok("Đã xác nhận kết thúc trận.", null);
         }
     }
 }

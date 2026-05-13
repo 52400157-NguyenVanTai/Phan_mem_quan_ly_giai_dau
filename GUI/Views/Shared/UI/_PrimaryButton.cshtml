@@ -1,0 +1,28 @@
+@{
+    var text = Convert.ToString(ViewData["Text"] ?? "Action");
+    var href = Convert.ToString(ViewData["Href"] ?? "");
+    var type = Convert.ToString(ViewData["Type"] ?? "button");
+    var icon = Convert.ToString(ViewData["Icon"] ?? "");
+    var extraClass = Convert.ToString(ViewData["Class"] ?? "");
+}
+
+@if (!string.IsNullOrWhiteSpace(href))
+{
+    <a class="notion-btn-primary @extraClass" href="@href">
+        @if (!string.IsNullOrWhiteSpace(icon))
+        {
+            <i class="fa-solid @icon" aria-hidden="true"></i>
+        }
+        <span>@text</span>
+    </a>
+}
+else
+{
+    <button class="notion-btn-primary @extraClass" type="@type">
+        @if (!string.IsNullOrWhiteSpace(icon))
+        {
+            <i class="fa-solid @icon" aria-hidden="true"></i>
+        }
+        <span>@text</span>
+    </button>
+}

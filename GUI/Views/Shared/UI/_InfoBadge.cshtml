@@ -1,0 +1,13 @@
+@{
+    var text = Convert.ToString(ViewData["Text"] ?? "Badge");
+    var icon = Convert.ToString(ViewData["Icon"] ?? "");
+    var extraClass = Convert.ToString(ViewData["Class"] ?? "");
+}
+
+<span class="notion-info-badge @extraClass">
+    @if (!string.IsNullOrWhiteSpace(icon))
+    {
+        <i class="fa-solid @icon" aria-hidden="true"></i>
+    }
+    <span>@text</span>
+</span>

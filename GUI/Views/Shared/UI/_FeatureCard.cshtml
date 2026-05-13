@@ -1,0 +1,23 @@
+@{
+    var title = Convert.ToString(ViewData["Title"] ?? "");
+    var body = Convert.ToString(ViewData["Body"] ?? "");
+    var icon = Convert.ToString(ViewData["Icon"] ?? "");
+    var tone = Convert.ToString(ViewData["Tone"] ?? "dark");
+    var extraClass = Convert.ToString(ViewData["Class"] ?? "");
+    var cardClass = tone == "light" ? "notion-card-light" : "notion-feature-card";
+}
+
+<article class="@cardClass @extraClass">
+    @if (!string.IsNullOrWhiteSpace(icon))
+    {
+        <i class="fa-solid @icon notion-card-icon" aria-hidden="true"></i>
+    }
+    @if (!string.IsNullOrWhiteSpace(title))
+    {
+        <h3 class="notion-type-heading-sm">@title</h3>
+    }
+    @if (!string.IsNullOrWhiteSpace(body))
+    {
+        <p class="notion-type-body-sm">@body</p>
+    }
+</article>

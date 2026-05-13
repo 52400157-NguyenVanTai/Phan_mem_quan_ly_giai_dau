@@ -30,12 +30,14 @@
   };
 
   var FORMAT_LABELS = {
-    loai_truc_tiep: "Single Elimination",
-    nhanh_thang_nhanh_thua: "Double Elimination",
-    vong_tron: "Round Robin",
-    thuy_si: "Swiss",
-    battle_royale: "Battle Royale",
+    loai_truc_tiep: "Loại trực tiếp",
+    nhanh_thang_nhanh_thua: "Nhánh thắng nhánh thua",
+    vong_tron: "Vòng tròn tính điểm",
+    vong_tron_tinh_diem: "Vòng tròn tính điểm",
+    thuy_si: "Thụy Sĩ",
+    battle_royale: "Sinh tồn",
     champion_rush: "Champion Rush",
+    league_bang_cheo: "League bảng chéo",
   };
 
   var currentRejectId = null;
@@ -225,11 +227,11 @@
         '<div class="form-group"><label>Thể thức *</label>' +
           '<select class="form-control stage-format">' +
             '<option value="">Chọn...</option>' +
-            '<option value="loai_truc_tiep">Single Elimination</option>' +
-            '<option value="nhanh_thang_nhanh_thua">Double Elimination</option>' +
-            '<option value="vong_tron">Round Robin</option>' +
-            '<option value="thuy_si">Swiss</option>' +
-            '<option value="battle_royale">Battle Royale</option>' +
+            '<option value="loai_truc_tiep">Loại trực tiếp</option>' +
+            '<option value="nhanh_thang_nhanh_thua">Nhánh thắng nhánh thua</option>' +
+            '<option value="vong_tron">Vòng tròn tính điểm</option>' +
+            '<option value="thuy_si">Thụy Sĩ</option>' +
+            '<option value="battle_royale">Sinh tồn</option>' +
             '<option value="champion_rush">Champion Rush</option>' +
           '</select></div>' +
       '</div>' +

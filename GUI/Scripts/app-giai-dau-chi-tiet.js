@@ -23,19 +23,75 @@
     };
 
     const FORMAT_LABELS = {
-        loai_truc_tiep: "Single Elimination",
-        nhanh_thang_nhanh_thua: "Double Elimination",
-        vong_tron: "Round Robin",
-        thuy_si: "Swiss",
-        battle_royale: "Battle Royale",
+        loai_truc_tiep: "Loại trực tiếp",
+        nhanh_thang_nhanh_thua: "Nhánh thắng nhánh thua",
+        vong_tron: "Vòng tròn tính điểm",
+        vong_tron_tinh_diem: "Vòng tròn tính điểm",
+        thuy_si: "Thụy Sĩ",
+        battle_royale: "Sinh tồn",
         champion_rush: "Champion Rush",
+        league_bang_cheo: "League bảng chéo",
+    };
+
+    const MATCH_STATE_LABELS = {
+        chua_dau: "Chưa đấu",
+        chuan_bi: "Chuẩn bị",
+        san_sang: "Sẵn sàng",
+        dang_dau: "Đang thi đấu",
+        dang_thi_dau: "Đang thi đấu",
+        cho_ket_qua: "Chờ kết quả",
+        da_hoan_thanh: "Đã hoàn thành",
+        huy_bo: "Hủy bỏ",
+        bye: "BYE"
     };
 
     // INIT
     async function init() {
+        ensureOperationTabs();
         await loadTournamentDetail();
         setupTabs();
         setupInviteModal();
+    }
+
+    function ensureOperationTabs() {
+        const tabs = document.querySelector(".hub-tabs");
+        const wrapper = document.querySelector(".hub-tab-content-wrapper");
+        if (!tabs || !wrapper || document.querySelector('[data-tab="operators"]')) return;
+
+        const scheduleBtn = document.querySelector('[data-tab="schedule"]');
+        const insertBefore = scheduleBtn || document.querySelector('[data-tab="rules"]');
+        [
+            { tab: "operators", text: "BAN ĐIỀU HÀNH" },
+            { tab: "standings", text: "BẢNG XẾP HẠNG", live: true },
+        ].forEach(item => {
+            const btn = document.createElement("button");
+            btn.className = "hub-tab-btn" + (item.live ? " live-only" : "");
+            btn.dataset.tab = item.tab;
+            btn.textContent = item.text;
+            if (item.live) btn.style.display = "none";
+            tabs.insertBefore(btn, insertBefore);
+        });
+        if (scheduleBtn) {
+            scheduleBtn.classList.add("live-only");
+            scheduleBtn.style.display = "none";
+        }
+
+        const operatorsPane = document.createElement("div");
+        operatorsPane.className = "hub-tab-pane";
+        operatorsPane.id = "pane-operators";
+        operatorsPane.innerHTML = '<div class="operators-grid" id="operatorsGrid"></div>';
+        wrapper.insertBefore(operatorsPane, document.getElementById("pane-schedule"));
+
+        const standingsPane = document.createElement("div");
+        standingsPane.className = "hub-tab-pane";
+        standingsPane.id = "pane-standings";
+        standingsPane.innerHTML = '<div class="standings-table" id="standingsTable"></div>';
+        wrapper.insertBefore(standingsPane, document.getElementById("pane-schedule"));
+
+        const schedulePane = document.getElementById("pane-schedule");
+        if (schedulePane && !document.getElementById("matchList")) {
+            schedulePane.innerHTML = '<div class="match-list" id="matchList"></div>';
+        }
     }
 
     async function loadTournamentDetail() {
@@ -100,6 +156,11 @@
             <span class="hub-badge badge-format">${FORMAT_LABELS[gd.the_thuc] || "Tournament"}</span>
             <span class="hub-badge badge-status">${STATE_LABELS[gd.trang_thai] || gd.trang_thai}</span>
         `;
+
+        const isLive = gd.trang_thai === "dang_dien_ra" || gd.trang_thai === "ket_thuc";
+        document.querySelectorAll(".live-only").forEach(el => {
+            el.style.display = isLive ? "" : "none";
+        });
 
         // Meta
         document.getElementById("hubViews").innerHTML = `<i class="far fa-eye"></i> ${Math.floor(Math.random() * 1000) + 100} lượt xem`;
@@ -180,11 +241,13 @@
                 if (gd.dang_mo_dang_ky) {
                     toggleRegBtn.className = "hub-btn-warning";
                     toggleRegBtn.textContent = "ĐÓNG ĐĂNG KÝ / CHỐT SỔ";
-                    toggleRegBtn.onclick = () => handleAction("close-reg", maGiaiDau);
+                    toggleRegBtn.textContent = "DUNG DANG KY";
+                    toggleRegBtn.onclick = () => handleAction("toggle-reg", maGiaiDau, { mo_dang_ky: false });
                 } else {
                     toggleRegBtn.className = "hub-btn-primary";
                     toggleRegBtn.textContent = "MỞ ĐĂNG KÝ";
-                    toggleRegBtn.onclick = () => handleAction("open-reg", maGiaiDau);
+                    toggleRegBtn.textContent = "MO DANG KY";
+                    toggleRegBtn.onclick = () => handleAction("toggle-reg", maGiaiDau, { mo_dang_ky: true });
                 }
                 adminBox.appendChild(toggleRegBtn);
             }
@@ -214,8 +277,10 @@
             if (tt === "sap_dien_ra" || tt === "mo_dang_ky" || tt === "khoa_dang_ky") {
                 const startBtn = document.createElement("button");
                 startBtn.className = "hub-btn-outline";
+                startBtn.textContent = "KHOI TRANH GIAI DAU";
                 startBtn.textContent = "KHỞI TRANH GIẢI ĐẤU";
                 startBtn.onclick = () => alert("Chức năng Khởi Tranh đang được hoàn thiện.");
+                startBtn.onclick = () => handleAction("start", maGiaiDau);
                 adminBox.appendChild(startBtn);
             }
 
@@ -254,6 +319,10 @@
 
         if (tab === "info") renderInfoTab();
         if (tab === "teams") renderTeamsTab();
+        if (tab === "operators") renderOperatorsTab();
+        if (tab === "standings") renderStandingsTab();
+        if (tab === "schedule") renderScheduleTab();
+        if (tab === "bracket") renderScheduleTab();
         if (tab === "rules") renderRulesTab();
     }
 
@@ -288,7 +357,7 @@
         }
 
         container.innerHTML = teams.map(t => `
-            <div class="hub-team-card">
+            <div class="hub-team-card" role="button" tabindex="0" onclick="window.location.href='/Doi/ChiTiet/${t.ma_nhom}'">
                 <div class="hub-team-logo">
                     ${t.logo_url ? `<img src="${t.logo_url}" alt="Logo">` : `<div class="logo-placeholder" style="font-size: 1.5rem;"><i class="fas fa-users"></i></div>`}
                 </div>
@@ -298,6 +367,152 @@
         `).join("");
     }
 
+    function renderOperatorsTab() {
+        const people = tournamentData.nhan_su || [];
+        const container = document.getElementById("operatorsGrid");
+        if (!container) return;
+        const btc = people.filter(x => x.vai_tro_giai === "ban_to_chuc");
+        const refs = people.filter(x => x.vai_tro_giai === "trong_tai");
+        container.innerHTML = [renderPeopleList("Ban Tổ Chức (BTC)", btc), renderPeopleList("Trọng Tài", refs)].join("");
+    }
+
+    function renderPeopleList(title, items) {
+        const body = items.length ? items.map(p => `
+            <div class="operator-row">
+                <img class="operator-avatar" src="${p.avatar_url || "/Content/images/default-avatar.png"}" onerror="this.style.display='none'" alt="">
+                <div>
+                    <strong>${escapeHtml(p.ten_dang_nhap)}</strong>
+                    <div class="muted">${escapeHtml(p.email || "")}</div>
+                </div>
+            </div>
+        `).join("") : '<div class="empty-state">Chưa có nhân sự.</div>';
+        return `<section class="operator-section"><h3 class="block-title">${title}</h3>${body}</section>`;
+    }
+
+    function renderStandingsTab() {
+        const rows = tournamentData.bang_xep_hang || [];
+        const container = document.getElementById("standingsTable");
+        if (!container) return;
+        if (!rows.length) {
+            container.innerHTML = '<div class="empty-state">Bảng xếp hạng sẽ xuất hiện sau khi khởi tranh.</div>';
+            return;
+        }
+        container.innerHTML = `
+            <table class="table">
+                <thead><tr><th>#</th><th>Đội</th><th>Trận</th><th>Thắng</th><th>Thua</th><th>Điểm</th></tr></thead>
+                <tbody>${rows.map((r, i) => `
+                    <tr>
+                        <td>${r.thu_hang_hien_tai || i + 1}</td>
+                        <td>${escapeHtml(r.ten_doi)}</td>
+                        <td>${r.so_tran_da_dau}</td>
+                        <td>${r.so_tran_thang}</td>
+                        <td>${r.so_tran_thua}</td>
+                        <td>${r.diem_tong_ket}</td>
+                    </tr>
+                `).join("")}</tbody>
+            </table>`;
+    }
+
+    function renderScheduleTab() {
+        const matches = tournamentData.tran_dau || [];
+        const container = document.getElementById("matchList") || document.querySelector("#pane-bracket");
+        if (!container) return;
+        if (!matches.length) {
+            container.innerHTML = '<div class="empty-state">Lịch thi đấu sẽ hiển thị khi giải đấu bắt đầu.</div>';
+            return;
+        }
+        const isBTC = tournamentData.giai_dau.is_btc || tournamentData.giai_dau.ma_nguoi_tao === parseInt(hub.dataset.userId);
+        container.innerHTML = matches.map(m => {
+            const teams = (m.chi_tiet || []).map(c => escapeHtml(c.ten_doi)).join(" vs ");
+            const canStart = isBTC && m.trang_thai === "san_sang";
+            const canComplete = isBTC && (m.trang_thai === "dang_thi_dau" || m.trang_thai === "cho_ket_qua");
+            return `
+                <article class="match-card" data-match-id="${m.ma_tran}">
+                    <div>
+                        <div class="match-title">${escapeHtml(m.vong_dau || m.ten_giai_doan || "Trận đấu")}</div>
+                        <div class="match-teams">${teams || "Đang chờ đội"}</div>
+                        <div class="muted">Trọng tài: ${escapeHtml(m.ten_trong_tai || "Chưa chọn")} · ${MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai}</div>
+                    </div>
+                    <div class="match-actions">
+                        ${isBTC ? `<button class="hub-btn-outline js-setup-match" data-id="${m.ma_tran}">Chuẩn bị</button>` : ""}
+                        ${canStart ? `<button class="hub-btn-primary js-start-match" data-id="${m.ma_tran}">Bắt đầu trận</button>` : ""}
+                        ${m.trang_thai === "dang_thi_dau" ? `<button class="hub-btn-outline js-stats-match" data-id="${m.ma_tran}">Ghi kết quả</button>` : ""}
+                        ${canComplete ? `<button class="hub-btn-warning js-complete-match" data-id="${m.ma_tran}">Xác nhận kết thúc</button>` : ""}
+                    </div>
+                </article>`;
+        }).join("");
+
+        container.querySelectorAll(".js-setup-match").forEach(btn => btn.onclick = () => openSetupMatchModal(parseInt(btn.dataset.id)));
+        container.querySelectorAll(".js-start-match").forEach(btn => btn.onclick = () => postMatchAction("/GiaiDauApi/StartMatch", parseInt(btn.dataset.id)));
+        container.querySelectorAll(".js-complete-match").forEach(btn => btn.onclick = () => postMatchAction("/GiaiDauApi/CompleteMatch", parseInt(btn.dataset.id)));
+        container.querySelectorAll(".js-stats-match").forEach(btn => btn.onclick = () => openStatsModal(parseInt(btn.dataset.id)));
+    }
+
+    async function postMatchAction(url, maTran) {
+        const result = await postApi(url, { ma_giai_dau: maTran });
+        notify(result.message || "Đã xử lý.");
+        if (result.success) await loadTournamentDetail();
+    }
+
+    async function openSetupMatchModal(maTran) {
+        const refs = (tournamentData.nhan_su || []).filter(x => x.vai_tro_giai === "trong_tai");
+        if (!refs.length) {
+            notify("Chưa có trọng tài trong giải.");
+            return;
+        }
+        const refText = refs.map(r => `${r.ma_nguoi_dung}: ${r.ten_dang_nhap}`).join("\n");
+        const maTrongTai = parseInt(prompt("Chọn trọng tài bằng ID:\n" + refText, refs[0].ma_nguoi_dung));
+        if (!maTrongTai) return;
+        const gameName = (tournamentData.giai_dau.ten_game || "").toLowerCase();
+        const isBR = gameName.indexOf("pubg") >= 0 || gameName.indexOf("free fire") >= 0;
+        const format = isBR ? "SinhTon" : (prompt("Thể thức trận: BO1, BO3, BO5, BO7", "BO1") || "BO1");
+        const rounds = isBR ? parseInt(prompt("Số lượng game/map", "5")) : null;
+        const result = await postApi("/GiaiDauApi/SetupMatch", {
+            ma_tran: maTran,
+            ma_trong_tai: maTrongTai,
+            the_thuc_tran: format,
+            so_vong: rounds
+        });
+        notify(result.message);
+        if (result.success) await loadTournamentDetail();
+    }
+
+    async function openStatsModal(maTran) {
+        const match = (tournamentData.tran_dau || []).find(x => x.ma_tran === maTran);
+        if (!match) return;
+        const players = match.nguoi_choi || [];
+        if (!players.length) {
+            notify("Chưa có đội hình thi đấu để nhập KDA.");
+            return;
+        }
+        const teamText = (match.chi_tiet || []).map(t => `${t.ma_nhom}: ${t.ten_doi}`).join("\n");
+        const winner = teamText ? parseInt(prompt("Nhập ID đội thắng:\n" + teamText, match.chi_tiet[0].ma_nhom)) : null;
+        const payload = {
+            ma_tran: maTran,
+            ma_doi_thang: winner,
+            nguoi_choi: players.map(p => {
+                const raw = prompt(`K/D/A cho ${p.ten_dang_nhap} (${p.ten_vi_tri || ""})`, `${p.so_kill || 0}/${p.so_death || 0}/${p.so_assist || 0}`);
+                const parts = String(raw || "0/0/0").split(/[\\/,-]/).map(x => parseInt(x, 10) || 0);
+                return {
+                    ma_nguoi_dung: p.ma_nguoi_dung,
+                    so_kill: parts[0] || 0,
+                    so_death: parts[1] || 0,
+                    so_assist: parts[2] || 0,
+                    is_mvp_tran: false
+                };
+            })
+        };
+        const mvp = parseInt(prompt("ID người chơi MVP:\n" + players.map(p => `${p.ma_nguoi_dung}: ${p.ten_dang_nhap}`).join("\n"), players[0].ma_nguoi_dung));
+        payload.nguoi_choi.forEach(p => p.is_mvp_tran = p.ma_nguoi_dung === mvp);
+        const result = await postApi("/GiaiDauApi/UpdateMatchStats", payload);
+        notify(result.message);
+        if (result.success) await loadTournamentDetail();
+    }
+
+    function notify(message) {
+        alert(message || "Da xu ly.");
+    }
+
     function renderRulesTab() {
         const gd = tournamentData.giai_dau;
         const container = document.getElementById("rulesContent");
@@ -305,7 +520,7 @@
     }
 
     // ACTIONS HELPERS
-    async function handleAction(action, id) {
+    async function handleAction(action, id, extraPayload) {
         const confirmMessages = {
             "close-reg": "Chốt sổ đăng ký ngay bây giờ?",
             "open-reg": "Bạn muốn mở đăng ký cho giải đấu này?",
@@ -314,18 +529,22 @@
         if (action === "cancel" && tournamentData && tournamentData.giai_dau && tournamentData.giai_dau.trang_thai === "sap_dien_ra") {
             confirmMessages.cancel = "Hủy giải đấu sắp diễn ra? Giải đấu sẽ bị xóa hoàn toàn khỏi database.";
         }
+        confirmMessages["toggle-reg"] = extraPayload && extraPayload.mo_dang_ky ? "Mo dang ky cho giai dau nay?" : "Dung dang ky giai dau nay?";
+        confirmMessages["start"] = "Khoi tranh giai dau va sinh lich thi dau tu dong?";
         if (confirmMessages[action] && !confirm(confirmMessages[action])) return;
 
         const endpoints = {
             "close-reg": "/GiaiDauApi/CloseRegistration",
             "open-reg": "/GiaiDauApi/OpenRegistration",
+            "toggle-reg": "/GiaiDauApi/ToggleRegistration",
+            "start": "/GiaiDauApi/Start",
             "cancel": "/GiaiDauApi/Cancel",
         };
 
         if (!endpoints[action]) return;
 
-        const result = await postApi(endpoints[action], { ma_giai_dau: id });
-        alert(result.message);
+        const result = await postApi(endpoints[action], Object.assign({ ma_giai_dau: id }, extraPayload || {}));
+        notify(result.message);
         
         if (result.success) {
             if (action === "cancel") {
@@ -339,6 +558,14 @@
             if (action === "close-reg") {
                 tournamentData.giai_dau.dang_mo_dang_ky = false;
                 tournamentData.giai_dau.trang_thai = "khoa_dang_ky";
+            }
+            if (action === "toggle-reg") {
+                tournamentData.giai_dau.dang_mo_dang_ky = !!(extraPayload && extraPayload.mo_dang_ky);
+                tournamentData.giai_dau.trang_thai = tournamentData.giai_dau.dang_mo_dang_ky ? "mo_dang_ky" : "khoa_dang_ky";
+            }
+            if (action === "start") {
+                await loadTournamentDetail();
+                return;
             }
             renderHeader(); // Cập nhật badge trạng thái
             renderActions(); // Re-render các nút

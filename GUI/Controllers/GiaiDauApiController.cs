@@ -84,11 +84,71 @@ namespace GUI.Controllers
         }
 
         [HttpPost]
+        public JsonResult ToggleRegistration(ToggleRegistrationRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.ToggleRegistration(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
+        }
+
+        [HttpPost]
         public JsonResult Start(GiaiDauActionRequestDTO request)
         {
             int? userId = Session["UserId"] as int?;
             if (!userId.HasValue) return Json(ChuaDangNhap());
             return Json(bus.KhoiTranh(userId.Value, request.ma_giai_dau));
+        }
+
+        [HttpPost]
+        public JsonResult SetupMatch(SetupTranDauRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.SetupTranDau(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
+        }
+
+        [HttpPost]
+        public JsonResult StartMatch(GiaiDauActionRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.BatDauTran(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
+        }
+
+        [HttpPost]
+        public JsonResult SubmitMatchLineup(SubmitLineupRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.SubmitLineup(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
+        }
+
+        [HttpPost]
+        public JsonResult UpdateMatchStats(UpdateMatchStatsRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.UpdateMatchStats(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
+        }
+
+        [HttpPost]
+        public JsonResult CompleteMatch(GiaiDauActionRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.ChotKetQuaTran(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
         }
 
         [HttpPost]
@@ -139,6 +199,34 @@ namespace GUI.Controllers
             {
                 int? userId = Session["UserId"] as int?;
                 return Json(bus.LayChiTiet(maGiaiDau, userId), JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(LoiHeThong(ex), JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public JsonResult TeamMembersForMatch(int maTran, int maDoi)
+        {
+            try
+            {
+                int? userId = Session["UserId"] as int?;
+                if (!userId.HasValue) return Json(ChuaDangNhap(), JsonRequestBehavior.AllowGet);
+                return Json(bus.LayThanhVienDoi(userId.Value, maTran, maDoi), JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(LoiHeThong(ex), JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public JsonResult Positions(int maGiaiDau)
+        {
+            try
+            {
+                return Json(bus.LayViTriTheoGiai(maGiaiDau), JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
