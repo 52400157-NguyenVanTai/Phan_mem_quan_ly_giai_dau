@@ -297,8 +297,20 @@ namespace DTO
         public int? ma_doi_thua { get; set; }
         public int? ty_so_doi_1 { get; set; }
         public int? ty_so_doi_2 { get; set; }
+        public int so_van { get; set; }
+        public List<GameResultDTO> games { get; set; }
         public List<PlayerStatsDTO> nguoi_choi { get; set; }
         public List<KetQuaDoiBRDTO> ket_qua_br { get; set; }
+    }
+
+    public class GameResultDTO
+    {
+        public int so_van { get; set; }
+        public int ma_doi_1 { get; set; }
+        public int ma_doi_2 { get; set; }
+        public int ma_doi_thang { get; set; }
+        public int kill_doi_1 { get; set; }
+        public int kill_doi_2 { get; set; }
     }
 
     public class PlayerStatsDTO

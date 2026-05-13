@@ -36,6 +36,7 @@
 
     const MATCH_STATE_LABELS = {
         chua_dau: "Chưa đấu",
+        chuan_bi: "Chuẩn bị",
         san_sang: "Sẵn sàng",
         dang_dau: "Đang thi đấu",
         cho_ket_qua: "Chờ kết quả",
@@ -490,29 +491,29 @@
 
     function renderBracketMatch(m, isBTC) {
         const teams = m.chi_tiet || [];
+        const canSetup = isBTC && (m.trang_thai === "chua_dau" || m.trang_thai === "chuan_bi");
         const next = m.ma_tran_tiep_theo_thang ? '<div class="bracket-next">Thang -> #' + m.ma_tran_tiep_theo_thang + '</div>' : "";
         return '<article class="bracket-match" data-match-id="' + m.ma_tran + '">' +
             '<div class="bracket-match-code">#' + m.ma_tran + '</div>' +
             '<div class="bracket-team">' + escapeHtml(teams[0] && teams[0].ten_doi || "Cho doi thang") + '</div>' +
             '<div class="bracket-team">' + escapeHtml(teams[1] && teams[1].ten_doi || "Cho doi thang") + '</div>' +
             '<div class="muted">' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div>' + next +
-            '<div class="match-actions bracket-actions">' + (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") + '</div>' +
+            '<div class="match-actions bracket-actions">' + (canSetup ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") + '</div>' +
             '</article>';
     }
 
     function renderMatchCard(m, isBTC) {
         const teams = (m.chi_tiet || []).map(c => escapeHtml(c.ten_doi)).join(" vs ");
+        const canSetup = isBTC && (m.trang_thai === "chua_dau" || m.trang_thai === "chuan_bi");
         const canStart = isBTC && m.trang_thai === "san_sang";
-        const canComplete = isBTC && (m.trang_thai === "dang_dau" || m.trang_thai === "cho_ket_qua");
         return '<article class="match-card" data-match-id="' + m.ma_tran + '"><div>' +
             '<div class="match-title">' + escapeHtml(m.vong_dau || m.ten_giai_doan || "Tran dau") + '</div>' +
             '<div class="match-teams">' + (teams || "Dang cho doi") + '</div>' +
             '<div class="muted">Trọng tài: ' + escapeHtml(m.ten_trong_tai || "Chưa chọn") + ' · ' + escapeHtml(MATCH_STATE_LABELS[m.trang_thai] || m.trang_thai) + '</div></div>' +
             '<div class="match-actions">' +
-            (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuẩn bị</button>' : "") +
+            (canSetup ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuẩn bị</button>' : "") +
             (canStart ? '<button class="hub-btn-primary js-start-match" data-id="' + m.ma_tran + '">Bắt đầu trận</button>' : "") +
             (m.trang_thai === "dang_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi kết quả</button>' : "") +
-            (canComplete ? '<button class="hub-btn-warning js-complete-match" data-id="' + m.ma_tran + '">Xác nhận kết thúc</button>' : "") +
             '</div></article>';
     }
 
@@ -614,33 +615,66 @@
     async function openStatsModal(maTran) {
         const match = (tournamentData.tran_dau || []).find(x => x.ma_tran === maTran);
         if (!match) return;
-        const players = match.nguoi_choi || [];
-        if (!players.length) {
-            notify("Chưa có đội hình thi đấu để nhập KDA.");
+        if (match.trang_thai === "da_hoan_thanh") {
+            notify("Tran dau da ket thuc.");
             return;
         }
-        const teamText = (match.chi_tiet || []).map(t => `${t.ma_nhom}: ${t.ten_doi}`).join("\n");
-        const winner = teamText ? parseInt(prompt("Nhập ID đội thắng:\n" + teamText, match.chi_tiet[0].ma_nhom)) : null;
-        const payload = {
-            ma_tran: maTran,
-            ma_doi_thang: winner,
-            nguoi_choi: players.map(p => {
-                const raw = prompt(`K/D/A cho ${p.ten_dang_nhap} (${p.ten_vi_tri || ""})`, `${p.so_kill || 0}/${p.so_death || 0}/${p.so_assist || 0}`);
-                const parts = String(raw || "0/0/0").split(/[\\/,-]/).map(x => parseInt(x, 10) || 0);
-                return {
-                    ma_nguoi_dung: p.ma_nguoi_dung,
-                    so_kill: parts[0] || 0,
-                    so_death: parts[1] || 0,
-                    so_assist: parts[2] || 0,
-                    is_mvp_tran: false
-                };
-            })
-        };
-        const mvp = parseInt(prompt("ID người chơi MVP:\n" + players.map(p => `${p.ma_nguoi_dung}: ${p.ten_dang_nhap}`).join("\n"), players[0].ma_nguoi_dung));
-        payload.nguoi_choi.forEach(p => p.is_mvp_tran = p.ma_nguoi_dung === mvp);
-        const result = await postApi("/GiaiDauApi/UpdateMatchStats", payload);
+        const teams = match.chi_tiet || [];
+        if (!teams.length) {
+            notify("Tran dau chua co doi tham gia.");
+            return;
+        }
+        const isBR = match.the_thuc_tran === "SinhTon";
+        const payload = isBR ? buildBattleRoyaleResultPayload(match, teams) : buildBoResultPayload(match, teams);
+        if (!payload) return;
+        if (willCompleteMatch(match, payload) && !confirm("Canh bao: Luu ket qua nay se ket thuc tran dau. Ban co chac du lieu da chinh xac?")) return;
+        const result = await postApi("/GiaiDauApi/SaveMatchResults", payload);
         notify(result.message);
-        if (result.success) await loadTournamentDetail();
+        const data = getResponseData(result);
+        if (result.success) {
+            if (data && data.match_completed) notify("Tran dau da ket thuc.");
+            await loadTournamentDetail();
+        }
+    }
+
+    function buildBoResultPayload(match, teams) {
+        if (teams.length < 2) { notify("Tran BO can 2 doi."); return null; }
+        const bo = parseBoCount(match.the_thuc_tran || "BO1");
+        const played = parseInt(prompt("Nhap so van da co ket qua", "1"), 10) || 1;
+        const games = [];
+        const teamText = teams.map(t => t.ma_nhom + ": " + t.ten_doi).join("\n");
+        for (let i = 1; i <= played; i++) {
+            const winner = parseInt(prompt("Game " + i + " - ID doi thang:\n" + teamText, teams[0].ma_nhom), 10);
+            if (!winner) return null;
+            const kill1 = parseInt(prompt("Game " + i + " - Kills " + teams[0].ten_doi, "0"), 10) || 0;
+            const kill2 = parseInt(prompt("Game " + i + " - Kills " + teams[1].ten_doi, "0"), 10) || 0;
+            games.push({ so_van: i, ma_doi_1: teams[0].ma_nhom, ma_doi_2: teams[1].ma_nhom, ma_doi_thang: winner, kill_doi_1: kill1, kill_doi_2: kill2 });
+        }
+        return { ma_tran: match.ma_tran, so_van: played, games: games };
+    }
+
+    function buildBattleRoyaleResultPayload(match, teams) {
+        const mapNo = parseInt(prompt("Nhap so map/van", "1"), 10) || 1;
+        const rows = teams.map(t => {
+            const rank = parseInt(prompt("Hang cua " + t.ten_doi, "1"), 10);
+            const kills = parseInt(prompt("Kills cua " + t.ten_doi, "0"), 10) || 0;
+            return { ma_nhom: t.ma_nhom, thu_hang: rank, so_kill: kills };
+        });
+        if (rows.some(r => !r.thu_hang)) return null;
+        return { ma_tran: match.ma_tran, so_van: mapNo, ket_qua_br: rows };
+    }
+
+    function parseBoCount(format) {
+        const found = String(format || "BO1").match(/BO(\d+)/i);
+        return found ? parseInt(found[1], 10) : 1;
+    }
+
+    function willCompleteMatch(match, payload) {
+        if (match.the_thuc_tran === "SinhTon") return payload.so_van >= (match.so_vong || 1);
+        const target = Math.floor(parseBoCount(match.the_thuc_tran) / 2) + 1;
+        const wins = {};
+        (payload.games || []).forEach(g => { wins[g.ma_doi_thang] = (wins[g.ma_doi_thang] || 0) + 1; });
+        return Object.keys(wins).some(k => wins[k] >= target);
     }
 
     function notify(message) {

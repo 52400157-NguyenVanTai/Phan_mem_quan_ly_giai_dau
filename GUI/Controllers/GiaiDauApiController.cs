@@ -144,6 +144,16 @@ namespace GUI.Controllers
         }
 
         [HttpPost]
+        public JsonResult SaveMatchResults(UpdateMatchStatsRequestDTO request)
+        {
+            int? userId = Session["UserId"] as int?;
+            if (!userId.HasValue) return Json(ChuaDangNhap());
+            var result = bus.SaveMatchResults(userId.Value, request);
+            if (!result.success) Response.StatusCode = 400;
+            return Json(result);
+        }
+
+        [HttpPost]
         public JsonResult CompleteMatch(GiaiDauActionRequestDTO request)
         {
             int? userId = Session["UserId"] as int?;

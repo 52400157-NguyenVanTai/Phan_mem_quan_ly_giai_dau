@@ -434,6 +434,14 @@ namespace BUS
             return Ok("Đã gửi kết quả trận đấu cho Ban tổ chức xác nhận.", null);
         }
 
+        public ApiResponseDTO SaveMatchResults(int maNguoiDung, UpdateMatchStatsRequestDTO req)
+        {
+            if (req == null || req.ma_tran <= 0) return Loi("Du lieu khong hop le.");
+            if (!dal.LaTrongTaiCuaTranDaXacNhan(req.ma_tran, maNguoiDung)) return Loi("Ban chua duoc xac nhan dieu hanh tran dau nay.");
+            bool completed = dal.SaveMatchResults(req);
+            return Ok(completed ? "Da luu ket qua va ket thuc tran dau." : "Da luu ket qua van dau.", new { match_completed = completed });
+        }
+
         public ApiResponseDTO ChotKetQuaTran(int maNguoiDung, GiaiDauActionRequestDTO req)
         {
             int maTran = req == null ? 0 : (req.ma_tran > 0 ? req.ma_tran : req.ma_giai_dau);

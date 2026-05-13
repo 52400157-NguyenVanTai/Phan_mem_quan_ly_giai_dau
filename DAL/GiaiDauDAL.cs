@@ -1371,7 +1371,7 @@ namespace DAL
                 {
                     using (var cmd = new SqlCommand(@"
                         UPDATE TRAN_DAU
-                        SET ma_trong_tai=@ref, the_thuc_tran=@format, so_vong=@soVong, trang_thai='chua_dau'
+                        SET ma_trong_tai=@ref, the_thuc_tran=@format, so_vong=@soVong, trang_thai='chuan_bi'
                         WHERE ma_tran=@tran", conn, tx))
                     {
                         cmd.Parameters.AddWithValue("@tran", req.ma_tran);
@@ -1576,6 +1576,247 @@ namespace DAL
             }
         }
 
+        public bool SaveMatchResults(UpdateMatchStatsRequestDTO req)
+        {
+            using (var conn = DbConnectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var tx = conn.BeginTransaction())
+                {
+                    EnsureKetQuaVanDauTable(conn, tx);
+
+                    string format;
+                    int soVong;
+                    using (var cmd = new SqlCommand("SELECT the_thuc_tran, ISNULL(so_vong, 1) FROM TRAN_DAU WHERE ma_tran=@tran", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        using (var r = cmd.ExecuteReader())
+                        {
+                            if (!r.Read()) throw new InvalidOperationException("Khong tim thay tran dau.");
+                            format = r.GetString(0);
+                            soVong = r.GetInt32(1);
+                        }
+                    }
+
+                    bool isBattleRoyale = string.Equals(format, "SinhTon", StringComparison.OrdinalIgnoreCase);
+                    bool completed = isBattleRoyale
+                        ? SaveBattleRoyaleResults(conn, tx, req, soVong)
+                        : SaveBoResults(conn, tx, req, soVong);
+
+                    UpdatePlayerStatsInTransaction(conn, tx, req.ma_tran, req.nguoi_choi);
+                    RebuildBangXepHang(conn, tx, req.ma_tran);
+
+                    using (var cmd = new SqlCommand(@"
+                        IF EXISTS (SELECT 1 FROM KET_QUA_TRAN WHERE ma_tran=@tran)
+                            UPDATE KET_QUA_TRAN SET so_lan_chinh_sua=so_lan_chinh_sua+1, thoi_gian_sua_cuoi=GETDATE() WHERE ma_tran=@tran
+                        ELSE
+                            INSERT INTO KET_QUA_TRAN(ma_tran, chi_tiet_phu) VALUES(@tran, N'{}')", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    using (var cmd = new SqlCommand("UPDATE TRAN_DAU SET trang_thai=@tt WHERE ma_tran=@tran", conn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                        cmd.Parameters.AddWithValue("@tt", completed ? "da_hoan_thanh" : "dang_dau");
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
+                    return completed;
+                }
+            }
+        }
+
+        private void UpdatePlayerStatsInTransaction(SqlConnection conn, SqlTransaction tx, int maTran, List<PlayerStatsDTO> players)
+        {
+            if (players == null || players.Count == 0) return;
+
+            using (var cmd = new SqlCommand("UPDATE CHI_TIET_NGUOI_CHOI_TRAN SET is_mvp_tran=0 WHERE ma_tran=@tran", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                cmd.ExecuteNonQuery();
+            }
+
+            foreach (var p in players)
+            {
+                using (var cmd = new SqlCommand(@"
+                    UPDATE CHI_TIET_NGUOI_CHOI_TRAN
+                    SET so_kill=@k, so_death=@d, so_assist=@a,
+                        diem_kda_tran=CAST((@k + @a) AS FLOAT) / CASE WHEN @d < 1 THEN 1 ELSE @d END,
+                        is_mvp_tran=@mvp
+                    WHERE ma_tran=@tran AND ma_nguoi_dung=@nd", conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("@tran", maTran);
+                    cmd.Parameters.AddWithValue("@nd", p.ma_nguoi_dung);
+                    cmd.Parameters.AddWithValue("@k", p.so_kill);
+                    cmd.Parameters.AddWithValue("@d", p.so_death);
+                    cmd.Parameters.AddWithValue("@a", p.so_assist);
+                    cmd.Parameters.AddWithValue("@mvp", p.is_mvp_tran);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private void EnsureKetQuaVanDauTable(SqlConnection conn, SqlTransaction tx)
+        {
+            using (var cmd = new SqlCommand(@"
+                IF OBJECT_ID('dbo.KET_QUA_VAN_DAU', 'U') IS NULL
+                CREATE TABLE dbo.KET_QUA_VAN_DAU(
+                    ma_tran INT NOT NULL,
+                    so_van INT NOT NULL,
+                    ma_doi INT NOT NULL,
+                    ket_qua NVARCHAR(20) NULL,
+                    thu_hang INT NULL,
+                    so_kill INT NOT NULL DEFAULT 0,
+                    diem_so FLOAT NOT NULL DEFAULT 0,
+                    ngay_cap_nhat DATETIME NOT NULL DEFAULT GETDATE(),
+                    CONSTRAINT PK_KET_QUA_VAN_DAU PRIMARY KEY(ma_tran, so_van, ma_doi)
+                );", conn, tx))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private bool SaveBoResults(SqlConnection conn, SqlTransaction tx, UpdateMatchStatsRequestDTO req, int soVong)
+        {
+            if (req.games == null || req.games.Count == 0) throw new InvalidOperationException("Chua co ket qua van dau.");
+
+            foreach (var game in req.games)
+            {
+                UpsertVanDau(conn, tx, req.ma_tran, game.so_van, game.ma_doi_1, game.ma_doi_thang == game.ma_doi_1 ? "thang" : "thua", null, game.kill_doi_1, 0);
+                UpsertVanDau(conn, tx, req.ma_tran, game.so_van, game.ma_doi_2, game.ma_doi_thang == game.ma_doi_2 ? "thang" : "thua", null, game.kill_doi_2, 0);
+            }
+
+            using (var cmd = new SqlCommand(@"
+                UPDATE c
+                SET c.ket_qua = CASE WHEN s.wins >= @target THEN 'thang' WHEN done.has_done = 1 THEN 'thua' ELSE NULL END,
+                    c.so_kill = s.kills,
+                    c.diem_so = CASE WHEN s.wins >= @target THEN 3 ELSE 0 END
+                FROM CHI_TIET_TRAN_DAU c
+                INNER JOIN (
+                    SELECT ma_doi,
+                           SUM(CASE WHEN ket_qua='thang' THEN 1 ELSE 0 END) AS wins,
+                           SUM(so_kill) AS kills
+                    FROM KET_QUA_VAN_DAU
+                    WHERE ma_tran=@tran
+                    GROUP BY ma_doi
+                ) s ON c.ma_doi=s.ma_doi
+                CROSS APPLY (
+                    SELECT CASE WHEN MAX(w.win_count) >= @target THEN 1 ELSE 0 END AS has_done
+                    FROM (
+                        SELECT ma_doi, SUM(CASE WHEN ket_qua='thang' THEN 1 ELSE 0 END) AS win_count
+                        FROM KET_QUA_VAN_DAU
+                        WHERE ma_tran=@tran
+                        GROUP BY ma_doi
+                    ) w
+                ) done
+                WHERE c.ma_tran=@tran", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                cmd.Parameters.AddWithValue("@target", (soVong / 2) + 1);
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = new SqlCommand(@"
+                SELECT CASE WHEN MAX(win_count) >= @target THEN 1 ELSE 0 END
+                FROM (
+                    SELECT ma_doi, SUM(CASE WHEN ket_qua='thang' THEN 1 ELSE 0 END) AS win_count
+                    FROM KET_QUA_VAN_DAU
+                    WHERE ma_tran=@tran
+                    GROUP BY ma_doi
+                ) x", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                cmd.Parameters.AddWithValue("@target", (soVong / 2) + 1);
+                return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
+            }
+        }
+
+        private bool SaveBattleRoyaleResults(SqlConnection conn, SqlTransaction tx, UpdateMatchStatsRequestDTO req, int soVong)
+        {
+            if (req.ket_qua_br == null || req.ket_qua_br.Count == 0) throw new InvalidOperationException("Chua co ket qua sinh ton.");
+            int n = DemDoiTrongTran(conn, tx, req.ma_tran);
+            int mapNo = req.so_van <= 0 ? 1 : req.so_van;
+
+            foreach (var row in req.ket_qua_br)
+            {
+                int rankPoints = TinhDiemHangSinhTon(row.thu_hang, n);
+                int total = rankPoints + row.so_kill;
+                UpsertVanDau(conn, tx, req.ma_tran, mapNo, row.ma_nhom, null, row.thu_hang, row.so_kill, total);
+            }
+
+            using (var cmd = new SqlCommand(@"
+                UPDATE c
+                SET c.thu_hang = latest.thu_hang,
+                    c.so_kill = totals.kills,
+                    c.diem_so = totals.points
+                FROM CHI_TIET_TRAN_DAU c
+                INNER JOIN (
+                    SELECT ma_doi, SUM(so_kill) AS kills, SUM(diem_so) AS points
+                    FROM KET_QUA_VAN_DAU
+                    WHERE ma_tran=@tran
+                    GROUP BY ma_doi
+                ) totals ON c.ma_doi=totals.ma_doi
+                OUTER APPLY (
+                    SELECT TOP 1 thu_hang
+                    FROM KET_QUA_VAN_DAU k
+                    WHERE k.ma_tran=@tran AND k.ma_doi=c.ma_doi
+                    ORDER BY so_van DESC
+                ) latest
+                WHERE c.ma_tran=@tran", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = new SqlCommand("SELECT COUNT(DISTINCT so_van) FROM KET_QUA_VAN_DAU WHERE ma_tran=@tran", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", req.ma_tran);
+                return Convert.ToInt32(cmd.ExecuteScalar()) >= soVong;
+            }
+        }
+
+        private int DemDoiTrongTran(SqlConnection conn, SqlTransaction tx, int maTran)
+        {
+            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM CHI_TIET_TRAN_DAU WHERE ma_tran=@tran", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                return Convert.ToInt32(cmd.ExecuteScalar());
+            }
+        }
+
+        private int TinhDiemHangSinhTon(int top, int n)
+        {
+            if (top >= n - 1) return 0;
+            if (top == 1) return Math.Max(0, (n - 1) - 2) + 3;
+            return Math.Max(0, (n - 1) - top);
+        }
+
+        private void UpsertVanDau(SqlConnection conn, SqlTransaction tx, int maTran, int soVan, int maDoi, string ketQua, int? thuHang, int soKill, double diemSo)
+        {
+            using (var cmd = new SqlCommand(@"
+                MERGE KET_QUA_VAN_DAU AS target
+                USING (SELECT @tran AS ma_tran, @van AS so_van, @doi AS ma_doi) AS src
+                ON target.ma_tran=src.ma_tran AND target.so_van=src.so_van AND target.ma_doi=src.ma_doi
+                WHEN MATCHED THEN
+                    UPDATE SET ket_qua=@kq, thu_hang=@rank, so_kill=@kill, diem_so=@diem, ngay_cap_nhat=GETDATE()
+                WHEN NOT MATCHED THEN
+                    INSERT(ma_tran, so_van, ma_doi, ket_qua, thu_hang, so_kill, diem_so)
+                    VALUES(@tran, @van, @doi, @kq, @rank, @kill, @diem);", conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@tran", maTran);
+                cmd.Parameters.AddWithValue("@van", soVan);
+                cmd.Parameters.AddWithValue("@doi", maDoi);
+                cmd.Parameters.AddWithValue("@kq", (object)ketQua ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@rank", (object)thuHang ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@kill", soKill);
+                cmd.Parameters.AddWithValue("@diem", diemSo);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
         private void RebuildBangXepHang(SqlConnection conn, SqlTransaction tx, int maTran)
         {
             using (var cmd = new SqlCommand(@"
@@ -1586,9 +1827,9 @@ namespace DAL
                 SET so_tran_da_dau = x.so_tran,
                     so_tran_thang = x.thang,
                     so_tran_thua = x.thua,
-                    hieu_so_phu = x.kill,
+                    hieu_so_phu = x.tong_kill,
                     tong_diem_hang = x.diem_hang,
-                    tong_diem_kill = x.kill,
+                    tong_diem_kill = x.tong_kill,
                     diem_tong_ket = x.diem,
                     thu_hang_hien_tai = x.rank_no
                 FROM BANG_XEP_HANG bxh
@@ -1597,7 +1838,7 @@ namespace DAL
                            COUNT(CASE WHEN c.ket_qua IS NOT NULL OR c.thu_hang IS NOT NULL THEN 1 END) AS so_tran,
                            SUM(CASE WHEN c.ket_qua='thang' THEN 1 ELSE 0 END) AS thang,
                            SUM(CASE WHEN c.ket_qua='thua' THEN 1 ELSE 0 END) AS thua,
-                           SUM(ISNULL(c.so_kill,0)) AS kill,
+                           SUM(ISNULL(c.so_kill,0)) AS tong_kill,
                            SUM(CASE WHEN c.thu_hang IS NULL THEN 0 ELSE c.diem_so END) AS diem_hang,
                            SUM(c.diem_so) AS diem,
                            ROW_NUMBER() OVER (ORDER BY SUM(c.diem_so) DESC, SUM(ISNULL(c.so_kill,0)) DESC) AS rank_no
