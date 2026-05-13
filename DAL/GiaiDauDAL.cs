@@ -829,15 +829,26 @@ namespace DAL
                                         stages.Add(new GiaiDoanDTO
                                         {
                                             ma_giai_doan = Convert.ToInt32(r["ma_giai_doan"]),
+                                            so_thu_tu = Convert.ToInt32(r["thu_tu"]),
                                             the_thuc = r["the_thuc"].ToString(),
-                                            ten_giai_doan = r["ten_giai_doan"].ToString()
+                                            ten_giai_doan = r["ten_giai_doan"].ToString(),
+                                            so_doi = r["so_doi"] == DBNull.Value ? 0 : Convert.ToInt32(r["so_doi"]),
+                                            so_doi_di_tiep = r["so_doi_di_tiep"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["so_doi_di_tiep"])
                                         });
                                     }
                                 }
                             }
 
                             var teams = new List<int>();
-                            using (var cmd = new SqlCommand("SELECT ma_doi FROM THAM_GIA_GIAI WHERE ma_giai_dau=@gd AND trang_thai_duyet='da_duyet' ORDER BY ma_tham_gia", conn, tx))
+                            using (var cmd = new SqlCommand(@"
+                                SELECT ma_doi
+                                FROM (
+                                    SELECT ma_doi, MIN(ma_tham_gia) AS first_join
+                                    FROM THAM_GIA_GIAI
+                                    WHERE ma_giai_dau=@gd AND trang_thai_duyet='da_duyet' AND ma_doi IS NOT NULL
+                                    GROUP BY ma_doi
+                                ) x
+                                ORDER BY first_join", conn, tx))
                             {
                                 cmd.Parameters.AddWithValue("@gd", maGiaiDau);
                                 using (var r = cmd.ExecuteReader())
@@ -860,7 +871,11 @@ namespace DAL
                                         cmd.ExecuteNonQuery();
                                     }
                                 }
+                            }
 
+                            if (stages.Count > 0)
+                            {
+                                var stage = stages[0];
                                 if (stage.the_thuc == "vong_tron")
                                 {
                                     for (int i = 0; i < teams.Count; i++)
@@ -1256,7 +1271,7 @@ namespace DAL
                 {
                     using (var cmd = new SqlCommand(@"
                         UPDATE TRAN_DAU
-                        SET ma_trong_tai=@ref, the_thuc_tran=@format, so_vong=@soVong, trang_thai='chuan_bi'
+                        SET ma_trong_tai=@ref, the_thuc_tran=@format, so_vong=@soVong, trang_thai='chua_dau'
                         WHERE ma_tran=@tran", conn, tx))
                     {
                         cmd.Parameters.AddWithValue("@tran", req.ma_tran);
@@ -1339,7 +1354,7 @@ namespace DAL
         public void BatDauTran(int maTran)
         {
             using (var conn = DbConnectionFactory.CreateConnection())
-            using (var cmd = new SqlCommand("UPDATE TRAN_DAU SET trang_thai='dang_thi_dau' WHERE ma_tran=@tran AND trang_thai='san_sang'", conn))
+            using (var cmd = new SqlCommand("UPDATE TRAN_DAU SET trang_thai='dang_dau' WHERE ma_tran=@tran AND trang_thai='san_sang'", conn))
             {
                 cmd.Parameters.AddWithValue("@tran", maTran);
                 conn.Open();

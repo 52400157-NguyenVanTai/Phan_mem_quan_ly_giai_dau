@@ -408,8 +408,9 @@ namespace BUS
 
         public ApiResponseDTO BatDauTran(int maNguoiDung, GiaiDauActionRequestDTO req)
         {
-            if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
-            dal.BatDauTran(req.ma_giai_dau);
+            int maTran = req == null ? 0 : (req.ma_tran > 0 ? req.ma_tran : req.ma_giai_dau);
+            if (maTran <= 0) return Loi("Du lieu khong hop le.");
+            dal.BatDauTran(maTran);
             return Ok("Trận đấu đã bắt đầu.", null);
         }
 
@@ -422,8 +423,9 @@ namespace BUS
 
         public ApiResponseDTO ChotKetQuaTran(int maNguoiDung, GiaiDauActionRequestDTO req)
         {
-            if (req == null || req.ma_giai_dau <= 0) return Loi("Dữ liệu không hợp lệ.");
-            dal.ChotKetQuaTran(req.ma_giai_dau);
+            int maTran = req == null ? 0 : (req.ma_tran > 0 ? req.ma_tran : req.ma_giai_dau);
+            if (maTran <= 0) return Loi("Du lieu khong hop le.");
+            dal.ChotKetQuaTran(maTran);
             return Ok("Đã xác nhận kết thúc trận.", null);
         }
     }

@@ -36,10 +36,8 @@
 
     const MATCH_STATE_LABELS = {
         chua_dau: "Chưa đấu",
-        chuan_bi: "Chuẩn bị",
         san_sang: "Sẵn sàng",
         dang_dau: "Đang thi đấu",
-        dang_thi_dau: "Đang thi đấu",
         cho_ket_qua: "Chờ kết quả",
         da_hoan_thanh: "Đã hoàn thành",
         huy_bo: "Hủy bỏ",
@@ -490,7 +488,7 @@
     function renderMatchCard(m, isBTC) {
         const teams = (m.chi_tiet || []).map(c => escapeHtml(c.ten_doi)).join(" vs ");
         const canStart = isBTC && m.trang_thai === "san_sang";
-        const canComplete = isBTC && (m.trang_thai === "dang_thi_dau" || m.trang_thai === "cho_ket_qua");
+        const canComplete = isBTC && (m.trang_thai === "dang_dau" || m.trang_thai === "cho_ket_qua");
         return '<article class="match-card" data-match-id="' + m.ma_tran + '"><div>' +
             '<div class="match-title">' + escapeHtml(m.vong_dau || m.ten_giai_doan || "Tran dau") + '</div>' +
             '<div class="match-teams">' + (teams || "Dang cho doi") + '</div>' +
@@ -498,7 +496,7 @@
             '<div class="match-actions">' +
             (isBTC ? '<button class="hub-btn-outline js-setup-match" data-id="' + m.ma_tran + '">Chuan bi</button>' : "") +
             (canStart ? '<button class="hub-btn-primary js-start-match" data-id="' + m.ma_tran + '">Bat dau tran</button>' : "") +
-            (m.trang_thai === "dang_thi_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi ket qua</button>' : "") +
+            (m.trang_thai === "dang_dau" ? '<button class="hub-btn-outline js-stats-match" data-id="' + m.ma_tran + '">Ghi ket qua</button>' : "") +
             (canComplete ? '<button class="hub-btn-warning js-complete-match" data-id="' + m.ma_tran + '">Xac nhan ket thuc</button>' : "") +
             '</div></article>';
     }
@@ -519,7 +517,7 @@
         }, {});
     }
     async function postMatchAction(url, maTran) {
-        const result = await postApi(url, { ma_giai_dau: maTran });
+        const result = await postApi(url, { ma_tran: maTran });
         notify(result.message || "Đã xử lý.");
         if (result.success) await loadTournamentDetail();
     }

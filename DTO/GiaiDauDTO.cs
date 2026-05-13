@@ -151,6 +151,7 @@ namespace DTO
     public class GiaiDauActionRequestDTO
     {
         public int ma_giai_dau { get; set; }
+        public int ma_tran { get; set; }
     }
 
     // ===== PHASE 2: MATCH & REFEREE DTOs =====
